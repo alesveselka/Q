@@ -38,6 +38,8 @@
 * Survivorship Bias
 * Cognitive Bias
 
+(Backtest double-check on Quantopian.com?)
+
 #####Exchange Issues
 
 * Order Types
@@ -55,7 +57,7 @@
 * Uptime / Restart
 * Monitoring running - SMS / E-Mail problems
 * Running statistics
-* Execution confirmations and summary
+* Execution confirmations and summary (send e-mail/SMS in case of failure/timeout)
 
 ###Fund
 
@@ -73,3 +75,13 @@
     * Variance-Ratio Test
 
 * Sensitivity Analysis
+
+###Stats
+
+* Beta to SPY/S&P 500, Funds of Funds / Peers
+* Sharpe ratio
+* Annualized volatility
+* Annualized return
+* Max Drodawn (size and time)
+* Stability of Returns
+* Sortino ratio
