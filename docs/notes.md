@@ -58,6 +58,7 @@
 * Monitoring running - SMS / E-Mail problems
 * Running statistics
 * Execution confirmations and summary (send e-mail/SMS in case of failure/timeout)
+* Second redundant server pooling first one to check availability?
 
 ###Fund
 
