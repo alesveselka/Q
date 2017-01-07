@@ -21,6 +21,12 @@
     * Replication (Backup)
     * Schema update/installation
 
+* Data
+    * Storage Requiremenets?
+    * Risk-Free Rate
+    * Benchmarks (S&P 500, FTSE100, DAX, CTA indexes, etc.)
+    * Fundamentals?
+
 #####Execution
 
 * Market / Exchange Micro-structure
