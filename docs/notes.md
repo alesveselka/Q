@@ -27,6 +27,8 @@
     * Risk-Free Rate
     * Benchmarks (S&P 500, FTSE100, DAX, CTA indexes, etc.)
     * Fundamentals?
+    * Continuous Futures Contracts
+    * VIX
 
 #####Execution
 
@@ -34,6 +36,7 @@
 * Transaction cost
 * Test execution price across period's high-low range
 * Set up "cap" on opening prices? (based on vola. stats? / observe night range)
+* Strategy should be designed such that a single data point cannot skew the performance of the strategy to any great extent.
 
 #####Backtesting Biases
 
