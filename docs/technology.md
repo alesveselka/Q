@@ -6,10 +6,16 @@ Event-driven architecture:
 
 #####Broker API
 * Java (IB API)
+* IbPy?
 * Spock (for Java testing)
 
 #####Program
 * Python (data processing, analysis)
+    - NumPy/SciPy
+    - matplotlib
+    - pandas
+    - scikit-learn
+    - IbPy (Interactive Brokers wrapper)
 * Behave? (BDD for Python)
 
 #####Reporting

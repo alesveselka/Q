@@ -12,6 +12,7 @@
     * scikit-learn (statistical/machine learning)
     * IPython (interactive development)
     * matplotlib (visualisation)
+    * IbPy (Interactive Brokers wrapper)
 
 #####DataBase
 
