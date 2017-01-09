@@ -21,6 +21,7 @@
     * Availability
     * Replication (Backup)
     * Schema update/installation
+    * UTF-8 character set
 
 * Data
     * Storage Requiremenets?
