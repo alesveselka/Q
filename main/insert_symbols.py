@@ -35,12 +35,11 @@ def obtain_parse_wiki_snp500():
     symbols = []
     for i, symbol in enumerate(symbolslist):
         tds = symbol.select('td')
-        print(tds[0].select('a')[0].text)
         symbols.append((
             tds[0].select('a')[0].text,     # Ticker
             'stock',                        # Instrument
             tds[1].select('a')[0].text,     # Name
-            tds[2].text,                    # Sector
+            tds[3].text,                    # Sector
             'USD',                          # Currency
             now,                            # Created date
             now                             # Last updated dat
@@ -48,5 +47,28 @@ def obtain_parse_wiki_snp500():
 
     return symbols
 
+def insert_snp500_symbols(symbols):
+    """
+    Insert the S&P 500 symols into MySQL database.
+    """
+
+    # Connect to the MySQL instance
+    db_host = 'localhost'
+    db_user = 'sec_user'
+    db_pass = 'root'        # Load from ENVs
+    db_name = 'securities_master'
+    connection = mdb.connect(host=db_host, user=db_user, passwd=db_pass, db=db_name)
+
+    # Create the insert strings
+    column_str = "ticker, instrument, name, sector, currency, created_date, last_updated_date"
+    insert_str = ("%s, " * 7)[:-2]
+    final_str = "INSERT INTO symbol (%s) VALUES (%s)" % (column_str, insert_str)
+
+    # Using the MySQL connection, carry out
+    # an INSERT INTO for every symbol
+    with connection:
+        cursor = connection.cursor()
+        cursor.executemany(final_str, symbols)
+
 if __name__ == "__main__":
-    obtain_parse_wiki_snp500()
+    insert_snp500_symbols(obtain_parse_wiki_snp500())
