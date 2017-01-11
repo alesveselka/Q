@@ -4,7 +4,7 @@
 
 * Futures
 * Risk-Free Rate
-* Forex
+* Forex (FX)
 * Benchmarks / Indicies
 * Equities
 * Bonds
