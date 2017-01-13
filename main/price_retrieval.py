@@ -67,7 +67,7 @@ def get_daily_historic_data_yahoo(
 
     return prices
 
-def insert_daily_data_into_db(data_vendor_id, symbold_id, daily_data):
+def insert_daily_data_into_db(data_vendor_id, symbol_id, daily_data):
     """
     Takes a list of tuples of daily data and adds it to the
     MySQL database. Appends the vendor ID and symbol ID to the data.
@@ -82,7 +82,7 @@ def insert_daily_data_into_db(data_vendor_id, symbold_id, daily_data):
     # Amend the data to include vendor ID and symbol ID
     daily_data = [
         (data_vendor_id, symbol_id, d[0], now, now,
-        d[1], d[2], d[3], d[4], d[5], d[6]),
+        d[1], d[2], d[3], d[4], d[5], d[6])
         for d in daily_data
     ]
 
@@ -99,5 +99,18 @@ def insert_daily_data_into_db(data_vendor_id, symbold_id, daily_data):
         cursor.executemany(final_str, daily_data)
 
 if __name__ == "__main__":
-    # print(obtain_list_of_db_tickers())
-    print(get_daily_historic_data_yahoo("GOOG"))
+    # This ignores the warnings regarding Data Truncation
+    # from the Yahoo precision to Decimal(19, 4), datatypes
+    warnings.filterwarnings('ignore')
+
+    # Loop over the tickers and insert the daily historical
+    # data into database
+    tickers = obtain_list_of_db_tickers()
+    lentickers = len(tickers)
+    for i, t in enumerate(tickers):
+        print("Adding data for %s: %s out of %s" % (t[1], i+1, lentickers))
+
+        yf_data = get_daily_historic_data_yahoo(t[1])
+        insert_daily_data_into_db('1', t[0], yf_data)
+
+    print("Successfuly added Yahoo Finance data to DB.")
