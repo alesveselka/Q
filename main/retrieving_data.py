@@ -21,3 +21,9 @@ if __name__ == "__main__":
              ON dp.symbol_id = sym.id 
              WHERE sym.ticker = 'GOOG' 
              ORDER BY dp.price_date ASC;"""
+
+    # Create a pandas DataFrame from the SQL query
+    goog = pd.read_sql_query(sql, con=connection, index_col='price_date')
+
+    # Output the dataframe tail
+    print(goog.tail())
