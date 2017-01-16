@@ -97,3 +97,7 @@
 * Max Drodawn (size and time)
 * Stability of Returns
 * Sortino ratio
+
+###Misc
+
+* Fundamentals? (GDP., Leading indicators, ... ?)
