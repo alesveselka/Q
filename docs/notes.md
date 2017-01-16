@@ -90,6 +90,8 @@
 * Currency hedge
 * Interest(s)!
 * Team - establish credibility and authority
+    - SW (RIA, SPA, Mobile, Web)
+    - Trading (Long/Short Equity, second-frequncy e-mini futures, (non)directional option strategies, Seasonal Futures Spreads, discretional day trading, etc.)
 
 ###Math Topics
 
