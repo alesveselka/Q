@@ -38,6 +38,7 @@
     * Continuous Futures Contracts
     * VIX
     * Costruct less granual timeframe from higher-granual?
+    * Total Return series for Equities (not Price series)
 
 #####Execution
 
@@ -55,6 +56,8 @@
     * Parameter Calculations
     * Maxima/Minima
 * Survivorship Bias
+* Delisted/Newly-listed stocks (Equities)
+* Total Return Series instead of Price Series (Equities) (capital-base adjustment)
 * Cognitive Bias
 
 (Backtest double-check on Quantopian.com?)

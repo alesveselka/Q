@@ -24,6 +24,7 @@
     * DTN IQFeed
     * EODData (Platinum)
     * QuantQuote
+    * Norgate (see Clenow referral)
 
 ###Process
 
@@ -31,13 +32,14 @@
 * Error processing
 * Automatic Error Report?
 * Automatic Error Correction? (pad, interpolate, etc.)
-* Generating Continuous contract
+* Generating Continuous contract (even if provided commercially -- to cross-check)
 * Generating Term-structure charts
 * Archiving (and Compression)
 
 * Replicate remote DB to local desktop?
 
 ###Entities
+*See Norgate for DB tables layout inspiration*
 
 * Exchange (Ultimate original source)
 * Vendor (Where it is obtained from?)
@@ -53,3 +55,4 @@
 * OHLC Aggregation
 * Missing Data (pad, interpolate, ignore, ... ?)
 * Backfilling (See 8.3.1 in SAT)
+* Account for name/code changes

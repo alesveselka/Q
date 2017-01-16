@@ -28,3 +28,4 @@ Event-driven architecture:
 * HDF5 (https://support.hdfgroup.org/HDF5/)
 * kdb (kx.com)
 * CSV?
+* Apache Spark?
