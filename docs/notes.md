@@ -13,6 +13,8 @@
     * IPython (interactive development)
     * matplotlib (visualisation)
     * IbPy (Interactive Brokers wrapper)
+    * NLTK (Natural Language Toolkit) (Sentiment analysis)
+    * ScraPy (web scraping)
 
 #####DataBase
 
@@ -23,6 +25,11 @@
     * Schema update/installation
     * UTF-8 character set
 
+* Tick data (huge datasets)
+    * HDF5 (https://support.hdfgroup.org/HDF5/)
+    * kdb (kx.com)
+    * CSV (Flat file)?
+
 * Data
     * Storage Requiremenets?
     * Risk-Free Rate
@@ -30,6 +37,7 @@
     * Fundamentals?
     * Continuous Futures Contracts
     * VIX
+    * Costruct less granual timeframe from higher-granual?
 
 #####Execution
 
@@ -78,6 +86,10 @@
 * Compensation structure
 * Reporting
 * Peers and Industry benchmark comparisons
+* "Unused" capital in bonds?
+* Currency hedge
+* Interest(s)!
+* Team - establish credibility and authority
 
 ###Math Topics
 
@@ -94,7 +106,7 @@
 * Sharpe ratio
 * Annualized volatility
 * Annualized return
-* Max Drodawn (size and time)
+* Max Drawdown (size and time)
 * Stability of Returns
 * Sortino ratio
 

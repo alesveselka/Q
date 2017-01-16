@@ -2,12 +2,12 @@
 
 ###Type
 
-* Futures
+* Equities (and ETFs)
+* Bonds (Fixed Income)
+* Commodities (Futures)
 * Risk-Free Rate
 * Forex (FX)
-* Benchmarks / Indicies
-* Equities
-* Bonds
+* Benchmarks / Indicies (US and International)
 * VIX
 
 ###Source
@@ -15,8 +15,15 @@
 * Free EOD Equities
     * Yahoo Finance
     * Google Finance
-    * QuantQuote (S&P 500 EOD only)
+    * Quandl (*best free source?*)
     * EODData (requires registration)
+    * QuantQuote (S&P 500 EOD only)
+    * IB?
+
+* Commercial
+    * DTN IQFeed
+    * EODData (Platinum)
+    * QuantQuote
 
 ###Process
 
@@ -25,6 +32,7 @@
 * Automatic Error Report?
 * Automatic Error Correction? (pad, interpolate, etc.)
 * Generating Continuous contract
+* Generating Term-structure charts
 * Archiving (and Compression)
 
 * Replicate remote DB to local desktop?
@@ -44,3 +52,4 @@
 * Spikes (Pricing points exceedeing greatly historical volatility)
 * OHLC Aggregation
 * Missing Data (pad, interpolate, ignore, ... ?)
+* Backfilling (See 8.3.1 in SAT)
