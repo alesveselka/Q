@@ -26,6 +26,24 @@
     * QuantQuote
     * Norgate (see Clenow referral)
 
+###Investment Universe
+*Equal-weighted investment universe*
++---------------+-------------------+---------------+---------------+-------------------+
+| Agricultural  | Non-agricultural  | Currencies    | Equities      | Rates             |
++---------------+-------------------+---------------+---------------+-------------------+
+| Cotton        | Gasoil            | AUD/USD       | CAC 40        | Bunt              |
+| Corn          | Crude oil         | GBP/USD       | DAX           | Schatz            |
+| Lumber        | Heating oil       | EUR/USD       | FTSE 100      | Long gilt         |
+| Live cattle   | Natural gas (HH)  | JPY/USD       | HS China      | Canadian Bankers' |
+|               |                   |               | Enterprises   | Acceptance        |
+| Lean hogs     | Gasoline          | NZD/USD       | Hang Seng     | US 2-year note    |
+| Oats          | Gold              | EUR/CHF       | Nasdaq 100    | US 10-year note   |
+| Rough rice    | Copper            | EUR/GBP       | Nikkei 225    | Eurodollar        |
+| Soybeans      | Palladium         | EUR/JPY       | S&P 500       | Euroswiss         |
+| Sugar         | Platinum          | CHF/USD       | EuroStoxx 50  | Euribor           |
+| Wheat         | Silver            | CAD/USD       | Russell 2000  | Short sterling    |
++---------------+-------------------+---------------+---------------+-------------------+
+
 ###Process
 
 * Automatic download

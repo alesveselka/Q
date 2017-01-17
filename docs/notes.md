@@ -46,7 +46,8 @@
 * Transaction cost
 * Test execution price across period's high-low range
 * Set up "cap" on opening prices? (based on vola. stats? / observe night range)
-* Strategy should be designed such that a single data point cannot skew the performance of the strategy to any great extent.
+* Strategy should be designed such that a single data point cannot skew the performance 
+  of the strategy to any great extent.
 
 #####Backtesting Biases
 
@@ -94,7 +95,8 @@
 * Interest(s)!
 * Team - establish credibility and authority
     - SW (RIA, SPA, Mobile, Web)
-    - Trading (Long/Short Equity, second-frequncy e-mini futures, (non)directional option strategies, Seasonal Futures Spreads, discretional day trading, etc.)
+    - Trading (Long/Short Equity, second-frequncy e-mini futures, 
+      (non)directional option strategies, Seasonal Futures Spreads, discretional day trading, etc.)
 
 ###Math Topics
 
