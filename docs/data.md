@@ -69,6 +69,8 @@
 
 ###Data Accuracy Evaluation
 
+* Conflicting/incorrect data
+* Opaque aggregation
 * Corporate Action (make sure the Formulae has been applied correctly)
 * Spikes (Pricing points exceedeing greatly historical volatility)
 * OHLC Aggregation
