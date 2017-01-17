@@ -25,6 +25,7 @@
     * EODData (Platinum)
     * QuantQuote
     * Norgate (see Clenow referral)
+    * CSI Data
 
 ###Investment Universe
 *Equal-weighted investment universe*
