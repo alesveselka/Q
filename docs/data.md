@@ -29,9 +29,9 @@
 
 ###Investment Universe
 *Equal-weighted investment universe*
-+---------------+-------------------+---------------+---------------+-------------------+
+
 | Agricultural  | Non-agricultural  | Currencies    | Equities      | Rates             |
-+---------------+-------------------+---------------+---------------+-------------------+
+|---------------|-------------------|---------------|---------------|-------------------|
 | Cotton        | Gasoil            | AUD/USD       | CAC 40        | Bunt              |
 | Corn          | Crude oil         | GBP/USD       | DAX           | Schatz            |
 | Lumber        | Heating oil       | EUR/USD       | FTSE 100      | Long gilt         |
@@ -43,7 +43,6 @@
 | Soybeans      | Palladium         | EUR/JPY       | S&P 500       | Euroswiss         |
 | Sugar         | Platinum          | CHF/USD       | EuroStoxx 50  | Euribor           |
 | Wheat         | Silver            | CAD/USD       | Russell 2000  | Short sterling    |
-+---------------+-------------------+---------------+---------------+-------------------+
 
 ###Process
 
