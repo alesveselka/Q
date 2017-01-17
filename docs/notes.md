@@ -39,6 +39,7 @@
     * VIX
     * Costruct less granual timeframe from higher-granual?
     * Total Return series for Equities (not Price series)
+    * Open Interest + Volume patterns for rollover decisions!
 
 #####Execution
 

@@ -51,6 +51,8 @@
 * Automatic Error Report?
 * Automatic Error Correction? (pad, interpolate, etc.)
 * Generating Continuous contract (even if provided commercially -- to cross-check)
+  (Use back-adjusted connecting method)
+* Generate multi-expiration overlay chart of Open Interest and Volume (for rollover decisions)
 * Generating Term-structure charts
 * Archiving (and Compression)
 
