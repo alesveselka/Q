@@ -16,6 +16,7 @@ Event-driven architecture:
     - pandas
     - scikit-learn
     - IbPy (Interactive Brokers wrapper)
+    - ScraPy (web scraping)
 * Behave? (BDD for Python)
 
 #####Reporting
@@ -24,3 +25,7 @@ Event-driven architecture:
 
 #####Historical Data Storage
 * MySQL
+* HDF5 (https://support.hdfgroup.org/HDF5/)
+* kdb (kx.com)
+* CSV?
+* Apache Spark?

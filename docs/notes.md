@@ -13,6 +13,8 @@
     * IPython (interactive development)
     * matplotlib (visualisation)
     * IbPy (Interactive Brokers wrapper)
+    * NLTK (Natural Language Toolkit) (Sentiment analysis)
+    * ScraPy (web scraping)
 
 #####DataBase
 
@@ -23,6 +25,11 @@
     * Schema update/installation
     * UTF-8 character set
 
+* Tick data (huge datasets)
+    * HDF5 (https://support.hdfgroup.org/HDF5/)
+    * kdb (kx.com)
+    * CSV (Flat file)?
+
 * Data
     * Storage Requiremenets?
     * Risk-Free Rate
@@ -30,6 +37,9 @@
     * Fundamentals?
     * Continuous Futures Contracts
     * VIX
+    * Costruct less granual timeframe from higher-granual?
+    * Total Return series for Equities (not Price series)
+    * Open Interest + Volume patterns for rollover decisions!
 
 #####Execution
 
@@ -37,7 +47,8 @@
 * Transaction cost
 * Test execution price across period's high-low range
 * Set up "cap" on opening prices? (based on vola. stats? / observe night range)
-* Strategy should be designed such that a single data point cannot skew the performance of the strategy to any great extent.
+* Strategy should be designed such that a single data point cannot skew the performance 
+  of the strategy to any great extent.
 
 #####Backtesting Biases
 
@@ -47,6 +58,8 @@
     * Parameter Calculations
     * Maxima/Minima
 * Survivorship Bias
+* Delisted/Newly-listed stocks (Equities)
+* Total Return Series instead of Price Series (Equities) (capital-base adjustment)
 * Cognitive Bias
 
 (Backtest double-check on Quantopian.com?)
@@ -74,10 +87,49 @@
 ###Fund
 
 * Industry-standard Risk Management
-* Reporting / Investors Relations
+* Reporting / Investors Relations (Margin, VaR)
 * Compensation structure
 * Reporting
 * Peers and Industry benchmark comparisons
+* "Unused" capital in bonds?
+* Currency hedge
+* Interest(s) and Financing!
+* Team - establish credibility and authority
+    - SW (RIA, SPA, Mobile, Web)
+    - Trading (Long/Short Equity, second-frequncy e-mini futures, 
+      (non)directional option strategies, Seasonal Futures Spreads, discretional day trading, etc.)
+    - Psychology (mimetic principle)
+* Cost
+    - Deployment
+    - Reporting
+    - Taxation
+
+#####Currency Hedging
+
+* Futures (Euro FX) - contract size 125,000 EUR
+* Forward (not available?)
+* FX position (IB, Oanda)
+
+#####Layers
+
+* Data
+    - Data download
+    - Error corrections
+    - Back-Adjust contracts
+* Trading
+    - Signal generation
+    - Position sizing
+        + Correlations
+        + Risk managements
+    - Position diffs
+    - Execution
+* Hedge
+    - Currency hedge
+    - Fixed income
+* Reporting
+    - Margin
+    - VaR
+    - Stats
 
 ###Math Topics
 
@@ -94,6 +146,10 @@
 * Sharpe ratio
 * Annualized volatility
 * Annualized return
-* Max Drodawn (size and time)
+* Max Drawdown (size and time)
 * Stability of Returns
 * Sortino ratio
+
+###Misc
+
+* Fundamentals? (GDP., Leading indicators, ... ?)
