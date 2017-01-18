@@ -87,17 +87,23 @@
 ###Fund
 
 * Industry-standard Risk Management
-* Reporting / Investors Relations
+* Reporting / Investors Relations (Margin, VaR)
 * Compensation structure
 * Reporting
 * Peers and Industry benchmark comparisons
 * "Unused" capital in bonds?
 * Currency hedge
-* Interest(s)!
+* Interest(s) and Financing!
 * Team - establish credibility and authority
     - SW (RIA, SPA, Mobile, Web)
     - Trading (Long/Short Equity, second-frequncy e-mini futures, 
       (non)directional option strategies, Seasonal Futures Spreads, discretional day trading, etc.)
+
+#####Currency Hedging
+
+* Futures (Euro FX) - contract size 125,000 EUR
+* Forward (not available?)
+* FX position (IB, Oanda)
 
 ###Math Topics
 
