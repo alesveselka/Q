@@ -98,6 +98,11 @@
     - SW (RIA, SPA, Mobile, Web)
     - Trading (Long/Short Equity, second-frequncy e-mini futures, 
       (non)directional option strategies, Seasonal Futures Spreads, discretional day trading, etc.)
+    - Psychology (mimetic principle)
+* Cost
+    - Deployment
+    - Reporting
+    - Taxation
 
 #####Currency Hedging
 
