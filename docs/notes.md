@@ -110,6 +110,27 @@
 * Forward (not available?)
 * FX position (IB, Oanda)
 
+#####Layers
+
+* Data
+    - Data download
+    - Error corrections
+    - Back-Adjust contracts
+* Trading
+    - Signal generation
+    - Position sizing
+        + Correlations
+        + Risk managements
+    - Position diffs
+    - Execution
+* Hedge
+    - Currency hedge
+    - Fixed income
+* Reporting
+    - Margin
+    - VaR
+    - Stats
+
 ###Math Topics
 
 * Statistical Stationary tests
