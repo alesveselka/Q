@@ -65,3 +65,24 @@ of the temporal ordering of the series.*
 * Cointegrated Augmented Dickey-Fuller (CADF)
   Determines optimal hedge ratio by performing a linear regression aginst the two 
   time series and then test for stationarity under the linear combination.
+
+###Forecasting
+
+#####Forecasting Performance measures
+
+* Hit-Rate
+  How many times did we predict the correct direction, as a percentage of all predictions?
+* Confusion Matrix (Contingency Table)
+  How many times did we predict 'up' correctly, and how many times did we 
+  predict 'down' correctly?
+
+#####Classification models
+
+* Logistic Regression
+  E.g. for measure the relationship between a *binary categorical dependent variable* 
+  (i.e. 'up' or 'down' periods) and multiple independent *continuous variables*, such as
+  lagged percentage returns of a financial asset.
+* Discriminant Analysis
+    - Linear Discriminant Analysis (LDA)
+    - Quadratic Discriminant Analysis (QDA)
+* Support Vector Machines (SVM) (Support Vector Classifier (SVC))
