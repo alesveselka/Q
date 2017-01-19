@@ -49,6 +49,7 @@
 * Set up "cap" on opening prices? (based on vola. stats? / observe night range)
 * Strategy should be designed such that a single data point cannot skew the performance 
   of the strategy to any great extent.
+* Roll Startegy
 
 #####Backtesting Biases
 

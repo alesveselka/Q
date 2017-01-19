@@ -16,3 +16,36 @@
   response Y(j)
 * In Unsupervised model, there is no corresponding response Y(j) for any
   particular predictor X(j)
+
+###Techniques
+
+#####Regression
+*Supervised Machine Learning. Tries to model the relationship between a dependent 
+variable (response) and set of independent variables (predictors).*
+
+* Linear Regression (linear relationships between the predictors and response)
+* Logistic Regression (categorical/classification tool) (Maximum Likelihood Estimation)
+
+#####Classification
+*Aim to classify an observation (similar to a predictor) into a set of pre-defined
+categories, based on features associated with observation.*
+
+* Logistic Regression
+* Linear/Quadratic Discriminant Analysis
+* Support Vector Machines (SVM)
+* Artificial Neural Neworks (ANN)
+
+#####Time Series Models
+*Mixed-subset of regression and classification, that make deliberate use 
+of the temporal ordering of the series.*
+
+* Linear Autoregressive Integrated Moving Average (ARIMA)
+  (Variations in the absolute value of a time series)
+* Autoregressive Conditional Heteroskedasticity (ARCH)
+  (Model variance/volatility of time series over time)
+
+* Discrete Time Series - contain finite values
+* Continuous Times Series
+    - Geometric Brownian Motion
+    - Heston Stochastic Volatility
+    - Ornstein-Uhlenbeck
