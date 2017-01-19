@@ -108,6 +108,7 @@
 #####Currency Hedging
 
 * Futures (Euro FX) - contract size 125,000 EUR
+* US Dollar Futures, or Mini US Dollar Index Futures
 * Forward (not available?)
 * FX position (IB, Oanda)
 
@@ -121,6 +122,7 @@
     - Signal generation
     - Position sizing
         + Correlations
+        + "Trendiness" (Hurst, ...)
         + Risk managements
     - Position diffs
     - Execution
@@ -150,6 +152,7 @@
 * Max Drawdown (size and time)
 * Stability of Returns
 * Sortino ratio
+* "Trendiness" via Hurst Exponent
 
 ###Misc
 
