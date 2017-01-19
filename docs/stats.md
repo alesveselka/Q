@@ -56,3 +56,9 @@ of the temporal ordering of the series.*
 
 * Ornstein-Uhlenbeck process
 * Augmented Dickey-Fuller (ADF) Test
+* Hurst Exponent
+  Testing Stationarity. **Strong Stationarity** is when *joint probability distribution* 
+  is invariant under translations in time or space.
+    * H < 0.5 -- The time series is mean reverting
+    * H = 0.5 -- The time series is a Geometrical Brownian Motion
+    * H > 0.5 -- The time series is trending
