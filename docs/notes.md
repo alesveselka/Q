@@ -108,6 +108,8 @@
 #####Currency Hedging
 
 * Futures (Euro FX) - contract size 125,000 EUR
+    - Mini Futures - contract size 62,500 EUR
+    - Micro Futures - contract size 12,500 EUR
 * US Dollar Futures, or Mini US Dollar Index Futures
 * Forward (not available?)
 * FX position (IB, Oanda)
