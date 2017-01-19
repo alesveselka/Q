@@ -62,3 +62,6 @@ of the temporal ordering of the series.*
     * H < 0.5 -- The time series is mean reverting
     * H = 0.5 -- The time series is a Geometrical Brownian Motion
     * H > 0.5 -- The time series is trending
+* Cointegrated Augmented Dickey-Fuller (CADF)
+  Determines optimal hedge ratio by performing a linear regression aginst the two 
+  time series and then test for stationarity under the linear combination.
