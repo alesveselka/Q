@@ -1,6 +1,8 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
+# Cointegrated Augmented Dickey-Fuller (CADF)
+
 import datetime as dt
 import numpy as np
 import matplotlib.pyplot as plt
