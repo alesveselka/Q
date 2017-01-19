@@ -37,7 +37,7 @@
     * Fundamentals?
     * Continuous Futures Contracts
     * VIX
-    * Costruct less granual timeframe from higher-granual?
+    * Costruct less-granual timeframe from higher-granual?
     * Total Return series for Equities (not Price series)
     * Open Interest + Volume patterns for rollover decisions!
 
@@ -49,7 +49,7 @@
 * Set up "cap" on opening prices? (based on vola. stats? / observe night range)
 * Strategy should be designed such that a single data point cannot skew the performance 
   of the strategy to any great extent.
-* Roll Startegy
+* Roll Startegy (see 'Algorithmic Trading', and 'Dynamic Roll Strategies' PDF)
 
 #####Backtesting Biases
 
@@ -73,6 +73,10 @@
 * Transaction Cost
     - Commissions, Fees, Taxes
     - Slippage
+
+#####Continual Integration
+
+* GitHub
 
 ###Deployment
 
@@ -125,7 +129,7 @@
     - Position sizing
         + Correlations
         + "Trendiness" (Hurst, ...)
-        + Risk managements
+        + Risk managements (Kelly?)
     - Position diffs
     - Execution
 * Hedge
@@ -161,3 +165,13 @@
 ###Misc
 
 * Fundamentals? (GDP., Leading indicators, ... ?)
+
+###Strategies
+
+* **Diversified Trend-Following with Futures**
+* Statistical Pair trading
+* Dual Momentum
+* Intraday momentum
+* fundamentals-driven Long/Short equity
+* Weller hybrid system
+* "Trading Room"
