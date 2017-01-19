@@ -153,6 +153,8 @@
 * Stability of Returns
 * Sortino ratio
 * "Trendiness" via Hurst Exponent
+* Also calculate stats on the time series themselves
+  in addition on strategy resuls
 
 ###Misc
 
