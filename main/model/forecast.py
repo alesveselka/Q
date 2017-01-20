@@ -42,8 +42,8 @@ def create_lagged_series(symbol, start_date, end_date, lags=5):
     # If any of the values of percentage returns equal zero, set them to
     # a small number (stops issues with QDA  model in Scikit-Learn)
     for i,x in enumerate(tsret['Today']):
-        if (abs(x) < 0.0001):
-            tsret['Today'] = 0.0001
+        if (np.isnan(x) or abs(x) < 0.0001):
+            tsret['Today'][i] = 0.0001
 
     # Create the lagged percentage returns columns
     for i in range(0, lags):
@@ -56,7 +56,7 @@ def create_lagged_series(symbol, start_date, end_date, lags=5):
     return tsret
 
 def main():
-    print create_lagged_series('AMZN', dt.datetime(2012, 1, 1), dt.datetime(2013, 1, 1))
+    create_lagged_series('AMZN', dt.datetime(2015, 12, 1), dt.datetime(2016, 12, 20))
 
 if __name__ == "__main__":
     main()
