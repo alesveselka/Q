@@ -37,7 +37,7 @@
     * Fundamentals?
     * Continuous Futures Contracts
     * VIX
-    * Costruct less granual timeframe from higher-granual?
+    * Costruct less-granual timeframe from higher-granual?
     * Total Return series for Equities (not Price series)
     * Open Interest + Volume patterns for rollover decisions!
 
@@ -49,6 +49,7 @@
 * Set up "cap" on opening prices? (based on vola. stats? / observe night range)
 * Strategy should be designed such that a single data point cannot skew the performance 
   of the strategy to any great extent.
+* Roll Startegy (see 'Algorithmic Trading', and 'Dynamic Roll Strategies' PDF)
 
 #####Backtesting Biases
 
@@ -72,6 +73,10 @@
 * Transaction Cost
     - Commissions, Fees, Taxes
     - Slippage
+
+#####Continual Integration
+
+* GitHub
 
 ###Deployment
 
@@ -107,6 +112,9 @@
 #####Currency Hedging
 
 * Futures (Euro FX) - contract size 125,000 EUR
+    - Mini Futures - contract size 62,500 EUR
+    - Micro Futures - contract size 12,500 EUR
+* US Dollar Futures, or Mini US Dollar Index Futures
 * Forward (not available?)
 * FX position (IB, Oanda)
 
@@ -120,7 +128,8 @@
     - Signal generation
     - Position sizing
         + Correlations
-        + Risk managements
+        + "Trendiness" (Hurst, ...)
+        + Risk managements (Kelly?)
     - Position diffs
     - Execution
 * Hedge
@@ -149,7 +158,20 @@
 * Max Drawdown (size and time)
 * Stability of Returns
 * Sortino ratio
+* "Trendiness" via Hurst Exponent
+* Also calculate stats on the time series themselves
+  in addition on strategy resuls
 
 ###Misc
 
 * Fundamentals? (GDP., Leading indicators, ... ?)
+
+###Strategies
+
+* **Diversified Trend-Following with Futures**
+* Statistical Pair trading
+* Dual Momentum
+* Intraday momentum
+* fundamentals-driven Long/Short equity
+* Weller hybrid system
+* "Trading Room"
