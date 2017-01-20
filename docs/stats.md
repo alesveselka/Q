@@ -78,11 +78,18 @@ of the temporal ordering of the series.*
 
 #####Classification models
 
-* Logistic Regression
-  E.g. for measure the relationship between a *binary categorical dependent variable* 
-  (i.e. 'up' or 'down' periods) and multiple independent *continuous variables*, such as
-  lagged percentage returns of a financial asset.
-* Discriminant Analysis
-    - Linear Discriminant Analysis (LDA)
-    - Quadratic Discriminant Analysis (QDA)
-* Support Vector Machines (SVM) (Support Vector Classifier (SVC))
+* Supervised Classification
+  - Naive Bayes
+  - Logistic Regression
+    E.g. for measure the relationship between a *binary categorical dependent variable* 
+    (i.e. 'up' or 'down' periods) and multiple independent *continuous variables*, such as
+    lagged percentage returns of a financial asset.
+  - Discriminant Analysis
+      + Linear Discriminant Analysis (LDA)
+      + Quadratic Discriminant Analysis (QDA)
+  - Support Vector Machines (SVM) (Support Vector Classifier (SVC) - nonlinear)
+  - Decision Trees(DT) and Random Forests
+    DT partition a space into a hierarchy of boolean choices that lead to a categorisation
+    or grouping based on the repective decisions.
+* Unsupervised learning
+  - Principal Component Analysis (PCA)
