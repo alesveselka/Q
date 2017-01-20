@@ -108,6 +108,7 @@
     - Deployment
     - Reporting
     - Taxation
+* Cash In-flow/Out-flow management (**Also reflect in return reports**)
 
 #####Currency Hedging
 
