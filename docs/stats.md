@@ -93,3 +93,5 @@ of the temporal ordering of the series.*
     or grouping based on the repective decisions.
 * Unsupervised learning
   - Principal Component Analysis (PCA)
+
+Autocorrelation
