@@ -40,5 +40,33 @@ def equity_sharpe(ticker):
     # Return the annualised Sharpe ratio based on the excess daily returns
     return annualised_sharpe(pdf['excess_daily_return'])
 
+def market_neutral_sharpe(ticker, benchmark):
+    """
+    Calculates the annualised Sharpe ratio of a market neutral
+    long/short strategy involving the long of 'ticker'
+    with a corresponding short of the 'benchmark'.
+    """
+    start = dt.datetime(2000, 1, 1)
+    end = dt.datetime(2013, 1, 1)
+
+    # Get historical data for both a symbol/ticker and a benchmark ticker
+    # The dates have been hard-coded, but you can modify them as you see fit.
+    tick = pdr.get_data_google(ticker, start, end)
+    bench = pdr.get_data_google(benchmark, start, end)
+
+    # Calculate the percentage returns on each of the time series
+    tick['daily_return'] = tick['Close'].pct_change()
+    bench['daily_return'] = bench['Close'].pct_change()
+
+    # Create a new DataFrame to store the strategy information
+    # The net returns are (long - short) / 2, since there is twice
+    # the trading capital for this strategy
+    strategy = pd.DataFrame(index=tick.index)
+    strategy['net_return'] = (tick['daily_return'] - bench['daily_return']) / 2
+
+    # Return annualized Sharpe ratio for this strategy
+    return annualised_sharpe(strategy['net_return'])
+
 if __name__ == "__main__":
     print equity_sharpe('GOOG')
+    print market_neutral_sharpe('GOOG', 'SPY')
