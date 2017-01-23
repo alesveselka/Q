@@ -7,6 +7,7 @@ Event-driven architecture:
 #####Broker API
 * Java (IB API)
 * IbPy?
+* FIX protocol
 * Spock (for Java testing)
 
 #####Program

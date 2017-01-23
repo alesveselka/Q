@@ -108,6 +108,7 @@
     - Deployment
     - Reporting
     - Taxation
+* Cash In-flow/Out-flow management (**Also reflect in return reports**)
 
 #####Currency Hedging
 
@@ -161,10 +162,12 @@
 * "Trendiness" via Hurst Exponent
 * Also calculate stats on the time series themselves
   in addition on strategy resuls
+* Pearson Product Moment Correlation Coefficient
+* Variance-Covariance
 
 ###Misc
 
-* Fundamentals? (GDP., Leading indicators, ... ?)
+* Fundamentals? (GDP, Leading indicators, ... ?)
 
 ###Strategies
 
