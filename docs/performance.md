@@ -42,4 +42,9 @@
     - Sharpe Ratio (*Out-of-sample Sharpe for investors*)
         + (Risk-Free Rate, and/or 10-years Treasury bills as benchmark)
         + Assumes Normal (Gaussian) distribution (poor at fat-tail risk)
+    - Sortino ratio
+    - CALMAR ratio
 * Drawdown Analysis
+    - Maximum Drawdown
+    - Drawdown duration
+    - Drawdown curve
