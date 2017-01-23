@@ -48,7 +48,7 @@ class DataHandler(object):
         )
 
     @abstractmethod
-    def get_latest_bar_value(self, symbol, type):
+    def get_latest_bar_value(self, symbol, value_type):
         """
         Returns one of the Open, High, Low, Close, Volume, or OI
         from the last bar.
@@ -58,7 +58,7 @@ class DataHandler(object):
         )
 
     @abstractmethod
-    def get_latest_bar_values(self, symbol, type, N=1):
+    def get_latest_bar_values(self, symbol, value_type, N=1):
         """
         Returns the last N bar values from the latest_symbol list,
         or N-k if less available.
