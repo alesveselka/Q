@@ -8,10 +8,7 @@ from math import floor
 from event import FillEvent, OrderEvent
 from performance import create_sharpe_ratio
 from performance import create_drawdowns
-try:
-    import Queue as queue
-except ImportError:
-    import queue
+import Queue as queue
 
 
 class Portfolio(object):
@@ -151,7 +148,7 @@ class Portfolio(object):
         # Update positions list with new quantities
         self.current_positions[fill.symbol] += fill_dir * fill.quantity
 
-    def upate_holdings_from_fill(self, fill):
+    def update_holdings_from_fill(self, fill):
         """
         Takes a Fill object and updates the holdings matrix
         to reflect the holdings value.
@@ -181,4 +178,77 @@ class Portfolio(object):
         """
         if event.type == 'FILL':
             self.update_positions_from_fill(event)
-            self.upate_holdings_from_fill(event)
+            self.update_holdings_from_fill(event)
+
+    def generate_naive_order(self, signal):
+        """
+        Simply files an Order object as a constant quantity
+        sizing of the signal object, without risk management
+        or position sizing considerations.
+
+        Parameters:
+        signal  The tuple containing signal information.
+        """
+        order = None
+        symbol = signal.symbol
+        direction = signal.signal_type
+        strength = signal.strength
+        market_quantity = 100
+        current_quantity = self.current_positions[symbol]
+        order_type = 'MKT'
+
+        if direction == 'LONG' and current_quantity == 0:
+            order = OrderEvent(symbol, order_type, market_quantity, 'BUY')
+        if direction == 'SHORT' and current_quantity == 0:
+            order = OrderEvent(symbol, order_type, market_quantity, 'SELL')
+
+        if direction == 'EXIT' and current_quantity > 0:
+            order = OrderEvent(symbol, order_type, abs(current_quantity), 'SELL')
+        if direction == 'EXIT' and current_quantity < 0:
+            order = OrderEvent(symbol, order_type, abs(current_quantity), 'BUY')
+
+        return order
+
+    def update_signal(self, event):
+        """
+        Acts on a SignalEvent to generate new orders
+        based on the portfolio logic.
+        """
+        if event.type == 'SIGNAL':
+            order_event = self.generate_naive_order(event)
+            self.events.put(order_event)
+
+    def create_equity_curve_dataframe(self):
+        """
+        Creates a pandas DataFrame from the 'all_holdings'
+        list of dictionaries.
+        """
+        curve = pd.DataFrame(self.all_holdings)
+        curve.set_index('datetime', inplace=True)
+        curve['returns'] = curve['total'].pct_change()
+        curve['equity_curve'] = (1.0 + curve['returns']).comprod()
+
+        self.equity_curve = curve
+
+    def output_summary_stats(self):
+        """
+        Creates a list of summary statistics for the portfolio.
+        """
+        total_return = self.equity_curve['equity_curve'][-1]
+        returns = self.equity_curve['returns']
+        pnl = self.equity_curve['equity_curve']
+
+        sharpe_ratio = create_sharpe_ratio(returns, periods=252*6.5*60)
+        drawdown, max_dd, dd_duration = create_drawdowns(pnl)
+        self.equity_curve['drawdown'] = drawdown
+
+        stats = [
+            ('Total Return', '%0.2f%%' % ((total_return - 1.0) * 100.0)),
+            ('Sharpe Ratio', '%0.2f' % sharpe_ratio),
+            ('Max Drawdown', '%0.2f%%' % (max_dd * 100.0)),
+            ('Drawdown Duration', '%d' % dd_duration),
+        ]
+
+        self.equity_curve.to_csv('equity.csv')
+
+        return stats
