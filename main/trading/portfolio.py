@@ -13,6 +13,7 @@ try:
 except ImportError:
     import queue
 
+
 class Portfolio(object):
     """
     The Portfolio class handles the positions and market
@@ -76,7 +77,7 @@ class Portfolio(object):
         d = self.__empty_positions(holdings=True)
         d['datetime'] = self.start_date
         d['cash'] = self.initial_capital
-        d['commision'] = 0.0
+        d['commission'] = 0.0
         d['total'] = self.initial_capital
         return [d]
 
@@ -87,7 +88,7 @@ class Portfolio(object):
         """
         d = self.__empty_positions(holdings=True)
         d['cash'] = self.initial_capital
-        d['commision'] = 0.0
+        d['commission'] = 0.0
         d['total'] = self.initial_capital
         return d
 
@@ -119,7 +120,7 @@ class Portfolio(object):
         dh = self.__empty_positions()
         dh['datetime'] = latest_datetime
         dh['cash'] = self.current_holdings['cash']
-        dh['commision'] = self.current_holdings['commision']
+        dh['commission'] = self.current_holdings['commission']
         dh['total'] = self.current_holdings['cash']
 
         for s in self.symbol_list:
@@ -169,7 +170,7 @@ class Portfolio(object):
         fill_cost = self.bars.get_latest_bar_value(fill.symbol, 'adj_close')
         cost = fill_dir * fill_cost * fill.quantity
         self.current_holdings[fill.symbol] += cost
-        self.current_holdings['commision'] += fill.commision
+        self.current_holdings['commission'] += fill.commision
         self.current_holdings['cash'] -= (cost + fill.commision)
         self.current_holdings['total'] -= (cost + fill.commision)
 
