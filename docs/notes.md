@@ -62,6 +62,7 @@
 * Delisted/Newly-listed stocks (Equities)
 * Total Return Series instead of Price Series (Equities) (capital-base adjustment)
 * Cognitive Bias
+* Price Approximation without Bid/Ask info?
 
 (Backtest double-check on Quantopian.com?)
 
