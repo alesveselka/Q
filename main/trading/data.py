@@ -75,3 +75,68 @@ class DataHandler(object):
         close, volume, open interest).
         """
         raise NotImplementedError("Should implement 'update_bars()'")
+
+
+class HistoricCSVDataHandler(DataHandler):
+    """
+    HistoricCSVDataHandler is designed to read CSV files for
+    each requested symbol from disk and provide an interface
+    to obtain the "latest" bar in a manner identical to a live
+    trading interface.
+    """
+
+    def __init__(self, events, csv_dir, symbol_list):
+        """
+        Initialises the historic data handler by requesting
+        the location of the CSV files and list of symbols.
+
+        It will be assumed that all files are of the form
+        'symbol.csv', where symbol is a string in the list.
+
+        Parameters:
+        events      The Event Queue
+        csv_dir     Absolute directory path to the CSV files.
+        symbol_list A list of symbol strings.
+        """
+        self.events = events
+        self.csv_dir = csv_dir
+        self.symbol_list = symbol_list
+
+        self.symbol_data = {}
+        self.latest_symbol_data = {}
+        self.continue_backtest = True
+
+        self._open_convert_csv_files()
+
+    def _open_convert_csv_files(self):
+        """
+        Opens the CSV files from the data directory, converting
+        them into pandas DataFrames within a symbol dictionary.
+
+        For this handler it will be assumed that the data is
+        taken from Yahoo. Thus its format will be respected.
+        """
+        comb_index = None
+        for s in self.symbol_list:
+            # Load the CSV file with no header information, indexed on date
+            self.symbol_data[s] = pd.io.parsers.read_csv(
+                os.path.join(self.csv_dir, '%s.csv' % s),
+                header=0, index_col=0, parse_dates=True,
+                names=['datetime', 'open', 'high', 'low',
+                       'close', 'volume', 'adj_close']
+            ).sort()
+
+            # Combine the index to pad forward values
+            if comb_index is None:
+                comb_index = self.symbol_data[s].index
+            else:
+                comb_index.union(self.symbol_data[s].index)
+
+            # Set the latest symbol_data to None
+            self.latest_symbol_data[s] = None
+
+        # Reindex the dataframes
+        for s in self.symbol_list:
+            self.symbol_data[s] = self.symbol_data[s].reindex(
+                index=comb_index, method='pad'
+            ).iterrows()
