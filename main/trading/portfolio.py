@@ -131,3 +131,53 @@ class Portfolio(object):
 
         # Append the current holdings
         self.all_holdings.append(dh)
+
+    def update_positions_from_fill(self, fill):
+        """
+        Takes a Fill object and updates the position matrix
+        to reflect the new position.
+
+        Parameters:
+        fill    The Fill object to update the position with.
+        """
+        # Check whether the fill is buy or sell
+        fill_dir = 0
+        if fill.direction == 'BUY':
+            fill_dir = 1
+        if fill.direction == 'SELL':
+            fill_dir = -1
+
+        # Update positions list with new quantities
+        self.current_positions[fill.symbol] += fill_dir * fill.quantity
+
+    def upate_holdings_from_fill(self, fill):
+        """
+        Takes a Fill object and updates the holdings matrix
+        to reflect the holdings value.
+
+        Parameters:
+        fill    The Fill object to update the holdings with.
+        """
+        # Check whether the fill is buy or sell
+        fill_dir = 0
+        if fill.direction == 'BUY':
+            fill_dir = 1
+        if fill.direction == 'SELL':
+            fill_dir = -1
+
+        # Update holdings list with new quantities
+        fill_cost = self.bars.get_latest_bar_value(fill.symbol, 'adj_close')
+        cost = fill_dir * fill_cost * fill.quantity
+        self.current_holdings[fill.symbol] += cost
+        self.current_holdings['commision'] += fill.commision
+        self.current_holdings['cash'] -= (cost + fill.commision)
+        self.current_holdings['total'] -= (cost + fill.commision)
+
+    def update_fill(self, event):
+        """
+        Updates the portfolio current positions and holdings
+        from a FillEvent.
+        """
+        if event.type == 'FILL':
+            self.update_positions_from_fill(event)
+            self.upate_holdings_from_fill(event)
