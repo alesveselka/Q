@@ -46,7 +46,47 @@ class Portfolio(object):
         self.initial_capital = initial_capital
 
         self.all_positions = self.construct_all_positions()
-        self.current_positions = dict((k, v) \
-            for k, v in [(s, 0) for s in self.symbol_list])
+        self.current_positions = self.__empty_positions()
         self.all_holdings = self.construct_all_holdings()
         self.current_holdings = self.construct_current_holdings()
+
+    def __empty_positions(self, holdings=False):
+        """
+        "Create and returns empty position list.
+        """
+        if holdings:
+            return dict((k, v) for k, v in [(s, 0.0) for s in self.symbol_list])
+        else:
+            return dict((k, v) for k, v in [(s, 0) for s in self.symbol_list])
+
+    def construct_all_positions(self):
+        """
+        Construct the positions list using the start_date
+        to determine when the time index will begin.
+        """
+        d = self.__empty_positions()
+        d['datetime'] = self.start_date
+        return [d]
+
+    def construct_all_holdings(self):
+        """
+        Construct the holdings list using the start_date
+        to determine when the time index will begin.
+        """
+        d = self.__empty_positions(holdings=True)
+        d['datetime'] = self.start_date
+        d['cash'] = self.initial_capital
+        d['commision'] = 0.0
+        d['total'] = self.initial_capital
+        return [d]
+
+    def construct_current_holdings(self):
+        """
+        Construct dictionary which will hold the instantaneous
+        value of the portfolio across all symbols.
+        """
+        d = self.__empty_positions(holdings=True)
+        d['cash'] = self.initial_capital
+        d['commision'] = 0.0
+        d['total'] = self.initial_capital
+        return d
