@@ -5,12 +5,14 @@ Event-driven architecture:
     (```download_complete, processing_complete, signals_created, etc.```)
 
 #####Broker API
+
 * Java (IB API)
 * IbPy?
 * FIX protocol
 * Spock (for Java testing)
 
 #####Program
+
 * Python (data processing, analysis)
     - NumPy/SciPy
     - matplotlib
@@ -21,12 +23,21 @@ Event-driven architecture:
 * Behave? (BDD for Python)
 
 #####Reporting
+
 * Python
 * ? PDF generation
 
 #####Historical Data Storage
+
 * MySQL
 * HDF5 (https://support.hdfgroup.org/HDF5/)
 * kdb (kx.com)
 * CSV?
 * Apache Spark?
+
+#####Website
+
+* Flask (Python backend)
+* JS (frontend)
+* Charts
+    * Highcharts (highcharts.com/)
