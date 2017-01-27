@@ -132,8 +132,8 @@ class HistoricCSVDataHandler(DataHandler):
             else:
                 comb_index.union(self.symbol_data[s].index)
 
-            # Set the latest symbol_data to None
-            self.latest_symbol_data[s] = None
+            # Set the latest symbol_data to empty list
+            self.latest_symbol_data[s] = []
 
         # Reindex the dataframes
         for s in self.symbol_list:
