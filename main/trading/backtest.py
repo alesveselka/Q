@@ -129,7 +129,7 @@ class Backtest(object):
         pprint.pprint(stats)
 
         print 'Signals: %s' % self.signals
-        print 'Orders: %s' % self.ordes
+        print 'Orders: %s' % self.orders
         print 'Fills: %s' % self.fills
 
     def simulate_trading(self):

@@ -6,10 +6,8 @@ import datetime as dt
 import numpy as np
 import pandas as pd
 from event import SignalEvent
-try:
-    import Queue as queue
-except ImportError:
-    import queue
+import Queue as queue
+
 
 class Strategy(object):
     """
@@ -32,4 +30,4 @@ class Strategy(object):
         """
         Provides the mechanism to calculate the list of signals.
         """
-        raise NotImplementedError("Sould implement 'calculate_signals()'")
+        raise NotImplementedError("Should implement 'calculate_signals()'")
