@@ -1,14 +1,10 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-import datetime as dt
-import numpy as np
 import pandas as pd
-from math import floor
-from event import FillEvent, OrderEvent
+from event import OrderEvent
 from performance import create_sharpe_ratio
 from performance import create_drawdowns
-import Queue as queue
 
 
 class Portfolio(object):
@@ -168,9 +164,9 @@ class Portfolio(object):
         fill_cost = self.bars.get_latest_bar_value(fill.symbol, 'adj_close')
         cost = fill_dir * fill_cost * fill.quantity
         self.current_holdings[fill.symbol] += cost
-        self.current_holdings['commission'] += fill.commision
-        self.current_holdings['cash'] -= (cost + fill.commision)
-        self.current_holdings['total'] -= (cost + fill.commision)
+        self.current_holdings['commission'] += fill.commission
+        self.current_holdings['cash'] -= (cost + fill.commission)
+        self.current_holdings['total'] -= (cost + fill.commission)
 
     def update_fill(self, event):
         """
