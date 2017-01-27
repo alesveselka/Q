@@ -1,7 +1,6 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-import datetime as dt
 import pprint
 import Queue as queue
 import time
@@ -87,7 +86,7 @@ class Backtest(object):
             i += 1
             print i
             # Update the market bars
-            if self.data_handler.continue_backtest == True:
+            if self.data_handler.continue_backtest:
                 self.data_handler.update_bars()
             else:
                 break
