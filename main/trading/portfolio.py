@@ -227,7 +227,7 @@ class Portfolio(object):
         curve = pd.DataFrame(self.all_holdings)
         curve.set_index('datetime', inplace=True)
         curve['returns'] = curve['total'].pct_change()
-        curve['equity_curve'] = (1.0 + curve['returns']).comprod()
+        curve['equity_curve'] = (1.0 + curve['returns']).cumprod()
 
         self.equity_curve = curve
 
