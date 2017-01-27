@@ -3,8 +3,6 @@
 
 import datetime as dt
 import numpy as np
-import pandas as pd
-import statsmodels.api as sm
 
 from strategy import Strategy
 from event import SignalEvent
@@ -86,3 +84,17 @@ class MovingAverageCrossStrategy(Strategy):
                         signal = SignalEvent(1, symbol, now, sig_dir, 1.0)
                         self.events.put(signal)
                         self.bought[s] = 'OUT'
+
+if __name__ == '__main__':
+    csv_dir = './resources/'
+    symbol_list = ['AAPL']
+    initial_capital = 100000.0
+    heartbeat = 0.0
+    start_date = dt.datetime(1990, 1, 1, 0, 0, 0)
+
+    backtest = Backtest(
+        csv_dir, symbol_list, initial_capital, heartbeat,
+        start_date, HistoricCSVDataHandler, SimulatedExecutionHandler,
+        Portfolio, MovingAverageCrossStrategy
+    )
+    backtest.simulate_trading()
