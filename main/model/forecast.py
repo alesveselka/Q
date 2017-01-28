@@ -4,7 +4,6 @@
 import datetime as dt
 import numpy as np
 import pandas as pd
-import sklearn
 import pandas_datareader as pdr
 
 from sklearn.ensemble import RandomForestClassifier
@@ -13,6 +12,7 @@ from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
 from sklearn.discriminant_analysis import QuadraticDiscriminantAnalysis as QDA
 from sklearn.metrics import confusion_matrix
 from sklearn.svm import LinearSVC, SVC
+
 
 def create_lagged_series(symbol, start_date, end_date, lags=5):
     """
