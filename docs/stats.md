@@ -63,7 +63,7 @@ of the temporal ordering of the series.*
     * H = 0.5 -- The time series is a Geometrical Brownian Motion
     * H > 0.5 -- The time series is trending
 * Cointegrated Augmented Dickey-Fuller (CADF)
-  Determines optimal hedge ratio by performing a linear regression aginst the two 
+  Determines optimal hedge ratio by performing a linear regression against the two 
   time series and then test for stationarity under the linear combination.
 
 ###Forecasting
@@ -89,9 +89,21 @@ of the temporal ordering of the series.*
       + Quadratic Discriminant Analysis (QDA)
   - Support Vector Machines (SVM) (Support Vector Classifier (SVC) - nonlinear)
   - Decision Trees(DT) and Random Forests
-    DT partition a space into a hierarchy of boolean choices that lead to a categorisation
-    or grouping based on the repective decisions.
+    DT partition a space into a hierarchy of boolean choices that lead to a categorization
+    or grouping based on the respective decisions.
 * Unsupervised learning
   - Principal Component Analysis (PCA)
 
-Autocorrelation
+###Model Selection
+
+#####Cross Validation
+*Technique used to assess how a statistical model will generalize to new data
+that it has not been seen before. Usually used on predictive models.*
+
+* Train / Test Split
+* k-fold cross validation
+
+#####Others
+
+* Autocorrelation
+* Mean Squared Error (MSE)
