@@ -235,7 +235,7 @@ class Portfolio(object):
         returns = self.equity_curve['returns']
         pnl = self.equity_curve['equity_curve']
 
-        sharpe_ratio = create_sharpe_ratio(returns, periods=252*6.5*60)
+        sharpe_ratio = create_sharpe_ratio(returns, periods=252)
         drawdown, max_dd, dd_duration = create_drawdowns(pnl)
         self.equity_curve['drawdown'] = drawdown
 
