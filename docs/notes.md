@@ -165,6 +165,7 @@
   in addition on strategy resuls
 * Pearson Product Moment Correlation Coefficient
 * Variance-Covariance
+* Mean Square Error (MSE)
 
 ###Misc
 
