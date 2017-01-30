@@ -19,6 +19,6 @@
 
 ###Brokerage
 
-* Interactive Bokers
+* Interactive Brokers
 * Rosenthal Collins Group (rcgdirect.com)
 * Gain Capital (gaincapital.com)

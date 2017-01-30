@@ -29,3 +29,7 @@
         - Standard Market Conditions
         - Volatilities and Correlations
         - Normality of Returns
+
+###Trade Management
+
+* (E-mini 2:1:1?)

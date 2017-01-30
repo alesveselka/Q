@@ -6,6 +6,7 @@ import numpy as np
 import pandas as pd
 import pandas_datareader as pdr
 
+from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.discriminant_analysis import LinearDiscriminantAnalysis as LDA
@@ -59,6 +60,7 @@ def create_lagged_series(symbol, start_date, end_date, lags=5):
 
     return tsret
 
+
 def main():
     # Create a lagged series of the S&P 500 US stock market index
     snpret = create_lagged_series('^GSPC', dt.datetime(2001, 1, 10), dt.datetime(2005, 12, 31))
@@ -68,14 +70,8 @@ def main():
     X = snpret[['Lag1', 'Lag2']]
     y = snpret['Direction']
 
-    # The test data is split into two parts: before and after 1st Jan 2005
-    start_test = dt.datetime(2005, 1, 1)
-
-    # Create training and test sets
-    X_train = X[X.index < start_test]
-    X_test = X[X.index >= start_test]
-    y_train = y[y.index < start_test]
-    y_test = y[y.index >= start_test]
+    # Train/test split
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.8, random_state=42)
 
     # Create the (parametrized) models
     print 'Hit Rates/Confusion Matrices:\n'
