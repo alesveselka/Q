@@ -15,7 +15,7 @@ class Backtest(object):
     def __init__(
             self, csv_dir, symbol_list, initial_capital,
             heartbeat, start_date, data_handler,
-            execution_handler, portfolio, strategy
+            execution_handler, portfolio, strategy, parameter_list
         ):
         """
         Initializes the backtest.
@@ -30,7 +30,8 @@ class Backtest(object):
         execution_handler   (Class) Handles the orders/fill for trades.
         portfolio           (Class) Keeps track of portfolio current 
                             and prior positions.
-        strategy            (Class) Generates signals based on market data. 
+        strategy            (Class) Generates signals based on market data.
+        parameter_list      List of parameter dictionaries
         """
         self.csv_dir = csv_dir
         self.symbol_list = symbol_list
@@ -42,6 +43,7 @@ class Backtest(object):
         self.execution_handler_cls = execution_handler
         self.portfolio_cls = portfolio
         self.strategy_cls = strategy
+        self.parameter_list = parameter_list
 
         self.events = queue.Queue()
 
@@ -52,12 +54,13 @@ class Backtest(object):
 
         self.__generate_trading_instances()
 
-    def __generate_trading_instances(self):
+    def __generate_trading_instances(self, strategy_param_dict):
         """
         Generates the trading instance objects
         from their class types.
         """
         print "Creating DataHandler, Strategy, Portfolio and ExecutionHandler"
+        print "Strategy parameter dict: %s" % strategy_param_dict
         self.data_handler = self.data_handler_cls(
             self.events,
             self.csv_dir,
@@ -65,7 +68,8 @@ class Backtest(object):
         )
         self.strategy = self.strategy_cls(
             self.data_handler,
-            self.events
+            self.events,
+            **strategy_param_dict
         )
         self.portfolio = self.portfolio_cls(
             self.data_handler,
@@ -135,5 +139,11 @@ class Backtest(object):
         """
         Simulates the backtest and outputs portfolio performance.
         """
-        self.__run()
-        self.__output_performance()
+        # out = open('output/opt.csv', 'w')
+
+        spl = len(self.parameter_list)
+        for i, sp in enumerate(self.parameter_list):
+            print "Strategy %s out of %s ..." % (i+1, spl)
+            self.__generate_trading_instances(sp)
+            self.__run()
+            self.__output_performance()
