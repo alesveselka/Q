@@ -2,10 +2,9 @@
 # -*- coding: utf-8 -*-
 
 import datetime as dt
-import numpy as np
-import pandas as pd
 import statsmodels.api as sm
 
+from itertools import product
 from strategy import Strategy
 from event import SignalEvent
 from backtest import Backtest
@@ -137,9 +136,25 @@ if __name__ == '__main__':
     initial_capital = 100000.0
     heartbeat = 0.0
     start_date = dt.datetime(2007, 11, 8, 10, 41, 0)
+
+    # Create the strategy parameter grid
+    # using the itertools cartesian product generator
+    strat_lookback = [50, 100, 200]
+    strat_z_entry = [2.0, 3.0, 4.0]
+    strart_z_exit = [0.5, 1.0, 1.5]
+    strat_params_list = list(product(strat_lookback, strat_z_entry, strart_z_exit))
+
+    # Create a list of dictionaries with the correct
+    # keyword/value pairs for the strategy parameters
+    strat_params_dict_list = [
+        dict(ols_window=sp[0], zscore_high=sp[1], zscore_low=sp[2])
+        for sp in strat_params_list
+    ]
+
+    # Carry out the backtest for all parameters combinations
     backtest = Backtest(
         csv_dir, symbol_list, initial_capital, heartbeat, start_date,
-        HFTHistoricCSVDataHandler, SimulatedExecutionHandler,
-        HFTPortfolio, IntradayOLSMRStrategy
+        HFTHistoricCSVDataHandler, SimulatedExecutionHandler, HFTPortfolio,
+        IntradayOLSMRStrategy, strat_params_list=strat_params_dict_list
     )
     backtest.simulate_trading()
