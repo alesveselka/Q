@@ -100,7 +100,7 @@ of the temporal ordering of the series.*
 *Technique used to assess how a statistical model will generalize to new data
 that it has not been seen before. Usually used on predictive models.*
 
-* Train / Test Split
+* Train / Test Split (2-fold cross validation)
 * k-fold cross validation
 
 #####Others
