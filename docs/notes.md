@@ -5,13 +5,13 @@
 #####Python
 
 * Libraries
-    * NumPy (vectorised operations)
-    * SciPy (optimisation algorithms)
+    * NumPy (vectorized operations)
+    * SciPy (optimization algorithms)
     * pandas (time series analysis)
-    * statsmodel (statistical modelling)
+    * statsmodel (statistical modeling)
     * scikit-learn (statistical/machine learning)
     * IPython (interactive development)
-    * matplotlib (visualisation)
+    * matplotlib (visualization)
     * IbPy (Interactive Brokers wrapper)
     * NLTK (Natural Language Toolkit) (Sentiment analysis)
     * ScraPy (web scraping)
@@ -49,11 +49,13 @@
 * Set up "cap" on opening prices? (based on vola. stats? / observe night range)
 * Strategy should be designed such that a single data point cannot skew the performance 
   of the strategy to any great extent.
-* Roll Startegy (see 'Algorithmic Trading', and 'Dynamic Roll Strategies' PDF)
+* Roll Strategy (see 'Algorithmic Trading', and 'Dynamic Roll Strategies' PDF)
+* Capital-Base Adjustments happen during live-trading as well - watch out! Automatize?
+* Web-scraping for future Capital-Base Adj. (earnings.com)
 
 #####Backtesting Biases
 
-* Optimisation Bias
+* Optimization Bias
 * Look-Ahead Bias
     * Technical bugs
     * Parameter Calculations
@@ -61,13 +63,29 @@
 * Data-Snooping bias
 * Survivorship Bias
 * Primary versus Consolidated Stock Prices
+      * market-on-open / market-on-close are routed to primary exchange only,
+        so I'll need price from the exchange for realistic backtest
+      * The close and open prices on the U.S. primary exchanges are always
+        determined by an auction, while a transaction at the close on a secondary
+        exchange is not the result of an auction.
+      * Historical High and Low are usually consolidated numbers resulting from
+        small-size trades on secondary exchanges - not representative.
 * Short-Sale Constraints
+  (Especially, for example, after 2008 collapse!)
+  (Uptick Rule(s))
 * Futures Continuous Contracts
+      * Open Interest (and Volume) Crossover (Standard Roll?)
+      * Adding constant to back-adjusted series to avoid negative prices?
+      * Back-Adjust 'return series' VS 'price series' (p. 13 in Algorithmic Trading)
 * Futures Close versus Settlement Prices
+* Different 'Closing' time of different markets - need intraday data (+ bid/ask)
 * Delisted/Newly-listed stocks (Equities)
-* Total Return Series instead of Price Series (Equities) (capital-base adjustment)
+* Capital-Base Adjustment (Stock Split and Dividend Adjustment)
+  (Total Return Series instead of Price Series (Equities))
 * Cognitive Bias
 * Price Approximation without Bid/Ask info?
+* FX - need historical data from venue we actually plan to trade live
+* Hypothesis testing (see p. 16, Algorithmic Trading)
 
 (Backtest double-check on Quantopian.com?)
 
@@ -167,7 +185,7 @@
 * Sortino ratio
 * "Trendiness" via Hurst Exponent
 * Also calculate stats on the time series themselves
-  in addition on strategy resuls
+  in addition on strategy results
 * Pearson Product Moment Correlation Coefficient
 * Variance-Covariance
 * Mean Square Error (MSE)
@@ -183,5 +201,7 @@
 * Dual Momentum
 * Intraday momentum
 * fundamentals-driven Long/Short equity
+* Commodity Spreads
 * Weller hybrid system
 * "Trading Room"
+* Mean-Revert allocation to whole portfolio?
