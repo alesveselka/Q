@@ -52,6 +52,8 @@
 * Automatic Error Correction? (pad, interpolate, etc.)
 * Generating Continuous contract (even if provided commercially -- to cross-check)
   (Use back-adjusted connecting method)
+    * **Back-Adjusted Price Series for 'price-difference spreads' (e.g. calendar)**
+    * Back-Adjusted Return Series for 'ratio-or-prices spreads'
 * Generate multi-expiration overlay chart of Open Interest and Volume (for rollover decisions)
 * Generating Term-structure charts
 * Archiving (and Compression)
@@ -67,6 +69,7 @@
 * Price
 * Corporate Action (Stock Splits, Divident adjustments, etc.)
 * National Holidays
+* Trading hours!
 
 ###Data Accuracy Evaluation
 
