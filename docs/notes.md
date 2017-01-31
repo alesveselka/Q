@@ -58,7 +58,12 @@
     * Technical bugs
     * Parameter Calculations
     * Maxima/Minima
+* Data-Snooping bias
 * Survivorship Bias
+* Primary versus Consolidated Stock Prices
+* Short-Sale Constraints
+* Futures Continuous Contracts
+* Futures Close versus Settlement Prices
 * Delisted/Newly-listed stocks (Equities)
 * Total Return Series instead of Price Series (Equities) (capital-base adjustment)
 * Cognitive Bias
