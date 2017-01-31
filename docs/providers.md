@@ -17,6 +17,10 @@
     * Norgate (see Clenow referral)
     * CSI Data
 
+* Intraday focused
+    * Kibot (kibot.com)
+    * Tickdata (tickdata.com)
+
 ###Brokerage
 
 * Interactive Brokers
