@@ -65,6 +65,7 @@ of the temporal ordering of the series.*
 * Cointegrated Augmented Dickey-Fuller (CADF)
   Determines optimal hedge ratio by performing a linear regression against the two 
   time series and then test for stationarity under the linear combination.
+* Johansen Test
 
 ###Forecasting
 
@@ -107,3 +108,4 @@ that it has not been seen before. Usually used on predictive models.*
 
 * Autocorrelation
 * Mean Squared Error (MSE)
+* Taylor-series expansion
