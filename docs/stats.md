@@ -52,7 +52,7 @@ of the temporal ordering of the series.*
 
 ###Time Series Analysis
 
-#####Mean Reversion
+#####Mean Reversion (Time-Series Mean Reversion)
 
 * Ornstein-Uhlenbeck process
 * Augmented Dickey-Fuller (ADF) Test
@@ -62,10 +62,18 @@ of the temporal ordering of the series.*
     * H < 0.5 -- The time series is mean reverting
     * H = 0.5 -- The time series is a Geometrical Brownian Motion
     * H > 0.5 -- The time series is trending
-* Cointegrated Augmented Dickey-Fuller (CADF)
-  Determines optimal hedge ratio by performing a linear regression against the two 
+* Variance Ratio Test
+    * 'h' = 1 -- rejection of random walk hypothesis
+    * 'h' = 0 -- may be random walk
+    * 'p' -- probability of null (random walk) hypothesis being true
+* Half-Life
+
+* Cointegrated Augmented Dickey-Fuller (CADF) (*suitable only for pair of price series*)
+  Determines **optimal hedge ratio** by performing a linear regression against the two 
   time series and then test for stationarity under the linear combination.
-* Johansen Test
+  (**Cointegration** = stationary linear combination of several non-stationary
+                       price series.)
+* Johansen Test (*suitable to any number of price series*)
 
 ###Forecasting
 
