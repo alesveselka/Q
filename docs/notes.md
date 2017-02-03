@@ -197,7 +197,7 @@
 ###Strategies
 
 * **Diversified Trend-Following with Futures**
-* Statistical Pair trading
+* Statistical Pair trading (Mean-Reversion on Cointegrated portfolios)
 * Dual Momentum
 * Intraday momentum
 * fundamentals-driven Long/Short equity
