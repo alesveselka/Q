@@ -55,7 +55,7 @@ of the temporal ordering of the series.*
 #####Mean Reversion (Time-Series Mean Reversion)
 
 * Ornstein-Uhlenbeck process
-* Augmented Dickey-Fuller (ADF) Test
+* Augmented Dickey-Fuller (ADF) Test (test mean-reversion)
 * Hurst Exponent
   Testing Stationarity. **Strong Stationarity** is when *joint probability distribution* 
   is invariant under translations in time or space.
@@ -66,7 +66,7 @@ of the temporal ordering of the series.*
     * 'h' = 1 -- rejection of random walk hypothesis
     * 'h' = 0 -- may be random walk
     * 'p' -- probability of null (random walk) hypothesis being true
-* Half-Life
+* Half-Life of mean-reversion (test how quickly a price series reverts to its mean)
 
 * Cointegrated Augmented Dickey-Fuller (CADF) (*suitable only for pair of price series*)
   Determines **optimal hedge ratio** by performing a linear regression against the two 

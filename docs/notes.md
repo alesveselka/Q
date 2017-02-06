@@ -189,6 +189,9 @@
 * Pearson Product Moment Correlation Coefficient
 * Variance-Covariance
 * Mean Square Error (MSE)
+* Also test the stationarity of the vehicles themselves, because their
+  statistical significance is usually higher and also indicate if strategy
+  will be profitable, not only based on backtest alone.
 
 ###Misc
 
