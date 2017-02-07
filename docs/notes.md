@@ -203,6 +203,8 @@
 * Statistical Pair trading (Mean-Reversion on Cointegrated portfolios)
 * Dual Momentum
 * Intraday momentum
+* Trend-Following on ratios (Stocks, ETFs, Futures, etc.)
+  (potentially "big-moves" universe?)
 * fundamentals-driven Long/Short equity
 * Commodity Spreads
 * Weller hybrid system
