@@ -117,3 +117,4 @@ that it has not been seen before. Usually used on predictive models.*
 * Autocorrelation
 * Mean Squared Error (MSE)
 * Taylor-series expansion
+* Kalman filter (market-makers favorite model for mean price estimate, p. 83 in Algo)
