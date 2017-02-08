@@ -1,3 +1,5 @@
+DROP TABLE IF EXISTS daily_price;
+
 CREATE TABLE `daily_price` (
 `id` int NOT NULL AUTO_INCREMENT,
 `data_vendor_id` int NOT NULL,

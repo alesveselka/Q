@@ -1,3 +1,5 @@
+DROP TABLE IF EXISTS symbol;
+
 CREATE TABLE `symbol` (
 `id` int NOT NULL AUTO_INCREMENT,
 `exchange_id` int NULL,
