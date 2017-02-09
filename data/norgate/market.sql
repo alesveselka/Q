@@ -25,5 +25,7 @@ CREATE TABLE `market`(
   `last_updated_date` datetime NOT NULL,
   PRIMARY KEY (`id`),
   FOREIGN KEY `exchange_id_fk` (`exchange_id`) REFERENCES `exchange`(`id`) ON DELETE RESTRICT,
-  FOREIGN KEY `group_id_fk` (`group_id`) REFERENCES `group`(`id`) ON DELETE RESTRICT
+  FOREIGN KEY `group_id_fk` (`group_id`) REFERENCES `group`(`id`) ON DELETE RESTRICT,
+  KEY `index_exchange_id` (`exchange_id`),
+  KEY `index_group_id` (`group_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;
