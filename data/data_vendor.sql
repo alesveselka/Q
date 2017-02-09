@@ -1,3 +1,5 @@
+DROP TABLE IF EXISTS data_vendor;
+
 CREATE TABLE `data_vendor` (
 `id` int NOT NULL AUTO_INCREMENT,
 `name` varchar(64) NOT NULL,

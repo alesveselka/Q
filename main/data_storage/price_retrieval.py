@@ -62,7 +62,7 @@ def get_daily_historic_data_yahoo(
                 datetime.datetime.strptime(p[0], '%Y-%m-%d'),
                 p[1], p[2], p[3], p[4], p[5], p[6]
             ))
-    except Exeption as e:
+    except Exception as e:
         print("Could not download Yahoo data: %s" % e)
 
     return prices

@@ -1,3 +1,5 @@
+DROP TABLE IF EXISTS exchange;
+
 CREATE TABLE `exchange` (
 `id` int NOT NULL AUTO_INCREMENT,
 `abbrev` varchar(32) NOT NULL,
