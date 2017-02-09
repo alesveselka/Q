@@ -142,6 +142,16 @@
 * US Dollar Futures, or Mini US Dollar Index Futures
 * Forward (not available?)
 * FX position (IB, Oanda)
+* Calculate Rollover effect! (If held overnight, i.e. => 5pm ET)
+    - Interest differential = (Base-interest - Quote interest)
+      (T+2 settlement - can be 3x more if T+3 is weekend / holiday)
+      (Also can be T+1, e.g. USD.CAD, USD.MXN)
+
+* Base/Quote pair
+* For non-existent pair (e.g. AUD.ZAR) I can trade synthetic
+  position USD.ZAR / USD.AUD
+* Buying 1 unit of pair (CAD.USD) I can as well Sell 1/y of USD.CAD
+  (provided 'y' is the current quote for USD.CAD)
 
 #####Layers
 
