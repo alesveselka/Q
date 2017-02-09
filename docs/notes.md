@@ -37,7 +37,7 @@
     * Fundamentals?
     * Continuous Futures Contracts
     * VIX
-    * Costruct less-granual timeframe from higher-granual?
+    * Construct less-granual timeframe from higher-granual?
     * Total Return series for Equities (not Price series)
     * Open Interest + Volume patterns for rollover decisions!
 
@@ -196,6 +196,7 @@
 * "Trendiness" via Hurst Exponent
 * Also calculate stats on the time series themselves
   in addition on strategy results
+* Decompose Futures returns to 'Spot returns' and 'Roll returns'
 * Pearson Product Moment Correlation Coefficient
 * Variance-Covariance
 * Mean Square Error (MSE)
@@ -206,10 +207,13 @@
 ###Misc
 
 * Fundamentals? (GDP, Leading indicators, ... ?)
+* **Return series (as opposed to price series) almost always mean-revert!**
 
 ###Strategies
 
 * **Diversified Trend-Following with Futures**
+  (Calculate Term structure and Roll Yield and incorporate into the strategy)
+* Futures Calendar (Roll Yield) (as its own strategy?)
 * Statistical Pair trading (Mean-Reversion on Cointegrated portfolios)
 * Dual Momentum
 * Intraday momentum

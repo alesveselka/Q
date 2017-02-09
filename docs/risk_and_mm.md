@@ -33,3 +33,7 @@
 ###Trade Management
 
 * (E-mini 2:1:1?)
+
+###Other
+
+* Return series (as opposed to price series) almost always mean-revert!
