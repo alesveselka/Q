@@ -21,8 +21,6 @@ CREATE TABLE `market`(
   `volume_offset` tinyint NOT NULL DEFAULT 0,
   `oi_offset` tinyint NOT NULL DEFAULT 0,
   `delivery_months` varchar(24) NOT NULL,
-  `created_date` datetime NOT NULL,
-  `last_updated_date` datetime NOT NULL,
   PRIMARY KEY (`id`),
   FOREIGN KEY `exchange_id_fk` (`exchange_id`) REFERENCES `exchange`(`id`) ON DELETE RESTRICT,
   FOREIGN KEY `group_id_fk` (`group_id`) REFERENCES `group`(`id`) ON DELETE RESTRICT,

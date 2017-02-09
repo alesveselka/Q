@@ -5,8 +5,6 @@ CREATE TABLE `holidays`(
   `exchange_id` int NOT NULL,
   `holiday` date NOT NULL,
   `name` varchar(255) NULL,
-  `created_date` datetime NOT NULL,
-  `last_updated_date` datetime NOT NULL,
   PRIMARY KEY (`id`),
   FOREIGN KEY `exchange_id_fk` (`exchange_id`) REFERENCES `exchange`(`id`) ON DELETE RESTRICT,
   KEY `index_exchange_id` (`exchange_id`)
