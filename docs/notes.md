@@ -37,7 +37,7 @@
     * Fundamentals?
     * Continuous Futures Contracts
     * VIX
-    * Costruct less-granual timeframe from higher-granual?
+    * Construct less-granual timeframe from higher-granual?
     * Total Return series for Equities (not Price series)
     * Open Interest + Volume patterns for rollover decisions!
 
@@ -142,6 +142,16 @@
 * US Dollar Futures, or Mini US Dollar Index Futures
 * Forward (not available?)
 * FX position (IB, Oanda)
+* Calculate Rollover effect! (If held overnight, i.e. => 5pm ET)
+    - Interest differential = (Base-interest - Quote interest)
+      (T+2 settlement - can be 3x more if T+3 is weekend / holiday)
+      (Also can be T+1, e.g. USD.CAD, USD.MXN)
+
+* Base/Quote pair
+* For non-existent pair (e.g. AUD.ZAR) I can trade synthetic
+  position USD.ZAR / USD.AUD
+* Buying 1 unit of pair (CAD.USD) I can as well Sell 1/y of USD.CAD
+  (provided 'y' is the current quote for USD.CAD)
 
 #####Layers
 
@@ -186,22 +196,32 @@
 * "Trendiness" via Hurst Exponent
 * Also calculate stats on the time series themselves
   in addition on strategy results
+* Decompose Futures returns to 'Spot returns' and 'Roll returns'
 * Pearson Product Moment Correlation Coefficient
 * Variance-Covariance
 * Mean Square Error (MSE)
+* Also test the stationarity of the vehicles themselves, because their
+  statistical significance is usually higher and also indicate if strategy
+  will be profitable, not only based on backtest alone.
 
 ###Misc
 
 * Fundamentals? (GDP, Leading indicators, ... ?)
+* **Return series (as opposed to price series) almost always mean-revert!**
 
 ###Strategies
 
 * **Diversified Trend-Following with Futures**
-* Statistical Pair trading
+  (Calculate Term structure and Roll Yield and incorporate into the strategy)
+* Futures Calendar (Roll Yield) (as its own strategy?)
+* Statistical Pair trading (Mean-Reversion on Cointegrated portfolios)
 * Dual Momentum
 * Intraday momentum
+* Trend-Following on ratios (Stocks, ETFs, Futures, etc.)
+  (potentially "big-moves" universe?)
 * fundamentals-driven Long/Short equity
 * Commodity Spreads
 * Weller hybrid system
 * "Trading Room"
 * Mean-Revert allocation to whole portfolio?
+* Cross-Sectional Mean-Reversion (p. 104 in Algo (APR: 70 %, Sharpe > 4!))
