@@ -11,12 +11,9 @@ def populate_exchange_table():
     """
     file_object = open(os.path.abspath('c:/Norgate/data/Stocks/_Text/names.txt'))
     lines = file_object.readlines()
-    stock_symbols = filter(lambda l: re.match('^[a-zA-Z]', l), lines)
-    codes = set()
-
-    reduce(lambda s, l: codes.add(re.sub('[\",\n]', '', l.split(',')[2])), stock_symbols)
-
-    values = map(lambda c: (c, re.split('[^a-zA-Z]', c)), codes)
+    codes = [l.split(',')[2] for l in lines if re.match('^[a-zA-Z]', l)]
+    code_set = set([re.sub('[\",\n]', '', c) for c in codes])
+    values = [(c, re.split('[^a-zA-Z]', c)) for c in code_set]
 
     connection = mysql.connect(host='localhost', user='sec_user', passwd='root', db='norgate')
     with connection:
