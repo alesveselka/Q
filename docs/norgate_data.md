@@ -147,3 +147,13 @@
 | name                  |
 +-----------------------+
 ```
+
+###Static Data
+
+#####Exchange
+
+* NYSE Arca, US
+* NYSE, US
+* AMEX, US
+* NASDAQ, US
+* OTC, US

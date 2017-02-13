@@ -9,6 +9,7 @@ def populate_exchange_table():
     """
     Parse Norgate 'names' text file and populate exchange table with extracted info
     """
+    # TODO use own file with clear structure
     file_object = open(os.path.abspath('c:/Norgate/data/Stocks/_Text/names.txt'))
     lines = file_object.readlines()
     codes = [l.split(',')[2] for l in lines if re.match('^[a-zA-Z]', l)]
