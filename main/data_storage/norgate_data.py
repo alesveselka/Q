@@ -26,7 +26,6 @@ def populate_exchange_table():
 
 
 def populate_delivery_month_table():
-    connection = mysql.connect(host='localhost', user='sec_user', passwd='root', db='norgate')
     values = [
         'F:January',
         'G:February',
@@ -42,12 +41,19 @@ def populate_delivery_month_table():
         'Z:December'
     ]
 
+    connection = mysql.connect(host='localhost', user='sec_user', passwd='root', db='norgate')
     with connection:
         cursor = connection.cursor()
         cursor.executemany(
             'INSERT INTO delivery_month (code, name) VALUES (%s, %s)',
             [v.split(':') for v in values]
         )
+
+
+def populate_group_table():
+    """
+    Parse Norgate example csv and populate 'group' table with extracted data
+    """
 
 
 
