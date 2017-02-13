@@ -37,9 +37,9 @@ if __name__ == '__main__':
         'group',
         'delivery_month'
     ]
-    command_list = commands(file_contents(folder, schemas))
-    drop_commands = filter(lambda cmd: cmd.lower().startswith('drop'), command_list)
-    create_table_commands = filter(lambda cmd: cmd.lower().startswith('create table'), command_list)
+    contents = commands(file_contents(folder, schemas))
+    drop_commands = filter(lambda cmd: cmd.lower().startswith('drop'), contents)
+    create_table_commands = filter(lambda cmd: cmd.lower().startswith('create table'), contents)
     connection = mysql.connect(host='localhost', user='sec_user', passwd='root', db='norgate')
 
     print '\n'.join(drop_commands)
