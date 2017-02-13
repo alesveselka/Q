@@ -212,14 +212,17 @@
 ###Strategies
 
 * **Diversified Trend-Following with Futures**
-  (Calculate Term structure and Roll Yield and incorporate into the strategy)
+    * Calculate Term structure and Roll Yield and incorporate into the strategy
+    * Use Roll-return threshold as signal triggers instead of price? (p. 140 in Algo)
 * Futures Calendar (Roll Yield) (as its own strategy?)
 * Statistical Pair trading (Mean-Reversion on Cointegrated portfolios)
+* Futures Roll return / Spot return arbitrage (p. 142 in Algo)
 * Dual Momentum
 * Intraday momentum
 * Trend-Following on ratios (Stocks, ETFs, Futures, etc.)
   (potentially "big-moves" universe?)
 * fundamentals-driven Long/Short equity
+* News Sentiment momentum
 * Commodity Spreads
 * Weller hybrid system
 * "Trading Room"
