@@ -25,5 +25,31 @@ def populate_exchange_table():
         )
 
 
+def populate_delivery_month_table():
+    connection = mysql.connect(host='localhost', user='sec_user', passwd='root', db='norgate')
+    values = [
+        'F:January',
+        'G:February',
+        'H:March',
+        'J:April',
+        'K:May',
+        'M:June',
+        'N:July',
+        'Q:August',
+        'U:September',
+        'V:October',
+        'X:November',
+        'Z:December'
+    ]
+
+    with connection:
+        cursor = connection.cursor()
+        cursor.executemany(
+            'INSERT INTO delivery_month (code, name) VALUES (%s, %s)',
+            [v.split(':') for v in values]
+        )
+
+
+
 if __name__ == '__main__':
-    populate_exchange_table()
+    populate_delivery_month_table()
