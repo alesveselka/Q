@@ -173,6 +173,8 @@
 * Reporting
     - Margin
     - VaR
+    - CPPI (Constant Proportion Portfolio Insurance)
+      (Kelly set to max DD)
     - Stats
 
 ###Math Topics
@@ -203,6 +205,8 @@
 * Also test the stationarity of the vehicles themselves, because their
   statistical significance is usually higher and also indicate if strategy
   will be profitable, not only based on backtest alone.
+* Pareto-Levy distribution as approximation for return distribution
+  (instead of Gaussian)
 
 ###Misc
 
