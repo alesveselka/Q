@@ -152,11 +152,42 @@
 
 #####Exchange
 
-* NYSE Arca, US
-* NYSE, US
-* AMEX, US
-* NASDAQ, US
-* OTC, US
+* Stocks
+    - NYSE Arca, US
+    - NYSE, US
+    - AMEX, US
+    - NASDAQ, US
+    - OTC, US
+
+* Futures
+    - Australian Securities Exchange (ex SFE)
+    - Chicago Board Options Exchange
+    - CME Group (ex CBOT)
+    - CME Group (ex CME)
+    - CME Group (ex NYMEX)
+    - Eurex
+    - Hong Kong Stock Exchange
+    - ICE Futures Canada
+    - ICE Futures Europe
+    - ICE Futures US
+    - Kansas City Board of Trade
+    - Korea Exchange
+    - Minneapolis Grain Exchange
+    - Montreal Exchange (Bourse de Montreal)
+    - NYSE Euronext (ex LIFFE)
+    - Singapore Exchange (Futures)
+
+#####Groups (Sectors)
+
+* Norgate (Futures)
+    - Currency
+    - Food / Fiber
+    - Grain / Oilseed
+    - Index
+    - Interest Rate
+    - Meat / Livestock
+    - Metal
+    - Oil / Energy
 
 #####Delivery Months
 
