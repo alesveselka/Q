@@ -1,41 +1,35 @@
 #!/usr/bin/python
 
-import os
 import re
+import csv
 import MySQLdb as mysql
 
 
-def populate_exchange_table():
-    """
-    Parse Norgate 'names' text file and populate exchange table with extracted info
-    """
-    # TODO use own file with clear structure
-    file_object = open(os.path.abspath('c:/Norgate/data/Stocks/_Text/names.txt'))
-    lines = file_object.readlines()
-    codes = [l.split(',')[2] for l in lines if re.match('^[a-zA-Z]', l)]
-    code_set = set([re.sub('[\",\n]', '', c) for c in codes])
-    values = [(c, re.split('[^a-zA-Z]', c)) for c in code_set]
+def csv_lines(file_name, exclude_header=True):
+    reader = csv.reader(open('./data/norgate/%s.csv' % file_name), delimiter=',', quotechar='"')
+    rows = [row for row in reader if re.match('^[a-zA-Z]', row[0])]
+    return rows[1:] if exclude_header else rows
 
+
+def insert_values(operation, values):
     connection = mysql.connect(host='localhost', user='sec_user', passwd='root', db='norgate')
     with connection:
         cursor = connection.cursor()
-        cursor.executemany(
-            'INSERT INTO exchange (abbrev, name, country) VALUES (%s, %s, %s)',
-            [(v[-1][-1], v[0].split('\\')[-1], v[-1][0]) for v in values]
-        )
+        cursor.executemany(operation, [v for v in values])
+
+
+def populate_exchange_table():
+    insert_values(
+        'INSERT INTO exchange (abbrev, name) VALUES (%s, %s)',
+        [(l[0], l[1]) for l in csv_lines('exchange')]
+    )
 
 
 def populate_delivery_month_table():
-    file_object = open('./data/norgate/delivery_month.csv')
-    lines = file_object.readlines()[1:]  # don't include header
-
-    connection = mysql.connect(host='localhost', user='sec_user', passwd='root', db='norgate')
-    with connection:
-        cursor = connection.cursor()
-        cursor.executemany(
-            'INSERT INTO delivery_month (code, name) VALUES (%s, %s)',
-            [l.strip().split(',') for l in lines]
-        )
+    insert_values(
+        'INSERT INTO delivery_month (code, name) VALUES (%s, %s)',
+        csv_lines('delivery_month')
+    )
 
 
 def populate_group_table():
@@ -45,4 +39,4 @@ def populate_group_table():
 
 
 if __name__ == '__main__':
-    populate_delivery_month_table()
+    populate_exchange_table()
