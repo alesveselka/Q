@@ -26,27 +26,15 @@ def populate_exchange_table():
 
 
 def populate_delivery_month_table():
-    values = [
-        'F:January',
-        'G:February',
-        'H:March',
-        'J:April',
-        'K:May',
-        'M:June',
-        'N:July',
-        'Q:August',
-        'U:September',
-        'V:October',
-        'X:November',
-        'Z:December'
-    ]
+    file_object = open('./data/norgate/delivery_month.csv')
+    lines = file_object.readlines()[1:]  # don't include header
 
     connection = mysql.connect(host='localhost', user='sec_user', passwd='root', db='norgate')
     with connection:
         cursor = connection.cursor()
         cursor.executemany(
             'INSERT INTO delivery_month (code, name) VALUES (%s, %s)',
-            [v.split(':') for v in values]
+            [l.strip().split(',') for l in lines]
         )
 
 
@@ -54,7 +42,6 @@ def populate_group_table():
     """
     Parse Norgate example csv and populate 'group' table with extracted data
     """
-
 
 
 if __name__ == '__main__':
