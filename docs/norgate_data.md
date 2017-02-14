@@ -153,29 +153,50 @@
 #####Exchange
 
 * Stocks
+    - Australian Securities Exchange (ASX)
     - NYSE Arca, US
     - NYSE, US
     - AMEX, US
     - NASDAQ, US
     - OTC, US
+    - (Indices)
 
 * Futures
     - Australian Securities Exchange (ex SFE)
-    - Chicago Board Options Exchange
+    - Chicago Board Options Exchange (CBOE)
     - CME Group (ex CBOT)
     - CME Group (ex CME)
-    - CME Group (ex NYMEX)
+    - CME Group (ex NYMEX/COMEX)
+    - CME Group (ex KCBT)
     - Eurex
-    - Hong Kong Stock Exchange
+    - Hong Kong Stock Exchange (HKEx)
     - ICE Futures Canada
     - ICE Futures Europe
     - ICE Futures US
-    - Kansas City Board of Trade
-    - Korea Exchange
-    - Minneapolis Grain Exchange
-    - Montreal Exchange (Bourse de Montreal)
+    - Kansas City Board of Trade (KCBT)
+    - Korea Exchange (KRX)
+    - Minneapolis Grain Exchange (MGEX)
+    - Montreal Exchange (MX) (Bourse de Montreal)
     - NYSE Euronext (ex LIFFE)
-    - Singapore Exchange (Futures)
+    - Singapore Exchange (Futures) (SGX)
+
+#####Market
+
+* Securities
+    - Equities
+        + Common Stock (Common)
+        + Preferred Stock (PFD)
+        + Warrants (Warrant)
+        + American Depository Receipts (ADR)
+        + Closed-End Fund (CEF)
+        + Exchange Traded Debt (DEBT)
+        + Exchange Traded Fund (ETF)
+        + Exchange Traded Notes (ETN)
+        + Real Estate Investment Trust (REIT)
+        + Special Investment Product (SIP)
+        + Master Limited Partnership (UNIT)
+        + Royalty Trust (UNIT)
+        + (Market Breadth Indicators)
 
 #####Groups (Sectors)
 
