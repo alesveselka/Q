@@ -1,4 +1,4 @@
-code,name,instrument,country
+abbrev,name,instrument,country
 ASX,Australian Securities Exchange (ex SFE),Securities,Australia
 Arca,"New York Stock Exchange, Arca",Securities,USA
 NYSE,New York Stock Exchange,Securities,USA
