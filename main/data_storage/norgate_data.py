@@ -1,7 +1,8 @@
-#!/usr/bin/python
+#!/usr/bin/env python
 
 import re
 import csv
+import sys
 import MySQLdb as mysql
 
 
@@ -14,6 +15,10 @@ def csv_lines(file_name, exclude_header=True):
     return rows[1:] if exclude_header else rows
 
 
+def query(table, columns, placeholders):
+    return 'INSERT INTO `%s` (%s) VALUES (%s)' % (table, columns, placeholders)
+
+
 def insert_values(operation, values):
     """
     Create MySQL database connection and cursor and execute operation for values passed in
@@ -24,28 +29,41 @@ def insert_values(operation, values):
         cursor.executemany(operation, values)
 
 
-def populate_exchange_table():
+def populate_exchange_table(schema):
     abbrev = 0
     name = 1
     insert_values(
-        'INSERT INTO exchange (abbrev, name) VALUES (%s, %s)',
-        [(l[abbrev], l[name]) for l in csv_lines('exchange')]
+        query(schema, 'abbrev, name', "%s, %s"),
+        [(l[abbrev], l[name]) for l in csv_lines(schema)]
     )
 
 
-def populate_delivery_month_table():
+def populate_delivery_month_table(schema):
     insert_values(
-        'INSERT INTO delivery_month (code, name) VALUES (%s, %s)',
-        csv_lines('delivery_month')
+        query(schema, 'code, name', "%s, %s"),
+        csv_lines(schema)
     )
 
 
-def populate_group_table():
+def populate_group_table(schema):
     insert_values(
-        'INSERT INTO `group` (name, standard) VALUES (%s, %s)',
-        csv_lines('group')
+        query(schema, 'name, standard', "%s, %s"),
+        csv_lines(schema)
     )
 
 
 if __name__ == '__main__':
-    populate_group_table()
+    if len(sys.argv) == 2 and len(sys.argv[1]):
+        schema = sys.argv[1]
+        schema_map = {
+            'exchange': populate_exchange_table,
+            'delivery_month': populate_delivery_month_table,
+            'group': populate_group_table
+        }
+
+        if schema in schema_map:
+            schema_map.get(schema)(schema)
+        else:
+            print 'No schema of such name (%s) found.' % schema
+    else:
+        print 'Expect one argument - name of the table to insert data into'
