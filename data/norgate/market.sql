@@ -14,6 +14,8 @@ CREATE TABLE `market`(
   `tick_value` decimal(19,4) NOT NULL,
   `point_value` decimal(19,4) NOT NULL,
   `currency` varchar(32) NOT NULL,
+  `initial_margin` decimal(19,4) NOT NULL,
+  `maintenance_margin` decimal(19,4) NOT NULL,
   `last_trading_day` varchar(255) NULL,
   `first_notice_day` varchar(255) NULL,
   `trading_hours` varchar(255) NULL,
@@ -22,8 +24,8 @@ CREATE TABLE `market`(
   `oi_offset` tinyint NOT NULL DEFAULT 0,
   `delivery_months` varchar(24) NULL,
   PRIMARY KEY (`id`),
-  FOREIGN KEY `exchange_id_fk` (`exchange_id`) REFERENCES `exchange`(`id`) ON DELETE RESTRICT,
-  FOREIGN KEY `group_id_fk` (`group_id`) REFERENCES `group`(`id`) ON DELETE RESTRICT,
+  FOREIGN KEY `exchange_id_fk` (`exchange_id`) REFERENCES `exchange`(`id`) ON DELETE CASCADE,
+  FOREIGN KEY `group_id_fk` (`group_id`) REFERENCES `group`(`id`) ON DELETE CASCADE,
   KEY `index_exchange_id` (`exchange_id`),
   KEY `index_group_id` (`group_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;

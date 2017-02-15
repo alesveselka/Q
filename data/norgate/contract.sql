@@ -14,9 +14,11 @@ CREATE TABLE `contract`(
   `settle_price` decimal(19,4) NULL,
   `volume` bigint NULL,
   `open_interest` bigint NULL,
+  `last_trading_day` date NULL,
+  `first_notice_day` date NULL,
   `created_date` datetime NOT NULL,
   `last_updated_date` datetime NOT NULL,
   PRIMARY KEY (`id`),
-  FOREIGN KEY `market_id_fk` (`market_id`) REFERENCES `market`(`id`) ON DELETE RESTRICT,
+  FOREIGN KEY `market_id_fk` (`market_id`) REFERENCES `market`(`id`) ON DELETE CASCADE,
   KEY `index_market_id` (`market_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;

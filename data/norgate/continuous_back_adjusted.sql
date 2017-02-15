@@ -15,6 +15,6 @@ CREATE TABLE `continuous_back_adjusted`(
   `created_date` datetime NOT NULL,
   `last_updated_date` datetime NOT NULL,
   PRIMARY KEY (`id`),
-  FOREIGN KEY `market_id_fk` (`market_id`) REFERENCES `market`(`id`) ON DELETE RESTRICT,
+  FOREIGN KEY `market_id_fk` (`market_id`) REFERENCES `market`(`id`) ON DELETE CASCADE,
   KEY `index_market_id` (`market_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;
