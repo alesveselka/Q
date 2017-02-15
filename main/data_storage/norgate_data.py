@@ -41,10 +41,11 @@ def populate_delivery_month_table():
 
 
 def populate_group_table():
-    """
-    Parse Norgate example csv and populate 'group' table with extracted data
-    """
+    insert_values(
+        'INSERT INTO `group` (name, standard) VALUES (%s, %s)',
+        csv_lines('group')
+    )
 
 
 if __name__ == '__main__':
-    populate_exchange_table()
+    populate_group_table()
