@@ -14,11 +14,14 @@ NMX,"CME Group (ex New York Mercantile Exchange, NYMEX Division)",Futures,USA
 KCBT,CME Group (ex Kansas City Board of trade (KCBT)),Futures,USA
 EX,Eurex,Futures,Germany
 HKEX,Hong Kong Stock Exchange,Futures,Hong Kong
-ICE_C,ICE Futures Canada,Futures,Canada
+ICE_C,ICE Futures Canada (ex Winnipeg Commodity Exchange),Futures,Canada
 ICE_E,ICE Futures Europe,Futures,
-ICE_US,ICE Futures U.S.,Futures,USA
+ICE_US,ICE Futures U.S. (ex NYBOT),Futures,USA
 KRX,Korea Exchange,Futures,Korea
 MGEX,Minneapolis Grain Exchange,Futures,USA
 MX,Montreal Exchange (Bourse de Montreal),Futures,Canada
 LIFFE,NYSE Euronext,Futures,USA
 SGX,Singapore Exchange,Futures,Singapore
+MEFF,Mercado Espanol de Futuros Financieros,Futures,Spain
+TGE,Tokyo Grain Exchange,Futures,Tokyo
+TOCOM,Tokyo Commodity Exchange,Futures,Tokyo
