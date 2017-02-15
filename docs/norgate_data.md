@@ -71,6 +71,8 @@
 | settle_price          | usually equals close price
 | volume                |
 | open_interest         |
+| last_trading_day      |
+| first_notice_day      |
 | created_date          |
 | last_update_date      |
 +-----------------------+
