@@ -1,5 +1,6 @@
 #!/usr/bin/env python
 
+import os
 import re
 import csv
 import sys
@@ -23,7 +24,12 @@ def insert_values(operation, values):
     """
     Create MySQL database connection and cursor and execute operation for values passed in
     """
-    connection = mysql.connect(host='localhost', user='sec_user', passwd='root', db='norgate')
+    connection = mysql.connect(
+        os.environ['DB_HOST'],
+        os.environ['DB_USER'],
+        os.environ['DB_PASS'],
+        os.environ['DB_NAME']
+    )
     with connection:
         cursor = connection.cursor()
         cursor.executemany(operation, values)
