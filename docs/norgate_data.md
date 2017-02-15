@@ -35,7 +35,9 @@
 | currency              |
 | last_trading_day      |
 | first_notice_day      |
-| trading_hours?        |
+| trading_hours?        | TODO - to be filled (external table?)
+| initial_margin        |
+| maintenance_margin    |
 | session/platform      |
 | volume_offset         |
 | oi_offset             |
@@ -209,6 +211,12 @@
     - Meat / Livestock
     - Metal
     - Oil / Energy
+* Clenow
+    - Agricultural
+    - Non-Agricultural
+    - Currencies
+    - Indicies
+    - Interest Rates
 
 #####Delivery Months
 
