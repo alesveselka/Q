@@ -2,7 +2,8 @@ DROP TABLE IF EXISTS `exchange`;
 
 CREATE TABLE `exchange`(
   `id` int NOT NULL AUTO_INCREMENT,
-  `abbrev` varchar(32) NOT NULL,
+  `code` varchar(32) NOT NULL,
+  `ex_code` varchar(32) NOT NULL,
   `name` varchar(255) NOT NULL,
   `city` varchar(255) NULL,
   `country` varchar(255) NULL,
