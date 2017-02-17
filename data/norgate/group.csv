@@ -1,12 +1,12 @@
 name,standard
-Currencies,Norgate
-Food/Fiber,Norgate
-Grains/Oilseed,Norgate
-Indicies,Norgate
-Interest Rates,Norgate
-Meats/Livestock,Norgate
-Metals,Norgate
-Oil/Energies,Norgate
+Currency,Norgate
+Food/Fibre,Norgate
+Grain/Oilseed,Norgate
+Index,Norgate
+Interest Rate,Norgate
+Meat/Livestock,Norgate
+Metal,Norgate
+Oil/Energy,Norgate
 Agricultural,Clenow
 Non-Agricultural,Clenow
 Currencies,Clenow
