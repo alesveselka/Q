@@ -36,11 +36,13 @@ def insert_values(operation, values):
 
 
 def populate_exchange_table(schema):
-    abbrev = 0
-    name = 1
+    code = 0
+    ex_code = 1
+    name = 2
+    country = 4
     insert_values(
-        query(schema, 'abbrev, name', "%s, %s"),
-        [(l[abbrev], l[name]) for l in csv_lines(schema)]
+        query(schema, 'code, ex_code, name, country', "%s, %s, %s, %s"),
+        [(l[code], l[ex_code], l[name], l[country]) for l in csv_lines(schema)]
     )
 
 
