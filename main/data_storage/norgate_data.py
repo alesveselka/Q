@@ -68,11 +68,10 @@ def populate_group_table(schema):
 def populate_market(schema):
     connection = mysql_connection()
     cursor = connection.cursor()
-    cursor.execute("SELECT id, name FROM `group` WHERE standard='Norgate'")
-    groups = dict([[g[1], int(g[0])] for g in cursor.fetchall()])
-    cursor.execute("SELECT id, name FROM `exchange`")
-    exchanges = dict([[e[1], int(e[0])] for e in cursor.fetchall()])
-
+    cursor.execute("SELECT name, id FROM `group` WHERE standard='Norgate'")
+    groups = dict(cursor.fetchall())
+    cursor.execute("SELECT name, id FROM `exchange`")
+    exchanges = dict(cursor.fetchall())
     columns = {
         'name': 0,
         'code': 2,
@@ -87,35 +86,27 @@ def populate_market(schema):
         'last_trading_day': 11,
         'first_notice_day': 12
     }
+    keys = columns.keys()
     markets = csv_lines(schema)
-    for m in markets:
-        if m[columns.get('exchange_id')] in exchanges:
-            if m[columns.get('group_id')] in groups:
-                m[columns.get('exchange_id')] = exchanges.get(m[columns.get('exchange_id')])
-                m[columns.get('group_id')] = groups.get(m[columns.get('group_id')])
-            else:
-                print "Can't find group: %s. Skipping inserting %s" % (m[columns.get('group_id')], m[columns.get('name')])
-        else:
-            print "Can't find exchange: %s. Skipping inserting %s" % (m[columns.get('exchange_id')], m[columns.get('name')])
 
-    q = query(schema, 'name, code, exchange_id, group_id, contract_size, quotation, tick_size, tick_value, point_value, currency, last_trading_day, first_notice_day', ("%s, " * 12)[:-2])
+    def contains(key, data, market): return market[columns.get(key)] in data
+
+    def print_lookup_error(m, key):
+        print "[ERROR] Can't find '%s'. Skipping inserting '%s'" % (m[columns.get(key)], m[columns.get('name')])
+
+    def replace_ids(m):
+        m[columns.get('exchange_id')] = exchanges.get(m[columns.get('exchange_id')])
+        m[columns.get('group_id')] = groups.get(m[columns.get('group_id')])
+
+    map(lambda m: (
+        (contains('exchange_id', exchanges, m) or print_lookup_error(m, 'exchange_id'))
+        and (contains('group_id', groups, m) or print_lookup_error(m, 'group_id'))
+        and replace_ids(m)
+    ), markets)
 
     insert_values(
-        q,
-        [[
-             m[columns.get('name')],
-             m[columns.get('code')],
-             int(m[columns.get('exchange_id')]),
-             int(m[columns.get('group_id')]),
-             m[columns.get('contract_size')],
-             m[columns.get('quotation')],
-             m[columns.get('tick_size')],
-             float(m[columns.get('tick_value')]),
-             float(m[columns.get('point_value')]),
-             m[columns.get('currency')],
-             m[columns.get('last_trading_day')],
-             m[columns.get('first_notice_day')]
-         ] for m in markets]
+        query(schema, ','.join(keys), ("%s, " * len(keys))[:-2]),
+        [[m[columns.get(k)] for k in keys] for m in markets]
     )
 
 
