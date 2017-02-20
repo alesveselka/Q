@@ -89,6 +89,7 @@ def populate_market(schema):
     keys = columns.keys()
     markets = csv_lines(schema)
 
+    # TODO move following 'utility' functions to its own library
     def contains(key, data, market): return market[columns.get(key)] in data
 
     def print_lookup_error(m, key):
@@ -110,6 +111,16 @@ def populate_market(schema):
     )
 
 
+def populate_contracts(schema):
+    connection = mysql_connection()
+    cursor = connection.cursor()
+    cursor.execute("SELECT code FROM `market`")
+    codes = [c[0] for c in cursor.fetchall()]
+    dir_list = os.listdir('./resources/Norgate/data/Futures/Contracts/_Text/')
+    missing = filter(lambda c: c not in dir_list and c+'2' not in dir_list, codes)
+    matching_codes = filter(lambda c: c in dir_list, codes)
+
+
 if __name__ == '__main__':
     if len(sys.argv) == 2 and len(sys.argv[1]):
         schema = sys.argv[1]
@@ -117,7 +128,8 @@ if __name__ == '__main__':
             'exchange': populate_exchange_table,
             'delivery_month': populate_delivery_month_table,
             'group': populate_group_table,
-            'market': populate_market
+            'market': populate_market,
+            'contracts': populate_contracts
         }
 
         if schema in schema_map:

@@ -27,7 +27,7 @@ def execute_operation(connection, operation):
 
 if __name__ == '__main__':
     folder = './data/norgate/'
-    # TODO externalize the list
+    # TODO externalize the list (and then use 'norgate_data' script)
     schemas = [
         'continuous_back_adjusted',
         'continuous_spliced',
