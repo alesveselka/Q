@@ -22,7 +22,7 @@ def csv_lines(file_name, exclude_header=True):
     Read '*.csv' file by name passed in, and return non-empty rows
     """
     reader = csv.reader(open('./data/norgate/%s.csv' % file_name), delimiter=',', quotechar='"')
-    rows = [row for row in reader if re.match('^[a-zA-Z]', row[0])]
+    rows = [row for row in reader if re.match('^[a-zA-Z0-9]', row[0])]
     return rows[1:] if exclude_header else rows
 
 
@@ -99,21 +99,6 @@ def populate_market(schema):
             print "Can't find exchange: %s. Skipping inserting %s" % (m[columns.get('exchange_id')], m[columns.get('name')])
 
     q = query(schema, 'name, code, exchange_id, group_id, contract_size, quotation, tick_size, tick_value, point_value, currency, last_trading_day, first_notice_day', ("%s, " * 12)[:-2])
-    print 'Query: %s' % q
-    print 'Markets: %s' % [[
-                               m[columns.get('name')],
-                               m[columns.get('code')],
-                               int(m[columns.get('exchange_id')]),
-                               int(m[columns.get('group_id')]),
-                               m[columns.get('contract_size')],
-                               m[columns.get('quotation')],
-                               m[columns.get('tick_size')],
-                               float(m[columns.get('tick_value')]),
-                               float(m[columns.get('point_value')]),
-                               m[columns.get('currency')],
-                               m[columns.get('last_trading_day')],
-                               m[columns.get('first_notice_day')]
-                           ] for m in markets[:1]]
 
     insert_values(
         q,
