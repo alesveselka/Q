@@ -4,6 +4,7 @@ import os
 import re
 import csv
 import sys
+import datetime as dt
 import MySQLdb as mysql
 
 
@@ -114,11 +115,67 @@ def populate_market(schema):
 def populate_contracts(schema):
     connection = mysql_connection()
     cursor = connection.cursor()
-    cursor.execute("SELECT code FROM `market`")
-    codes = [c[0] for c in cursor.fetchall()]
-    dir_list = os.listdir('./resources/Norgate/data/Futures/Contracts/_Text/')
-    missing = filter(lambda c: c not in dir_list and c+'2' not in dir_list, codes)
-    matching_codes = filter(lambda c: c in dir_list, codes)
+    cursor.execute("SELECT id, code FROM `market`")
+    codes = cursor.fetchall()
+    cursor.execute("SELECT code, name FROM `delivery_month`")
+    delivery_months = cursor.fetchall()
+    dir_path = './resources/Norgate/data/Futures/Contracts/_Text/'
+    dir_list = os.listdir(dir_path)
+    now = dt.datetime.now()
+    # TODO See notes about various 'sessions' and their codes @ Norgate
+    missing = filter(lambda c: c not in dir_list and c+'2' not in dir_list, [c[1] for c in codes])
+    matching_codes = filter(lambda c: c[1] in dir_list, codes)
+
+    for code in matching_codes:
+        populate_symbol(schema, now, code, dir_path, delivery_months)
+
+
+def populate_symbol(schema, now, code, dir_path, delivery_months):
+    files = os.listdir(''.join([dir_path, code[1]]))
+    columns = [
+        'market_id',
+        'delivery_date',
+        'expiration_date',
+        'code',
+        'price_date',
+        'open_price',
+        'high_price',
+        'low_price',
+        'last_price',
+        'settle_price',
+        'volume',
+        'open_interest',
+        'created_date',
+        'last_updated_date'
+    ]
+
+    def index(key, data, position=0):
+        return reduce(lambda i, d: i + 1 if d[position] <= key else i, data, 0)
+
+    for f in files:
+        delivery = f[5:10]
+        delivery_date = dt.date(int(delivery[:-1]), index(delivery[-1], delivery_months), 1)
+        reader = csv.reader(open(''.join([dir_path, code[1], '/', f])), delimiter=',', quotechar='"')
+        rows = [row for row in reader if re.match('^[a-zA-Z0-9]', row[0])]
+        insert_values(
+            query(schema, ','.join(columns), ("%s, " * len(columns))[:-2]),
+            [[
+                code[0],
+                delivery_date,
+                delivery_date,
+                code[1] + delivery,
+                r[0],
+                r[1],
+                r[2],
+                r[3],
+                r[4],
+                r[4],
+                r[5],
+                r[6],
+                now,
+                now
+             ] for r in rows]
+        )
 
 
 if __name__ == '__main__':
@@ -129,7 +186,7 @@ if __name__ == '__main__':
             'delivery_month': populate_delivery_month_table,
             'group': populate_group_table,
             'market': populate_market,
-            'contracts': populate_contracts
+            'contract': populate_contracts
         }
 
         if schema in schema_map:
