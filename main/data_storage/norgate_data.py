@@ -8,16 +8,12 @@ import datetime as dt
 import MySQLdb as mysql
 
 norgate_dir_template = './data/norgate/%s.csv'
-
-
-def mysql_connection():
-    # TODO cache
-    return mysql.connect(
-        os.environ['DB_HOST'],
-        os.environ['DB_USER'],
-        os.environ['DB_PASS'],
-        os.environ['DB_NAME']
-    )
+mysql_connection = mysql.connect(
+    os.environ['DB_HOST'],
+    os.environ['DB_USER'],
+    os.environ['DB_PASS'],
+    os.environ['DB_NAME']
+)
 
 
 def csv_lines(path, exclude_header=True):
@@ -31,9 +27,8 @@ def query(table, columns, placeholders):
 
 
 def insert_values(operation, values):
-    connection = mysql_connection()
-    with connection:
-        cursor = connection.cursor()
+    with mysql_connection:
+        cursor = mysql_connection.cursor()
         cursor.executemany(operation, values)
 
 
@@ -63,8 +58,7 @@ def populate_group_table(schema):
 
 
 def populate_market(schema):
-    connection = mysql_connection()
-    cursor = connection.cursor()
+    cursor = mysql_connection.cursor()
     cursor.execute("SELECT name, id FROM `group` WHERE standard='Norgate'")
     groups = dict(cursor.fetchall())
     cursor.execute("SELECT name, id FROM `exchange`")
@@ -109,8 +103,7 @@ def populate_market(schema):
 
 
 def populate_contracts(schema):
-    connection = mysql_connection()
-    cursor = connection.cursor()
+    cursor = mysql_connection.cursor()
     cursor.execute("SELECT id, code FROM `market`")
     codes = cursor.fetchall()
     cursor.execute("SELECT code, name FROM `delivery_month`")
