@@ -161,6 +161,11 @@ def populate_symbol(schema, now, code, dir_path, delivery_months):
         files)
 
 
+def populate_continuous_back_adjusted(schema):
+    return ''
+
+
+
 if __name__ == '__main__':
     if len(sys.argv) == 2 and len(sys.argv[1]):
         schema = sys.argv[1]
@@ -169,12 +174,14 @@ if __name__ == '__main__':
             'delivery_month': populate_delivery_month_table,
             'group': populate_group_table,
             'market': populate_market,
-            'contract': populate_contracts
+            'contract': populate_contracts,
+            'continuous_back_adjusted': populate_continuous_back_adjusted
         }
 
         if schema in schema_map:
             schema_map.get(schema)(schema)
         else:
             print 'No schema of such name (%s) found.' % schema
+            print 'Available schemas are: %s' % schema_map.keys()
     else:
         print 'Expect one argument - name of the table to insert data into'
