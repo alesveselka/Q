@@ -7,6 +7,8 @@ import sys
 import datetime as dt
 import MySQLdb as mysql
 
+norgate_dir_template = './data/norgate/%s.csv'
+
 
 def mysql_connection():
     # TODO cache
@@ -18,11 +20,8 @@ def mysql_connection():
     )
 
 
-def csv_lines(file_name, exclude_header=True):
-    """
-    Read '*.csv' file by name passed in, and return non-empty rows
-    """
-    reader = csv.reader(open('./data/norgate/%s.csv' % file_name), delimiter=',', quotechar='"')
+def csv_lines(path, exclude_header=True):
+    reader = csv.reader(open(path), delimiter=',', quotechar='"')
     rows = [row for row in reader if re.match('^[a-zA-Z0-9]', row[0])]
     return rows[1:] if exclude_header else rows
 
@@ -32,9 +31,6 @@ def query(table, columns, placeholders):
 
 
 def insert_values(operation, values):
-    """
-    Create MySQL database connection and cursor and execute operation for values passed in
-    """
     connection = mysql_connection()
     with connection:
         cursor = connection.cursor()
@@ -48,21 +44,21 @@ def populate_exchange_table(schema):
     country = 4
     insert_values(
         query(schema, 'code, ex_code, name, country', "%s, %s, %s, %s"),
-        [(l[code], l[ex_code], l[name], l[country]) for l in csv_lines(schema)]
+        [(l[code], l[ex_code], l[name], l[country]) for l in csv_lines(norgate_dir_template % schema)]
     )
 
 
 def populate_delivery_month_table(schema):
     insert_values(
         query(schema, 'code, name', "%s, %s"),
-        csv_lines(schema)
+        csv_lines(norgate_dir_template % schema)
     )
 
 
 def populate_group_table(schema):
     insert_values(
         query(schema, 'name, standard', "%s, %s"),
-        csv_lines(schema)
+        csv_lines(norgate_dir_template % schema)
     )
 
 
@@ -88,7 +84,7 @@ def populate_market(schema):
         'first_notice_day': 12
     }
     keys = columns.keys()
-    markets = csv_lines(schema)
+    markets = csv_lines(norgate_dir_template % schema)
 
     # TODO move following 'utility' functions to its own library
     def contains(key, data, market): return market[columns.get(key)] in data
@@ -152,6 +148,7 @@ def populate_symbol(schema, now, code, dir_path, delivery_months):
     def index(key, data, position=0):
         return reduce(lambda i, d: i + 1 if d[position] <= key else i, data, 0)
 
+    # TODO use functional approach
     for f in files:
         delivery = f[5:10]
         delivery_date = dt.date(int(delivery[:-1]), index(delivery[-1], delivery_months), 1)
