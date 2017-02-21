@@ -114,13 +114,6 @@ def populate_contracts(schema):
     # TODO See notes about various 'sessions' and their codes @ Norgate
     missing = filter(lambda c: c not in dir_list and c+'2' not in dir_list, [c[1] for c in codes])
     matching_codes = filter(lambda c: c[1] in dir_list, codes)
-
-    for code in matching_codes:
-        populate_symbol(schema, now, code, dir_path, delivery_months)
-
-
-def populate_symbol(schema, now, code, dir_path, delivery_months):
-    files = os.listdir(''.join([dir_path, code[1]]))
     columns = [
         'market_id',
         'delivery_date',
@@ -137,6 +130,14 @@ def populate_symbol(schema, now, code, dir_path, delivery_months):
         'created_date',
         'last_updated_date'
     ]
+    q = query(schema, ','.join(columns), ("%s, " * len(columns))[:-2])
+
+    for code in matching_codes:
+        populate_symbol(now, code, dir_path, delivery_months, q)
+
+
+def populate_symbol(now, code, dir_path, delivery_months, q):
+    files = os.listdir(''.join([dir_path, code[1]]))
 
     def index(key, data, position=0):
         return reduce(lambda i, d: i + 1 if d[position] <= key else i, data, 0)
@@ -155,15 +156,37 @@ def populate_symbol(schema, now, code, dir_path, delivery_months):
              now
          ] for r in rows]
 
-    map(lambda f: insert_values(
-            query(schema, ','.join(columns), ("%s, " * len(columns))[:-2]),
-            values(f)),
-        files)
+    map(lambda f: insert_values(q, values(f)), files)
 
 
 def populate_continuous_back_adjusted(schema):
-    return ''
+    cursor = mysql_connection.cursor()
+    cursor.execute("SELECT id, code FROM `market`")
+    codes = cursor.fetchall()
+    dir_path = './resources/Norgate/data/Futures/Continuous Contracts/Back Adjusted/Text/'
+    dir_list = [d.split('.')[0] for d in os.listdir(dir_path)]
+    now = dt.datetime.now()
+    matching_codes = filter(lambda c: c[1] in dir_list, codes)
+    columns = [
+        'market_id',
+        'price_date',
+        'open_price',
+        'high_price',
+        'low_price',
+        'last_price',
+        'settle_price',
+        'volume',
+        'open_interest',
+        'created_date',
+        'last_updated_date'
+    ]
+    q = query(schema, ','.join(columns), ("%s, " * len(columns))[:-2])
 
+    def values(code):
+        rows = csv_lines(''.join([dir_path, code[1], '.csv']), exclude_header=False)
+        return [[code[0], r[0], r[1], r[2], r[3], r[4], r[4], r[5], r[6], now, now] for r in rows]
+
+    map(lambda c: insert_values(q, values(c)), matching_codes)
 
 
 if __name__ == '__main__':
