@@ -141,31 +141,24 @@ def populate_symbol(schema, now, code, dir_path, delivery_months):
     def index(key, data, position=0):
         return reduce(lambda i, d: i + 1 if d[position] <= key else i, data, 0)
 
-    # TODO use functional approach
-    for f in files:
-        delivery = f[5:10]
+    def values(file_name):
+        delivery = file_name[5:10]
         delivery_date = dt.date(int(delivery[:-1]), index(delivery[-1], delivery_months), 1)
-        reader = csv.reader(open(''.join([dir_path, code[1], '/', f])), delimiter=',', quotechar='"')
-        rows = [row for row in reader if re.match('^[a-zA-Z0-9]', row[0])]
-        insert_values(
+        rows = csv_lines(''.join([dir_path, code[1], '/', file_name]), exclude_header=False)
+        return [[
+             code[0],
+             delivery_date,
+             delivery_date,
+             code[1] + delivery,
+             r[0], r[1], r[2], r[3], r[4], r[4], r[5], r[6],
+             now,
+             now
+         ] for r in rows]
+
+    map(lambda f: insert_values(
             query(schema, ','.join(columns), ("%s, " * len(columns))[:-2]),
-            [[
-                code[0],
-                delivery_date,
-                delivery_date,
-                code[1] + delivery,
-                r[0],
-                r[1],
-                r[2],
-                r[3],
-                r[4],
-                r[4],
-                r[5],
-                r[6],
-                now,
-                now
-             ] for r in rows]
-        )
+            values(f)),
+        files)
 
 
 if __name__ == '__main__':
