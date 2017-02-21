@@ -48,6 +48,8 @@
 ```
 ###Process
 
+**SET UP MYSQL CONFIG BEFORE USING (e.g. max_allowed_packet, etc.)**
+
 * Automatic download
 * Error processing
 * Automatic Error Report?
