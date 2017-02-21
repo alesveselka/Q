@@ -160,10 +160,23 @@ def populate_symbol(now, code, dir_path, delivery_months, q):
 
 
 def populate_continuous_back_adjusted(schema):
+    populate_continuous(
+        schema,
+        './resources/Norgate/data/Futures/Continuous Contracts/Back Adjusted/Text/'
+    )
+
+
+def populate_continuous_spliced(schema):
+    populate_continuous(
+        schema,
+        './resources/Norgate/data/Futures/Continuous Contracts/Spliced/Text/'
+    )
+
+
+def populate_continuous(schema, dir_path):
     cursor = mysql_connection.cursor()
     cursor.execute("SELECT id, code FROM `market`")
     codes = cursor.fetchall()
-    dir_path = './resources/Norgate/data/Futures/Continuous Contracts/Back Adjusted/Text/'
     dir_list = [d.split('.')[0] for d in os.listdir(dir_path)]
     now = dt.datetime.now()
     matching_codes = filter(lambda c: c[1] in dir_list, codes)
@@ -198,7 +211,8 @@ if __name__ == '__main__':
             'group': populate_group_table,
             'market': populate_market,
             'contract': populate_contracts,
-            'continuous_back_adjusted': populate_continuous_back_adjusted
+            'continuous_back_adjusted': populate_continuous_back_adjusted,
+            'continuous_spliced': populate_continuous_spliced
         }
 
         if schema in schema_map:
