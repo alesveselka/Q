@@ -52,7 +52,7 @@ def populate_delivery_month_table(schema):
 
 def populate_data_codes_table(schema):
     insert_values(
-        query(schema, 'code, number, name', "%s, %s, %s"),
+        query(schema, 'code, appendix, name', "%s, %s, %s"),
         csv_lines(norgate_dir_template % schema)
     )
 
@@ -112,16 +112,17 @@ def populate_market(schema):
 
 def populate_contracts(schema):
     cursor = mysql_connection.cursor()
-    cursor.execute("SELECT id, code FROM `market`")
+    cursor.execute("SELECT code, appendix FROM `data_codes`")
+    data_codes = dict(cursor.fetchall())
+    cursor.execute("SELECT id, code, data_codes FROM `market`")
     codes = cursor.fetchall()
     cursor.execute("SELECT code, name FROM `delivery_month`")
     delivery_months = cursor.fetchall()
     dir_path = './resources/Norgate/data/Futures/Contracts/_Text/'
     dir_list = os.listdir(dir_path)
     now = dt.datetime.now()
-    # TODO See notes about various 'sessions' and their codes @ Norgate
-    missing = filter(lambda c: c not in dir_list and c+'2' not in dir_list, [c[1] for c in codes])
-    matching_codes = filter(lambda c: c[1] in dir_list, codes)
+    all_codes = reduce(lambda result, c: result + map(lambda d: (c[0], c[1] + data_codes[d]), c[2]), codes, [])
+    matching_codes = filter(lambda c: c[1] in dir_list, all_codes)
     # TODO use 'Entity' that will hold the structure description and generalize the SQL insertion
     columns = [
         'market_id',
