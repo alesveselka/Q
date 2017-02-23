@@ -36,7 +36,8 @@ if __name__ == '__main__':
         'holidays',
         'exchange',
         'group',
-        'delivery_month'
+        'delivery_month',
+        'data_codes'
     ]
     contents = commands(file_contents(folder, schemas))
     drop_commands = filter(lambda cmd: cmd.lower().startswith('drop'), contents)
