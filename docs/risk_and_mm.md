@@ -31,11 +31,19 @@
         - Standard Market Conditions
         - Volatilities and Correlations
         - Normality of Returns
+
 * CPPI (Constant Proportion Portfolio Insurance)
   (Kelly set to max DD. Use per-strategy)
 * Monte-Carlo with backtested returns instead of Kelly,
   to get more realistic picture of fat-tails distribution
 * Stress tests - simulate situation of well-knows crisis (2008, Flash Crash, etc.)
+        
+###Cash Management
+
+* Several (5 - 7) accounts with different base-currency?
+  (Or loan the FX pair with non-US denominated instrument?)
+* Cca 65 % of asset base in US debt instruments with an average duration of 2 years
+  (Short-term duration, and bulk in 1 - 3 years and rolling)
 
 ###Trade Management
 

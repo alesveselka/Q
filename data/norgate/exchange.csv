@@ -1,0 +1,27 @@
+code,ex_code,name,instrument,country
+ASX,SFE,Australian Securities Exchange (ex SFE),Securities,Australia
+Arca,ARCA,"New York Stock Exchange, Arca",Securities,USA
+NYSE,,New York Stock Exchange,Securities,USA
+AMEX,,American Stock Exchange,Securities,USA
+NASDAQ,,NASDAQ,Securities,USA
+OTC,,Over the Counter,Securities,
+,,,,
+CBOE,,Chicago Board Options Exchange,Futures,USA
+CME,CBOT,CME Group (ex CBOT),Futures,USA
+CME,,CME Group (ex CME),Futures,USA
+CME,COMEX,CME Group (ex COMEX),Futures,USA
+CME,NYMEX,CME Group (ex NYMEX),Futures,USA
+CME,KCBT,CME Group (ex KCBT),Futures,USA
+EX,,Eurex,Futures,Germany
+HKEX,,Hong Kong Stock Exchange,Futures,Hong Kong
+IFCA,WCE,ICE Futures Canada,Futures,Canada
+IFEU,,ICE Futures Europe,Futures,
+IFUS,NYBOT,ICE Futures US,Futures,USA
+KRX,,Korea Exchange,Futures,Korea
+MGEX,,Minneapolis Grain Exchange,Futures,USA
+MX,,Montreal Exchange (Bourse de Montreal),Futures,Canada
+LIFFE,LIFFE,NYSE Euronext (LIFFE),Futures,USA
+SGX,,Singapore Exchange (Futures),Futures,Singapore
+MEFF,,Mercado Espanol de Futuros Financieros,Futures,Spain
+TGE,,Tokyo Grain Exchange,Futures,Tokyo
+TOCOM,,Tokyo Commodity Exchange,Futures,Tokyo

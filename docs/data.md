@@ -48,6 +48,8 @@
 ```
 ###Process
 
+**SET UP MYSQL CONFIG BEFORE USING (e.g. max_allowed_packet, etc.)**
+
 * Automatic download
 * Error processing
 * Automatic Error Report?
@@ -60,6 +62,7 @@
 * Generating Term-structure charts
 * Archiving (and Compression)
 
+* Check last EOD data with the one from actual Exchange website? (web-scrape specs pages)
 * Replicate remote DB to local desktop?
 
 ###Entities

@@ -133,6 +133,9 @@
     - Reporting
     - Taxation
 * Cash In-flow/Out-flow management (**Also reflect in return reports**)
+* Cash Management
+    - Cca 65 % of asset base in US debt instruments with an average duration of 2 years
+      (Short-term duration, and bulk in 1 - 3 years and rolling)
 
 #####Currency Hedging
 
