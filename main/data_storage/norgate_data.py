@@ -50,6 +50,13 @@ def populate_delivery_month_table(schema):
     )
 
 
+def populate_data_codes_table(schema):
+    insert_values(
+        query(schema, 'code, number, name', "%s, %s, %s"),
+        csv_lines(norgate_dir_template % schema)
+    )
+
+
 def populate_group_table(schema):
     insert_values(
         query(schema, 'name, standard', "%s, %s"),
@@ -66,16 +73,17 @@ def populate_market(schema):
     columns = {
         'name': 0,
         'code': 2,
-        'exchange_id': 3,
-        'group_id': 4,
-        'contract_size': 5,
-        'quotation': 6,
-        'tick_size': 7,
-        'tick_value': 8,
-        'point_value': 9,
-        'currency': 10,
-        'last_trading_day': 11,
-        'first_notice_day': 12
+        'data_codes': 3,
+        'exchange_id': 4,
+        'group_id': 5,
+        'contract_size': 6,
+        'quotation': 7,
+        'tick_size': 8,
+        'tick_value': 9,
+        'point_value': 10,
+        'currency': 11,
+        'last_trading_day': 12,
+        'first_notice_day': 13
     }
     keys = columns.keys()
     markets = csv_lines(norgate_dir_template % schema)
@@ -114,6 +122,7 @@ def populate_contracts(schema):
     # TODO See notes about various 'sessions' and their codes @ Norgate
     missing = filter(lambda c: c not in dir_list and c+'2' not in dir_list, [c[1] for c in codes])
     matching_codes = filter(lambda c: c[1] in dir_list, codes)
+    # TODO use 'Entity' that will hold the structure description and generalize the SQL insertion
     columns = [
         'market_id',
         'delivery_date',
@@ -208,6 +217,7 @@ if __name__ == '__main__':
         schema_map = {
             'exchange': populate_exchange_table,
             'delivery_month': populate_delivery_month_table,
+            'data_codes': populate_data_codes_table,
             'group': populate_group_table,
             'market': populate_market,
             'contract': populate_contracts,
