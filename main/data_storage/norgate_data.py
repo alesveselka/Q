@@ -268,6 +268,34 @@ def populate_continuous(schema, dir_path):
     map(lambda c: insert_values(q, values(c)), matching_codes)
 
 
+def populate_spot(schema):
+    cursor = mysql_connection.cursor()
+    cursor.execute("SELECT id, code FROM `spot_market`")
+    codes = cursor.fetchall()
+    dir_path = './resources/Norgate/data/Futures/Cash/Text/'
+    dir_list = [d.split('.')[0] for d in os.listdir(dir_path)]
+    now = dt.datetime.now()
+    matching_codes = filter(lambda c: c[1] in dir_list, codes)
+    columns = [
+        'spot_market_id',
+        'price_date',
+        'open_price',
+        'high_price',
+        'low_price',
+        'last_price',
+        'settle_price',
+        'created_date',
+        'last_updated_date'
+    ]
+    q = query(schema, ','.join(columns), ("%s, " * len(columns))[:-2])
+
+    def values(code):
+        rows = csv_lines(''.join([dir_path, code[1], '.csv']), exclude_header=False)
+        return [[code[0], r[0], r[1], r[2], r[3], r[4], r[4], now, now] for r in rows]
+
+    map(lambda c: insert_values(q, values(c)), matching_codes)
+
+
 if __name__ == '__main__':
     if len(sys.argv) == 2 and len(sys.argv[1]):
         schema = sys.argv[1]
@@ -280,7 +308,8 @@ if __name__ == '__main__':
             'contract': populate_contracts,
             'continuous_back_adjusted': populate_continuous_back_adjusted,
             'continuous_spliced': populate_continuous_spliced,
-            'spot_market': populate_spot_market
+            'spot_market': populate_spot_market,
+            'spot': populate_spot
         }
 
         if schema in schema_map:
