@@ -82,8 +82,10 @@ def populate_market(schema):
         'tick_value': 9,
         'point_value': 10,
         'currency': 11,
-        'last_trading_day': 12,
-        'first_notice_day': 13
+        'first_contract': 12,
+        'first_data_date': 13,
+        'last_trading_day': 14,
+        'first_notice_day': 15
     }
     keys = columns.keys()
     markets = csv_lines(norgate_dir_template % schema)
@@ -94,14 +96,23 @@ def populate_market(schema):
     def print_lookup_error(m, key):
         print "[ERROR] Can't find '%s'. Skipping inserting '%s'" % (m[columns.get(key)], m[columns.get('name')])
 
+    def format_dates(m):
+        d = m[columns.get('first_contract')].split('/')
+        m[columns.get('first_contract')] = dt.date(int(d[2]), int(d[0]), 1)
+        d = m[columns.get('first_data_date')].split('/')
+        m[columns.get('first_data_date')] = dt.date(int(d[2]), int(d[0]), int(d[1]))
+        return True
+
     def replace_ids(m):
         m[columns.get('exchange_id')] = exchanges.get(m[columns.get('exchange_id')])
         m[columns.get('group_id')] = groups.get(m[columns.get('group_id')])
+        return True
 
     map(lambda m: (
         (contains('exchange_id', exchanges, m) or print_lookup_error(m, 'exchange_id'))
         and (contains('group_id', groups, m) or print_lookup_error(m, 'group_id'))
         and replace_ids(m)
+        and format_dates(m)
     ), markets)
 
     insert_values(
