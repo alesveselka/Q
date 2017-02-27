@@ -194,6 +194,46 @@ def populate_currencies(schema):
     )
 
 
+def populate_currency_pairs(schema):
+    cursor = mysql_connection.cursor()
+    cursor.execute("SELECT name, id FROM `group` WHERE standard='Currency'")
+    groups = dict(cursor.fetchall())
+    columns = {
+        'name': 0,
+        'code': 1,
+        'group_id': 2,
+        'first_data_date': 3
+    }
+    keys = columns.keys()
+    pairs = csv_lines(norgate_dir_template % schema)
+
+    # TODO move following 'utility' functions to its own library
+    def contains(key, data, market): return market[columns.get(key)] in data
+
+    def print_lookup_error(p, key):
+        print "[ERROR] Can't find '%s'. Skipping inserting '%s'" % (p[columns.get(key)], p[columns.get('name')])
+
+    def format_dates(p):
+        d = p[columns.get('first_data_date')].split('/')
+        p[columns.get('first_data_date')] = dt.date(int(d[2]), int(d[0]), int(d[1]))
+        return True
+
+    def replace_ids(p):
+        p[columns.get('group_id')] = groups.get(p[columns.get('group_id')])
+        return True
+
+    map(lambda p: (
+        (contains('group_id', groups, p) or print_lookup_error(p, 'group_id'))
+        and replace_ids(p)
+        and format_dates(p)
+    ), pairs)
+
+    insert_values(
+        query(schema, ','.join(keys), ("%s, " * len(keys))[:-2]),
+        [[p[columns.get(k)] for k in keys] for p in pairs]
+    )
+
+
 def populate_contracts(schema):
     cursor = mysql_connection.cursor()
     cursor.execute("SELECT code, appendix FROM `data_codes`")
@@ -342,7 +382,8 @@ if __name__ == '__main__':
             'continuous_spliced': populate_continuous_spliced,
             'spot_market': populate_spot_market,
             'spot': populate_spot,
-            'currencies': populate_currencies
+            'currencies': populate_currencies,
+            'currency_pairs': populate_currency_pairs
         }
 
         if schema in schema_map:
