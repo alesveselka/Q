@@ -368,6 +368,37 @@ def populate_spot(schema):
     map(lambda c: insert_values(q, values(c)), matching_codes)
 
 
+def populate_currency(schema):
+    cursor = mysql_connection.cursor()
+    cursor.execute("SELECT id, code FROM `currency_pairs`")
+    codes = cursor.fetchall()
+    dir_path = './resources/Norgate/data/Forex/'
+    dir_list = [d.split('.')[0] for d in os.listdir(dir_path)]
+    now = dt.datetime.now()
+    matching_codes = filter(lambda c: c[1] in dir_list, codes)
+    columns = [
+        'currency_pair_id',
+        'price_date',
+        'open_price',
+        'high_price',
+        'low_price',
+        'last_price',
+        'created_date',
+        'last_updated_date'
+    ]
+    q = query(schema, ','.join(columns), ("%s, " * len(columns))[:-2])
+
+    def format_date(c):
+        d = c.split('/')
+        return dt.date(int(d[2]), int(d[0]), int(d[1]))
+
+    def values(code):
+        rows = csv_lines(''.join([dir_path, code[1], '.csv']))
+        return [[code[0], format_date(r[0]), r[1], r[2], r[3], r[4], now, now] for r in rows]
+
+    map(lambda c: insert_values(q, values(c)), matching_codes)
+
+
 if __name__ == '__main__':
     if len(sys.argv) == 2 and len(sys.argv[1]):
         schema = sys.argv[1]
@@ -383,7 +414,8 @@ if __name__ == '__main__':
             'spot_market': populate_spot_market,
             'spot': populate_spot,
             'currencies': populate_currencies,
-            'currency_pairs': populate_currency_pairs
+            'currency_pairs': populate_currency_pairs,
+            'currency': populate_currency
         }
 
         if schema in schema_map:
