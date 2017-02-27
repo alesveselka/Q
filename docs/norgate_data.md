@@ -23,7 +23,7 @@
 | id                    |
 | name                  |
 | code                  | use as primary key?
-| instrument            | e.g. 'Futures', 'Spot'
+| data_codes            | Code used e.g. in Norgate DataTools (resolve w/ trading hours!)
 | data_vendor           | 'Norgate' in this instance
 | exchange_id           | (use duplicate instead of 'id' for performance?)
 | group_id              | (use duplicate instead of 'id' for performance?)
@@ -36,12 +36,14 @@
 | last_trading_day      |
 | first_notice_day      |
 | trading_hours?        | TODO - to be filled (external table?)
+| trading_hours_timezone|
 | initial_margin        |
 | maintenance_margin    |
-| session/platform      |
 | volume_offset         |
 | oi_offset             |
 | delivery_months       |
+| first_date            |
+| first_contract        |
 +-----------------------+
 ```
 #####Delivery Month
@@ -50,6 +52,16 @@
 | delivery_month        |
 +-----------------------+
 | code (primary key)    |
+| name                  |
++-----------------------+
+```
+#####Data Codes
+```
++-----------------------+
+| data_codes            |
++-----------------------+
+| code                  |
+| number                |
 | name                  |
 +-----------------------+
 ```
@@ -116,16 +128,32 @@
 | last_updated_date         |
 +---------------------------+
 ```
-#####Spot markets 
-(Not needed - see 'market' schema)
+#####Spot Markets
+```
++-----------------------+
+| spot_market           |
++-----------------------+
+| id                    | do I need 'id'?
+| name                  |
+| code                  |
+| group_id              |
+| first_data_date       |
+| notes                 |
++-----------------------+
+```
+#####Spot
 ```
 +-----------------------+
 | spot                  |
 +-----------------------+
-| id                    | do I need 'id'?
-| market_id             |
-| code                  |
-| note                  |
+| id                    |
+| spot_market_id        |
+| price_date            |
+| open_price            |
+| high_price            |
+| low_price             |
+| last_price            |
+| settle_price          |
 | created_date          |
 | last_updated_date     |
 +-----------------------+
@@ -219,6 +247,15 @@
     - Currencies
     - Indicies
     - Interest Rates
+
+#####Data Codes
+
+* I: '' (Identity - same as original code)
+* D: '1' (Hang Seng Day, QUEST Day)
+* F: '1' (Floor)
+* C: '2' (Combined)
+* N: '3' (Night)
+* L: '4' (Last: After Settlement)
 
 #####Delivery Months
 

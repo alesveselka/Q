@@ -33,6 +33,8 @@ if __name__ == '__main__':
         'continuous_spliced',
         'contract',
         'market',
+        'spot',
+        'spot_market',
         'holidays',
         'exchange',
         'group',

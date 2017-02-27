@@ -82,8 +82,10 @@ def populate_market(schema):
         'tick_value': 9,
         'point_value': 10,
         'currency': 11,
-        'last_trading_day': 12,
-        'first_notice_day': 13
+        'first_contract': 12,
+        'first_data_date': 13,
+        'last_trading_day': 14,
+        'first_notice_day': 15
     }
     keys = columns.keys()
     markets = csv_lines(norgate_dir_template % schema)
@@ -94,19 +96,141 @@ def populate_market(schema):
     def print_lookup_error(m, key):
         print "[ERROR] Can't find '%s'. Skipping inserting '%s'" % (m[columns.get(key)], m[columns.get('name')])
 
+    def format_dates(m):
+        d = m[columns.get('first_contract')].split('/')
+        m[columns.get('first_contract')] = dt.date(int(d[2]), int(d[0]), 1)
+        d = m[columns.get('first_data_date')].split('/')
+        m[columns.get('first_data_date')] = dt.date(int(d[2]), int(d[0]), int(d[1]))
+        return True
+
     def replace_ids(m):
         m[columns.get('exchange_id')] = exchanges.get(m[columns.get('exchange_id')])
         m[columns.get('group_id')] = groups.get(m[columns.get('group_id')])
+        return True
 
     map(lambda m: (
         (contains('exchange_id', exchanges, m) or print_lookup_error(m, 'exchange_id'))
         and (contains('group_id', groups, m) or print_lookup_error(m, 'group_id'))
+        and replace_ids(m)
+        and format_dates(m)
+    ), markets)
+
+    insert_values(
+        query(schema, ','.join(keys), ("%s, " * len(keys))[:-2]),
+        [[m[columns.get(k)] for k in keys] for m in markets]
+    )
+
+
+def populate_spot_market(schema):
+    cursor = mysql_connection.cursor()
+    cursor.execute("SELECT name, id FROM `group` WHERE standard='Spot'")
+    groups = dict(cursor.fetchall())
+    columns = {
+        'name': 0,
+        'code': 1,
+        'group_id': 2,
+        'first_data_date': 3,
+        'notes': 4
+    }
+    keys = columns.keys()
+    markets = csv_lines(norgate_dir_template % schema)
+
+    # TODO move following 'utility' functions to its own library
+    def contains(key, data, market): return market[columns.get(key)] in data
+
+    def print_lookup_error(m, key):
+        print "[ERROR] Can't find '%s'. Skipping inserting '%s'" % (m[columns.get(key)], m[columns.get('name')])
+
+    def format_dates(m):
+        d = m[columns.get('first_data_date')].split('/')
+        m[columns.get('first_data_date')] = dt.date(int(d[2]), int(d[0]), int(d[1]))
+        return True
+
+    def replace_ids(m):
+        m[columns.get('group_id')] = groups.get(m[columns.get('group_id')])
+        return True
+
+    map(lambda m: (
+        (contains('group_id', groups, m) or print_lookup_error(m, 'group_id'))
+        and replace_ids(m)
+        and format_dates(m)
+    ), markets)
+
+    insert_values(
+        query(schema, ','.join(keys), ("%s, " * len(keys))[:-2]),
+        [[m[columns.get(k)] for k in keys] for m in markets]
+    )
+
+
+def populate_currencies(schema):
+    cursor = mysql_connection.cursor()
+    cursor.execute("SELECT name, id FROM `group` WHERE standard='Currency'")
+    groups = dict(cursor.fetchall())
+    columns = {
+        'code': 0,
+        'name': 1,
+        'group_id': 2
+    }
+    keys = columns.keys()
+    markets = csv_lines(norgate_dir_template % schema)
+
+    def contains(key, data, market): return market[columns.get(key)] in data
+
+    def print_lookup_error(m, key):
+        print "[ERROR] Can't find '%s'. Skipping inserting '%s'" % (m[columns.get(key)], m[columns.get('name')])
+
+    def replace_ids(m):
+        m[columns.get('group_id')] = groups.get(m[columns.get('group_id')])
+        return True
+
+    map(lambda m: (
+        (contains('group_id', groups, m) or print_lookup_error(m, 'group_id'))
         and replace_ids(m)
     ), markets)
 
     insert_values(
         query(schema, ','.join(keys), ("%s, " * len(keys))[:-2]),
         [[m[columns.get(k)] for k in keys] for m in markets]
+    )
+
+
+def populate_currency_pairs(schema):
+    cursor = mysql_connection.cursor()
+    cursor.execute("SELECT name, id FROM `group` WHERE standard='Currency'")
+    groups = dict(cursor.fetchall())
+    columns = {
+        'name': 0,
+        'code': 1,
+        'group_id': 2,
+        'first_data_date': 3
+    }
+    keys = columns.keys()
+    pairs = csv_lines(norgate_dir_template % schema)
+
+    # TODO move following 'utility' functions to its own library
+    def contains(key, data, market): return market[columns.get(key)] in data
+
+    def print_lookup_error(p, key):
+        print "[ERROR] Can't find '%s'. Skipping inserting '%s'" % (p[columns.get(key)], p[columns.get('name')])
+
+    def format_dates(p):
+        d = p[columns.get('first_data_date')].split('/')
+        p[columns.get('first_data_date')] = dt.date(int(d[2]), int(d[0]), int(d[1]))
+        return True
+
+    def replace_ids(p):
+        p[columns.get('group_id')] = groups.get(p[columns.get('group_id')])
+        return True
+
+    map(lambda p: (
+        (contains('group_id', groups, p) or print_lookup_error(p, 'group_id'))
+        and replace_ids(p)
+        and format_dates(p)
+    ), pairs)
+
+    insert_values(
+        query(schema, ','.join(keys), ("%s, " * len(keys))[:-2]),
+        [[p[columns.get(k)] for k in keys] for p in pairs]
     )
 
 
@@ -216,6 +340,65 @@ def populate_continuous(schema, dir_path):
     map(lambda c: insert_values(q, values(c)), matching_codes)
 
 
+def populate_spot(schema):
+    cursor = mysql_connection.cursor()
+    cursor.execute("SELECT id, code FROM `spot_market`")
+    codes = cursor.fetchall()
+    dir_path = './resources/Norgate/data/Futures/Cash/Text/'
+    dir_list = [d.split('.')[0] for d in os.listdir(dir_path)]
+    now = dt.datetime.now()
+    matching_codes = filter(lambda c: c[1] in dir_list, codes)
+    columns = [
+        'spot_market_id',
+        'price_date',
+        'open_price',
+        'high_price',
+        'low_price',
+        'last_price',
+        'settle_price',
+        'created_date',
+        'last_updated_date'
+    ]
+    q = query(schema, ','.join(columns), ("%s, " * len(columns))[:-2])
+
+    def values(code):
+        rows = csv_lines(''.join([dir_path, code[1], '.csv']), exclude_header=False)
+        return [[code[0], r[0], r[1], r[2], r[3], r[4], r[4], now, now] for r in rows]
+
+    map(lambda c: insert_values(q, values(c)), matching_codes)
+
+
+def populate_currency(schema):
+    cursor = mysql_connection.cursor()
+    cursor.execute("SELECT id, code FROM `currency_pairs`")
+    codes = cursor.fetchall()
+    dir_path = './resources/Norgate/data/Forex/'
+    dir_list = [d.split('.')[0] for d in os.listdir(dir_path)]
+    now = dt.datetime.now()
+    matching_codes = filter(lambda c: c[1] in dir_list, codes)
+    columns = [
+        'currency_pair_id',
+        'price_date',
+        'open_price',
+        'high_price',
+        'low_price',
+        'last_price',
+        'created_date',
+        'last_updated_date'
+    ]
+    q = query(schema, ','.join(columns), ("%s, " * len(columns))[:-2])
+
+    def format_date(c):
+        d = c.split('/')
+        return dt.date(int(d[2]), int(d[0]), int(d[1]))
+
+    def values(code):
+        rows = csv_lines(''.join([dir_path, code[1], '.csv']))
+        return [[code[0], format_date(r[0]), r[1], r[2], r[3], r[4], now, now] for r in rows]
+
+    map(lambda c: insert_values(q, values(c)), matching_codes)
+
+
 if __name__ == '__main__':
     if len(sys.argv) == 2 and len(sys.argv[1]):
         schema = sys.argv[1]
@@ -227,7 +410,12 @@ if __name__ == '__main__':
             'market': populate_market,
             'contract': populate_contracts,
             'continuous_back_adjusted': populate_continuous_back_adjusted,
-            'continuous_spliced': populate_continuous_spliced
+            'continuous_spliced': populate_continuous_spliced,
+            'spot_market': populate_spot_market,
+            'spot': populate_spot,
+            'currencies': populate_currencies,
+            'currency_pairs': populate_currency_pairs,
+            'currency': populate_currency
         }
 
         if schema in schema_map:
