@@ -31,5 +31,6 @@ London Metals Exchange,Spot
 Stock Indices,Spot
 Majors,Currency
 Minors,Currency
+Primary,Currency
 Gold,Currency
 Silver,Currency
