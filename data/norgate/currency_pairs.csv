@@ -1,0 +1,147 @@
+Name,Exchange Rate Symbol,Group,History Start Date
+Australian Dollar/British Pound,AUDGBP,Primary,1/2/1991
+Australian Dollar/Canadian Dollar,AUDCAD,Primary,1/2/1991
+Australian Dollar/Hong Kong Dollar,AUDHKD,Primary,1/2/1991
+Australian Dollar/Japanese Yen,AUDJPY,Primary,1/2/1991
+Australian Dollar/New Zealand Dollar,AUDNZD,Primary,1/2/1991
+Australian Dollar/Singapore Dollar,AUDSGD,Primary,1/2/1991
+Australian Dollar/South African Rand,AUDZAR,Primary,4/9/1996
+Australian Dollar/Swiss Franc,AUDCHF,Primary,1/2/1991
+Australian Dollar/United States Dollar,AUDUSD,Primary,1/2/1991
+Bitcoin/United States Dollar,BTCUSD,Primary,8/18/2011
+Canadian Dollar/Swiss Franc,CADCHF,Primary,1/2/1991
+British Pound/Canadian Dollar,GBPCAD,Primary,1/2/1991
+British Pound/Hong Kong Dollar,GBPHKD,Primary,1/2/1991
+British Pound/Japanese Yen,GBPJPY,Primary,1/2/1991
+British Pound/Mexican Peso,GBPMXN,Primary,12/11/1998
+British Pound/New Zealand Dollar,GBPNZD,Primary,1/2/1991
+British Pound/Singapore Dollar,GBPSGD,Primary,1/2/1991
+British Pound/South African Rand,GBPZAR,Primary,12/23/1992
+British Pound/Swiss Franc,GBPCHF,Primary,1/2/1991
+British Pound/United States Dollar,GBPUSD,Primary,1/2/1991
+Canadian Dollar/Japanese Yen,CADJPY,Primary,1/2/1991
+Euro/Australian Dollar,EURAUD,Primary,1/4/1999
+Euro/British Pound,EURGBP,Primary,1/4/1999
+Euro/Canadian Dollar,EURCAD,Primary,1/4/1999
+Euro/Danish Krone,EURDKK,Primary,1/4/1999
+Euro/Hong Kong Dollar,EURHKD,Primary,1/4/1999
+Euro/Hungarian Forint,EURHUF,Primary,1/4/1999
+Euro/Indian Rupee,EURINR,Primary,1/4/1999
+Euro/Japanese Yen,EURJPY,Primary,1/4/1999
+Euro/Malaysian Ringgit,EURMYR,Primary,1/4/1999
+Euro/Mexican Peso,EURMXN,Primary,1/4/1999
+Euro/New Zealand Dollar,EURNZD,Primary,1/4/1999
+Euro/Norwegian Krone,EURNOK,Primary,1/4/1999
+Euro/Polish Zloty,EURPLN,Primary,1/4/1999
+Euro/Singapore Dollar,EURSGD,Primary,1/4/1999
+Euro/South African Rand,EURZAR,Primary,1/4/1999
+Euro/Swedish Kronor,EURSEK,Primary,1/4/1999
+Euro/Swiss Franc,EURCHF,Primary,1/4/1999
+Euro/Taiwan Dollar,EURTWD,Primary,1/4/1999
+Euro/United States Dollar,EURUSD,Primary,1/4/1999
+Japanese Yen/New Zealand Dollar,JPYNZD,Primary,1/2/1991
+Swiss Franc/Japanese Yen,CHFJPY,Primary,1/2/1991
+United States Dollar/Brazilian Real,USDBRL,Primary,7/4/1994
+United States Dollar/Canadian Dollar,USDCAD,Primary,1/2/1991
+United States Dollar/Chilean Peso,USDCLP,Primary,1/2/1991
+United States Dollar/Chinese Yuan,USDCNY,Primary,1/4/1994
+United States Dollar/Danish Krone,USDDKK,Primary,1/2/1991
+United States Dollar/Hong Kong Dollar,USDHKD,Primary,1/2/1991
+United States Dollar/Hungarian Forint,USDHUF,Primary,6/15/1993
+United States Dollar/Indian Rupee,USDINR,Primary,1/2/1991
+United States Dollar/Israeli Shekel,USDILS,Primary,1/2/1991
+United States Dollar/Japanese Yen,USDJPY,Primary,1/2/1991
+United States Dollar/Malaysian Ringgit,USDMYR,Primary,1/2/1991
+United States Dollar/Mexican Peso,USDMXN,Primary,7/11/1994
+United States Dollar/New Zealand Dollar,USDNZD,Primary,1/2/1991
+United States Dollar/Norwegian Krone,USDNOK,Primary,1/2/1991
+United States Dollar/Polish Zloty,USDPLN,Primary,6/15/1993
+United States Dollar/Russian Rouble,USDRUB,Primary,9/7/1994
+United States Dollar/Singapore Dollar,USDSGD,Primary,1/2/1991
+United States Dollar/South African Rand,USDZAR,Primary,12/23/1992
+United States Dollar/South Korean Won,USDKRW,Primary,1/2/1991
+United States Dollar/Swedish Kronor,USDSEK,Primary,1/2/1991
+United States Dollar/Swiss Franc,USDCHF,Primary,1/2/1991
+United States Dollar/Taiwan Dollar,USDTWD,Primary,1/2/1991
+United States Dollar/Turkish Lira,USDTRY,Primary,1/2/1991
+,,,
+British Pound/Australian Dollar,GBPAUD,Primary,1/2/1991
+Canadian Dollar/Australian Dollar,CADAUD,Primary,1/2/1991
+Hong Kong Dollar/Australian Dollar,HKDAUD,Primary,1/2/1991
+Japanese Yen/Australian Dollar,JPYAUD,Primary,1/2/1991
+New Zealand Dollar/Australian Dollar,NZDAUD,Primary,1/2/1991
+Singapore Dollar/Australian Dollar,SGDAUD,Primary,1/2/1991
+South African Rand/Australian Dollar,ZARAUD,Primary,4/9/1996
+Swiss Franc/Australian Dollar,CHFAUD,Primary,1/2/1991
+United States Dollar/Australian Dollar,USDAUD,Primary,1/2/1991
+United States Dollar/Bitcoin,USDBTC,Primary,8/18/2011
+Swiss Franc/Canadian Dollar,CHFCAD,Primary,1/2/1991
+Canadian Dollar/British Pound,CADGBP,Primary,1/2/1991
+Hong Kong Dollar/British Pound,HKDGBP,Primary,1/2/1991
+Japanese Yen/British Pound,JPYGBP,Primary,1/2/1991
+Mexican Peso/British Pound,MXNGBP,Primary,12/11/1998
+New Zealand Dollar/British Pound,NZDGBP,Primary,1/2/1991
+Singapore Dollar/British Pound,SGDGBP,Primary,1/2/1991
+South African Rand/British Pound,ZARGBP,Primary,12/23/1992
+Swiss Franc/British Pound,CHFGBP,Primary,1/2/1991
+United States Dollar/British Pound,USDGBP,Primary,1/2/1991
+Japanese Yen/Canadian Dollar,JPYCAD,Primary,1/2/1991
+Australian Dollar/Euro,AUDEUR,Primary,1/4/1999
+British Pound/Euro,GBPEUR,Primary,1/4/1999
+Canadian Dollar/Euro,CADEUR,Primary,1/4/1999
+Danish Krone/Euro,DKKEUR,Primary,1/4/1999
+Hong Kong Dollar/Euro,HKDEUR,Primary,1/4/1999
+Hungarian Forint/Euro,HUFEUR,Primary,1/4/1999
+Indian Rupee/Euro,INREUR,Primary,1/4/1999
+Japanese Yen/Euro,JPYEUR,Primary,1/4/1999
+Malaysian Ringgit/Euro,MYREUR,Primary,1/4/1999
+Mexican Peso/Euro,MXNEUR,Primary,1/4/1999
+New Zealand Dollar/Euro,NZDEUR,Primary,1/4/1999
+Norwegian Krone/Euro,NOKEUR,Primary,1/4/1999
+Polish Zloty/Euro,PLNEUR,Primary,1/4/1999
+Singapore Dollar/Euro,SGDEUR,Primary,1/4/1999
+South African Rand/Euro,ZAREUR,Primary,1/4/1999
+Swedish Kronor/Euro,SEKEUR,Primary,1/4/1999
+Swiss Franc/Euro,CHFEUR,Primary,1/4/1999
+Taiwan Dollar/Euro,TWDEUR,Primary,1/4/1999
+United States Dollar/Euro,USDEUR,Primary,1/4/1999
+New Zealand Dollar/Japanese Yen,NZDJPY,Primary,1/2/1991
+Japanese Yen/Swiss Franc,JPYCHF,Primary,1/2/1991
+Brazilian Real/United States Dollar,BRLUSD,Primary,7/4/1994
+Canadian Dollar/United States Dollar,CADUSD,Primary,1/2/1991
+Chilean Peso/United States Dollar,CLPUSD,Primary,1/2/1991
+Chinese Yuan/United States Dollar,CNYUSD,Primary,1/4/1994
+Danish Krone/United States Dollar,DKKUSD,Primary,1/2/1991
+Hong Kong Dollar/United States Dollar,HKDUSD,Primary,1/2/1991
+Hungarian Forint/United States Dollar,HUFUSD,Primary,6/15/1993
+Indian Rupee/United States Dollar,INRUSD,Primary,1/2/1991
+Israeli Shekel/United States Dollar,ILSUSD,Primary,1/2/1991
+Japanese Yen/United States Dollar,JPYUSD,Primary,1/2/1991
+Malaysian Ringgit/United States Dollar,MYRUSD,Primary,1/2/1991
+Mexican Peso/United States Dollar,MXNUSD,Primary,7/11/1994
+New Zealand Dollar/United States Dollar,NZDUSD,Primary,1/2/1991
+Norwegian Krone/United States Dollar,NOKUSD,Primary,1/2/1991
+Polish Zloty/United States Dollar,PLNUSD,Primary,6/15/1993
+Russian Rouble/United States Dollar,RUBUSD,Primary,9/7/1994
+Singapore Dollar/United States Dollar,SGDUSD,Primary,1/2/1991
+South African Rand/United States Dollar,ZARUSD,Primary,12/23/1992
+South Korean Won/United States Dollar,KRWUSD,Primary,1/2/1991
+Swedish Kronor/United States Dollar,SEKUSD,Primary,1/2/1991
+Swiss Franc/United States Dollar,CHFUSD,Primary,1/2/1991
+Taiwan Dollar/United States Dollar,TWDUSD,Primary,1/2/1991
+Turkish Lira/United States Dollar,TRYUSD,Primary,1/2/1991
+,,,
+Gold/Australian Dollar,XAUAUD,Gold,7/1/1982
+Gold/British Pound,XAUGBP,Gold,7/1/1982
+Gold/Canadian Dollar,XAUCAD,Gold,7/1/1982
+Gold/Euro,XAUEUR,Gold,1/4/1999
+Gold/Japanese Yen,XAUJPY,Gold,7/1/1982
+Gold/Swiss Franc,XAUCHF,Gold,7/1/1982
+Gold/United States Dollar,XAUUSD,Gold,7/1/1982
+Silver/Australian Dollar,XAGAUD,Silver,7/1/1982
+Silver/British Pound,XAGGBP,Silver,7/1/1982
+Silver/Canadian Dollar,XAGCAD,Silver,7/1/1982
+Silver/Euro,XAGEUR,Silver,1/4/1999
+Silver/Japanese Yen,XAGJPY,Silver,7/1/1982
+Silver/Swiss Franc,XAGCHF,Silver,7/1/1982
+Silver/United States Dollar,XAGUSD,Silver,7/1/1982
