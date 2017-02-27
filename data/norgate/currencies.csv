@@ -1,0 +1,28 @@
+Symbol,Name,Group
+AUD,Australian Dollar,Majors
+GBP,British Pound,Majors
+CAD,Canadian Dollar,Majors
+EUR,Euro,Majors
+JPY,Japanese Yen,Majors
+CHF,Swiss Franc,Majors
+USD,United States Dollar,Majors
+BRL,Brazilian Real,Minors
+CLP,Chilean Peso,Minors
+CNY,Chinese Yuan,Minors
+DKK,Danish Krone,Minors
+HKD,Hong Kong Dollar,Minors
+HUF,Hungarian Forint,Minors
+INR,Indian Rupee,Minors
+ILS,Israeli Shekel,Minors
+MYR,Malaysian Ringgit,Minors
+MXN,Mexican Peso,Minors
+NZD,New Zealand Dollar,Minors
+NOK,Norwegian Krone,Minors
+PLN,Polish Zloty,Minors
+RUB,Russian Rouble,Minors
+SGD,Singapore Dollar,Minors
+ZAR,South African Rand,Minors
+KRW,South Korean Won,Minors
+SEK,Swedish Krone,Minors
+TWD,Taiwan Dollar,Minors
+TRY,Turkish Lira,Minors
