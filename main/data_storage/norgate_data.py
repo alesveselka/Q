@@ -162,6 +162,38 @@ def populate_spot_market(schema):
     )
 
 
+def populate_currencies(schema):
+    cursor = mysql_connection.cursor()
+    cursor.execute("SELECT name, id FROM `group` WHERE standard='Currency'")
+    groups = dict(cursor.fetchall())
+    columns = {
+        'code': 0,
+        'name': 1,
+        'group_id': 2
+    }
+    keys = columns.keys()
+    markets = csv_lines(norgate_dir_template % schema)
+
+    def contains(key, data, market): return market[columns.get(key)] in data
+
+    def print_lookup_error(m, key):
+        print "[ERROR] Can't find '%s'. Skipping inserting '%s'" % (m[columns.get(key)], m[columns.get('name')])
+
+    def replace_ids(m):
+        m[columns.get('group_id')] = groups.get(m[columns.get('group_id')])
+        return True
+
+    map(lambda m: (
+        (contains('group_id', groups, m) or print_lookup_error(m, 'group_id'))
+        and replace_ids(m)
+    ), markets)
+
+    insert_values(
+        query(schema, ','.join(keys), ("%s, " * len(keys))[:-2]),
+        [[m[columns.get(k)] for k in keys] for m in markets]
+    )
+
+
 def populate_contracts(schema):
     cursor = mysql_connection.cursor()
     cursor.execute("SELECT code, appendix FROM `data_codes`")
@@ -309,7 +341,8 @@ if __name__ == '__main__':
             'continuous_back_adjusted': populate_continuous_back_adjusted,
             'continuous_spliced': populate_continuous_spliced,
             'spot_market': populate_spot_market,
-            'spot': populate_spot
+            'spot': populate_spot,
+            'currencies': populate_currencies
         }
 
         if schema in schema_map:
