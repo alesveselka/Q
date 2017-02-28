@@ -432,5 +432,7 @@ if __name__ == '__main__':
         else:
             print 'No schema of such name (%s) found.' % schema
             print 'Available schemas are: %s' % ', '.join([s[0] for s in schema_map])
+            print 'OR passing in "all" to populate all available tables'
     else:
         print 'Expected one argument - name of the table to insert data into'
+        print 'OR passing in "all" to populate all available tables'
