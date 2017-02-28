@@ -16,6 +16,11 @@ mysql_connection = mysql.connect(
 )
 
 
+def out(message):
+    print message
+    return True
+
+
 def csv_lines(path, exclude_header=True):
     reader = csv.reader(open(path), delimiter=',', quotechar='"')
     rows = [row for row in reader if re.match('^[a-zA-Z0-9]', row[0])]
@@ -213,6 +218,7 @@ def populate_currency_pairs(schema):
     def print_lookup_error(p, key):
         print "[ERROR] Can't find '%s'. Skipping inserting '%s'" % (p[columns.get(key)], p[columns.get('name')])
 
+    # TODO use native formatting functionality
     def format_dates(p):
         d = p[columns.get('first_data_date')].split('/')
         p[columns.get('first_data_date')] = dt.date(int(d[2]), int(d[0]), int(d[1]))
@@ -402,26 +408,29 @@ def populate_currency(schema):
 if __name__ == '__main__':
     if len(sys.argv) == 2 and len(sys.argv[1]):
         schema = sys.argv[1]
-        schema_map = {
-            'exchange': populate_exchange_table,
-            'delivery_month': populate_delivery_month_table,
-            'data_codes': populate_data_codes_table,
-            'group': populate_group_table,
-            'market': populate_market,
-            'contract': populate_contracts,
-            'continuous_back_adjusted': populate_continuous_back_adjusted,
-            'continuous_spliced': populate_continuous_spliced,
-            'spot_market': populate_spot_market,
-            'spot': populate_spot,
-            'currencies': populate_currencies,
-            'currency_pairs': populate_currency_pairs,
-            'currency': populate_currency
-        }
+        schema_map = [
+            ('exchange', populate_exchange_table),
+            ('delivery_month', populate_delivery_month_table),
+            ('data_codes', populate_data_codes_table),
+            ('group', populate_group_table),
+            ('market', populate_market),
+            ('contract', populate_contracts),
+            ('continuous_back_adjusted', populate_continuous_back_adjusted),
+            ('continuous_spliced', populate_continuous_spliced),
+            ('spot_market', populate_spot_market),
+            ('spot', populate_spot),
+            ('currencies', populate_currencies),
+            ('currency_pairs', populate_currency_pairs),
+            ('currency', populate_currency)
+        ]
 
-        if schema in schema_map:
-            schema_map.get(schema)(schema)
+        if schema == 'all':
+            map(lambda s: (out("Populating %s" % s[0]) and s[1](s[0])), schema_map)
+        elif any(item[0] == schema for item in schema_map):
+            # TODO any native collection that would do this? If not, create one ...
+            filter(lambda s: s[0] == schema, schema_map)[0][1](schema)
         else:
             print 'No schema of such name (%s) found.' % schema
-            print 'Available schemas are: %s' % schema_map.keys()
+            print 'Available schemas are: %s' % ', '.join([s[0] for s in schema_map])
     else:
         print 'Expected one argument - name of the table to insert data into'
