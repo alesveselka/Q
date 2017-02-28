@@ -6,6 +6,7 @@ import csv
 import sys
 import datetime as dt
 import MySQLdb as mysql
+from collections import defaultdict
 
 norgate_dir_template = './data/norgate/%s.csv'
 mysql_connection = mysql.connect(
@@ -405,6 +406,25 @@ def populate_currency(schema):
     map(lambda c: insert_values(q, values(c)), matching_codes)
 
 
+def populate_investment_universe(schema):
+    cursor = mysql_connection.cursor()
+    cursor.execute("SELECT code, id FROM `market`")
+    codes = dict(cursor.fetchall())
+    lines = csv_lines('./data/%s.csv' % schema)
+
+    def add(d, l):
+        if len(l[1]):
+            d[l[3]].append(str(codes[l[1]]))
+        return d
+
+    universes = reduce(add, lines, defaultdict(list))
+
+    insert_values(
+        query(schema, 'name, market_ids', "%s, %s"),
+        [[k, ','.join(universes[k])] for k in universes.keys()]
+    )
+
+
 if __name__ == '__main__':
     if len(sys.argv) == 2 and len(sys.argv[1]):
         schema = sys.argv[1]
@@ -421,7 +441,8 @@ if __name__ == '__main__':
             ('spot', populate_spot),
             ('currencies', populate_currencies),
             ('currency_pairs', populate_currency_pairs),
-            ('currency', populate_currency)
+            ('currency', populate_currency),
+            ('investment_universe', populate_investment_universe)
         ]
 
         if schema == 'all':
