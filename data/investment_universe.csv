@@ -1,0 +1,55 @@
+name,code,group,universe
+Cotton,CT,Agricultural,Equal Weighted
+Corn,C,Agricultural,Equal Weighted
+Lumber,LB,Agricultural,Equal Weighted
+Live cattle,LC,Agricultural,Equal Weighted
+Lean hogs,LH,Agricultural,Equal Weighted
+Oats,O,Agricultural,Equal Weighted
+Rough rice,RR,Agricultural,Equal Weighted
+Soybean,S,Agricultural,Equal Weighted
+Sugar,SB,Agricultural,Equal Weighted
+Wheat,W,Agricultural,Equal Weighted
+,,,
+Gas oil,GO,Non-Agricultural,Equal Weighted
+Crude oil,CL,Non-Agricultural,Equal Weighted
+Heating oil,HO,Non-Agricultural,Equal Weighted
+Natural gas,NG,Non-Agricultural,Equal Weighted
+Gasoline,RB,Non-Agricultural,Equal Weighted
+Gold,GC,Non-Agricultural,Equal Weighted
+Copper,HG,Non-Agricultural,Equal Weighted
+Palladium,PA,Non-Agricultural,Equal Weighted
+Platinum,PL,Non-Agricultural,Equal Weighted
+Silver,SI,Non-Agricultural,Equal Weighted
+,,,
+AUD/USD,AD,Currencies,Equal Weighted
+GBP/USD,BP,Currencies,Equal Weighted
+EUR/USD,EC,Currencies,Equal Weighted
+JPY/USD,JY,Currencies,Equal Weighted
+NZD/USD,NE,Currencies,Equal Weighted
+EUR/CHF,,Currencies,Equal Weighted
+EUR/GBP,,Currencies,Equal Weighted
+EUR/JPY,,Currencies,Equal Weighted
+CHF/USD,SF,Currencies,Equal Weighted
+CAD/USD,CD,Currencies,Equal Weighted
+,,,
+CAC 40,FCE,Indicies,Equal Weighted
+DAX,DAX,Indicies,Equal Weighted
+FTSE 100,LFT,Indicies,Equal Weighted
+HS China Enterprises,SCN,Indicies,Equal Weighted
+Hang Seng,HS,Indicies,Equal Weighted
+Nasdaq 100,NQ,Indicies,Equal Weighted
+Nikkei 225,NK,Indicies,Equal Weighted
+S&P 500,SP,Indicies,Equal Weighted
+EuroStoxx 50,ESX,Indicies,Equal Weighted
+Russell 2000,TF,Indicies,Equal Weighted
+,,,
+Bund,GBL,Interest Rates,Equal Weighted
+Schatz,GBS,Interest Rates,Equal Weighted
+Long gilt,LLG,Interest Rates,Equal Weighted
+Canadian Bankers' Acceptance,BAX,Interest Rates,Equal Weighted
+US 2-year note,TU,Interest Rates,Equal Weighted
+US 10-year note,TY,Interest Rates,Equal Weighted
+Eurodollar,ED,Interest Rates,Equal Weighted
+Euroswiss,LES,Interest Rates,Equal Weighted
+Euribor,LEU,Interest Rates,Equal Weighted
+Short sterling,LSS,Interest Rates,Equal Weighted
