@@ -28,6 +28,8 @@
     * CSI Data
 
 ###Investment Universes
+**Euro based FX Futures doesn't start as early as other ones. Trade FX directly instead?**
+
 *Equal-weighted*
 ```
 +---------------+-------------------+---------------+---------------+-------------------+
