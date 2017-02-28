@@ -28,7 +28,10 @@
     * CSI Data
 
 ###Investment Universes
-**Euro based FX Futures doesn't start as early as other ones. Trade FX directly instead?**
+**Euro based FX Futures doesn't start as early as other ones. 
+  Trade FX directly instead.
+  EUR has not existed until 1999; construct ECU (European Currency Unit) 
+  from other currencies**
 
 *Equal-weighted*
 ```
