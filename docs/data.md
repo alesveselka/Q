@@ -27,8 +27,8 @@
     * Norgate (see Clenow referral)
     * CSI Data
 
-###Investment Universe
-*Equal-weighted investment universe*
+###Investment Universes
+*Equal-weighted*
 ```
 +---------------+-------------------+---------------+---------------+-------------------+
 | Agricultural  | Non-agricultural  | Currencies    | Equities      | Rates             |
@@ -45,6 +45,108 @@
 | Sugar         | Platinum          | CHF/USD       | EuroStoxx 50  | Euribor           |
 | Wheat         | Silver            | CAD/USD       | Russell 2000  | Short sterling    |
 +---------------+-------------------+---------------+---------------+-------------------+
+```
+
+*Large*
+```
++-------------------+-------------------+---------------+---------------+-------------------+
+| Agricultural      | Non-agricultural  | Currencies    | Equities      | Rates             |
++-------------------+-------------------+---------------+---------------+-------------------+
+| Azuki red beans   | Copper            | AUD/USD       | CAC 40        | AU 10Y            |
+| Coffee            | Crude oil         | CAD/USD       | DAX           | AU 3Y             |
+| Corn              | Gas oil           | CHF/USD       | EuroStoxx     | AU 90 Day         |
+| Cotton            | Gasoline          | EUR/USD       | FTSE 100      | Bobl              |
+| Lean hogs         | Gold              | GBP/USD       | Hang Seng     | Bund              |
+| Live cattle       | Heating oil       | JPY/USD       | HS China Ent. | CD 10Y            |
+| Lumber            | Natural gas       | MXN/USD       | IBEX 35       | Can. Bankers' Acc.|
+| Oats              | Palladium         | NOK/USD       | MSCI Taiwan   | Euribor           |
+| Orange Juice      | Platinum          | NZD/USD       | Nasdaq 100    | Eurodollar        |
+| Rapeseed          | Silver            | SEK/USD       | Nikkei 225    | Euroswiss         |
+| Rough rice        |                   | ZAR/USD       | S&P 500       | JP 10Y            |
+| Rubber            |                   |               | S&P 60        | Long gilt         |
+| Soybean meal      |                   |               | SPI 200       | Schatz            |
+| Soybean           |                   |               |               | Short sterling    |
+| Sugar             |                   |               |               | US 10Y            |
+| Wheat             |                   |               |               | US 2Y             |
+|                   |                   |               |               | US 30Y            |
+|                   |                   |               |               | US 5Y             |
++-------------------+-------------------+---------------+---------------+-------------------+
+```
+
+*Large, Reduced Equities*
+```
++-------------------+-------------------+---------------+---------------+-------------------+
+| Agricultural      | Non-agricultural  | Currencies    | Equities      | Rates             |
++-------------------+-------------------+---------------+---------------+-------------------+
+| Azuki red beans   | Copper            | AUD/USD       | DAX           | AU 10Y            |
+| Coffee            | Crude oil         | CAD/USD       | EuroStoxx     | AU 3Y             |
+| Corn              | Gas oil           | CHF/USD       | Hang Seng     | AU 90 Day         |
+| Cotton            | Gasoline          | EUR/USD       | MSCI Taiwan   | Bobl              |
+| Lean hogs         | Gold              | GBP/USD       | Nasdaq 100    | Bund              |
+| Live cattle       | Heating oil       | JPY/USD       | Nikkei 225    | CD 10Y            |
+| Lumber            | Natural gas       | MXN/USD       | S&P 500       | Can. Bankers' Acc.|
+| Oats              | Palladium         | NOK/USD       |               | Euribor           |
+| Orange Juice      | Platinum          | NZD/USD       |               | Eurodollar        |
+| Rapeseed          | Silver            | SEK/USD       |               | Euroswiss         |
+| Rough rice        |                   | ZAR/USD       |               | JP 10Y            |
+| Rubber            |                   |               |               | Long gilt         |
+| Soybean meal      |                   |               |               | Schatz            |
+| Soybean           |                   |               |               | Short sterling    |
+| Sugar             |                   |               |               | US 10Y            |
+| Wheat             |                   |               |               | US 2Y             |
+|                   |                   |               |               | US 30Y            |
+|                   |                   |               |               | US 5Y             |
++-------------------+-------------------+---------------+---------------+-------------------+
+```
+
+*Financially Heavy*
+```
++-------------------+-------------------+---------------+---------------+-------------------+
+| Agricultural      | Non-agricultural  | Currencies    | Equities      | Rates             |
++-------------------+-------------------+---------------+---------------+-------------------+
+| Coffee            | Copper            | AUD/USD       | CAC 40        | AU 10Y            |
+| Corn              | Crude oil         | CAD/USD       | DAX           | AU 3Y             |
+| Cotton            | Gas oil           | CHF/USD       | EuroStoxx     | AU 90 Day         |
+| Lean hogs         | Gasoline          | EUR/USD       | FTSE 100      | Bobl              |
+| Live cattle       | Gold              | GBP/USD       | Hang Seng     | Bund              |
+| Soybean meal      | Heating oil       | JPY/USD       | IBEX 35       | CD 10Y            |
+| Soybean oil       | Natural gas       | MXN/USD       | MSCI Taiwan   | Can. Bankers' Acc.|
+| Soybean           | Platinum          | NOK/USD       | Nasdaq 100    | Euribor           |
+| Sugar             | Silver            | NZD/USD       | Nikkei 225    | Eurodollar        |
+| Wheat             |                   | SEK/USD       | S&P 500       | Euroswiss         |
+|                   |                   | ZAR/USD       | S&P 60        | JP 10Y            |
+|                   |                   |               | SPI 200       | Long gilt         |
+|                   |                   |               |               | Schatz            |
+|                   |                   |               |               | Short sterling    |
+|                   |                   |               |               | US 10Y            |
+|                   |                   |               |               | US 2Y             |
+|                   |                   |               |               | US 30Y            |
+|                   |                   |               |               | US 5Y             |
++-------------------+-------------------+---------------+---------------+-------------------+
+```
+
+*Commodity Heavy*
+```
++-------------------+-------------------+---------------+---------------+-------------------+
+| Agricultural      | Non-agricultural  | Currencies    | Equities      | Rates             |
++-------------------+-------------------+---------------+---------------+-------------------+
+| Azuki red beans   | Copper            | AUD/USD       | EuroStoxx 50  | Bund              |
+| Coffee            | Crude oil         | CAD/USD       | Hang Seng     | Can. Bankers' Acc.|
+| Corn              | Gasoline          | EUR/USD       | Nasdaq 100    | Eurodollar        |
+| Cotton            | Gold              | GBP/USD       | Nikkei 225    | Long gilt         |
+| Lean hogs         | Heating oil       | JPY/USD       | S&P 500       | US 10Y            |
+| Live cattle       | Natural gas       |               |               |                   |
+| Lumber            | Palladium         |               |               |                   |
+| Oats              | Platinum          |               |               |                   |
+| Orange Juice      | Silver            |               |               |                   |
+| Rapeseed          |                   |               |               |                   |
+| Rough rice        |                   |               |               |                   |
+| Rubber            |                   |               |               |                   |
+| Soybean meal      |                   |               |               |                   |
+| Soybean           |                   |               |               |                   |
+| Sugar             |                   |               |               |                   |
+| Wheat             |                   |               |               |                   |
++-------------------+-------------------+---------------+---------------+-------------------+
 ```
 ###Process
 
