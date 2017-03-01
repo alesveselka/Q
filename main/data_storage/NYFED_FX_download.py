@@ -3,30 +3,33 @@
 # Automatic FX historical data download from "https://www.newyorkfed.org/xml/fx.html"
 
 import os
+import re
+import csv
 import requests
 import xml.etree.ElementTree as ElementTree
 
 
 def urls():
-    sessions = ['10', 'Noon']
+    reader = csv.reader(open('./resources/NY_FED_HistoricalFX.csv'), delimiter=',', quotechar='"')
+    rows = [row for row in reader if re.match('^[a-zA-Z0-9]', row[0])][1:]
+    sessions = ['Noon']  # ['10', 'Noon']
     mime_types = {'XML': 'text/xml', 'HTML': 'text/html'}
-    file_template = './resources/NY_FED/%s%s.xml'
+    file_template = './resources/NY_FED/%s.xml'
     api_template = 'https://www.newyorkfed.org/medialibrary/media/xml/data/fx/%s%s.xml'
-    codes = ['ATS', 'AUD', 'BEF', 'BRL', 'CAD', 'CHF', 'CNY', 'DEM', 'DKK', 'ESP', 'EUR', 'FIM', 'FRF', 'GBP', 'GRD', 'HKD', 'IEP', 'INR', 'ITL', 'JPY', 'KRW', 'LKR', 'MXN', 'MYR', 'NLG', 'NOK', 'NZD', 'PTE', 'SEK', 'SGD', 'THB', 'TWD', 'VEB', 'ZAR']
 
     def download(symbol):
-        print 'Requesting %s %s' % symbol
-        response = requests.get(api_template % symbol)
+        print 'Requesting %s %s %s' % symbol
+        response = requests.get(api_template % symbol[:-1])
         if response.headers['content-type'].startswith(mime_types['XML']):
-            print 'Saving %s %s' % symbol
-            # file = open(file_template % symbol, 'w')
-            # file.write(response.text)
-            # file.close()
+            file_name = ('{0}{1}' if symbol[2] == 'Base' else '{1}{0}').format(symbol[0], 'USD')
+            print 'Saving %s' % file_name
+            file = open(file_template % file_name, 'w')
+            file.write(response.text)
+            file.close()
         else:
             print 'Skipping %s %s' % symbol
 
-    # map(download, [(c, s) for c in codes for s in sessions])
-    download([(c, s) for c in codes for s in sessions][1])
+    map(download, [(r[0], s, r[2]) for r in rows for s in sessions])
 
 
 def xml_to_csv():
@@ -50,5 +53,6 @@ def xml_to_csv():
 
 
 if __name__ == '__main__':
+    # TODO also compare with data from IMF!
     # urls()
     xml_to_csv()
