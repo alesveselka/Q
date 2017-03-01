@@ -18,10 +18,10 @@ def urls():
     api_template = 'https://www.newyorkfed.org/medialibrary/media/xml/data/fx/%s%s.xml'
 
     def download(symbol):
-        print 'Requesting %s %s %s' % symbol
-        response = requests.get(api_template % symbol[:-1])
+        print 'Requesting %s %s %s %s' % symbol
+        response = requests.get(api_template % symbol[:-2])
         if response.headers['content-type'].startswith(mime_types['XML']):
-            file_name = ('{0}{1}' if symbol[2] == 'Base' else '{1}{0}').format(symbol[0], 'USD')
+            file_name = '__'.join([('{0}{1}' if symbol[2] == 'Base' else '{1}{0}').format(symbol[0], 'USD'), symbol[-1]])
             print 'Saving %s' % file_name
             file = open(file_template % file_name, 'w')
             file.write(response.text)
@@ -29,7 +29,7 @@ def urls():
         else:
             print 'Skipping %s %s' % symbol
 
-    map(download, [(r[0], s, r[2]) for r in rows for s in sessions])
+    map(download, [(r[0], s, r[2], r[3].replace(' to ', '_')) for r in rows for s in sessions])
 
 
 def xml_to_csv():
