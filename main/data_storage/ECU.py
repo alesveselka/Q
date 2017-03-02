@@ -15,22 +15,23 @@ def read_data(dir_path, file_name):
     return header, data, pairs
 
 
-def generate_csvs(dir_path, header, data, pairs):
-    def file_name(pair, rows):
-        return '%s__%s_%s.csv' % tuple(
-            [pair.replace('/', '')] +
-            ['{2}-{0}-{1}'.format(*r.split(',')[0].split('/')) for r in [rows[0], rows[-1]]]
-        )
+def file_name(pair, rows):
+    return '%s__%s_%s.csv' % tuple(
+        [pair.replace('/', '')] +
+        ['{2}-{0}-{1}'.format(*r.split(',')[0].split('/')) for r in rows]
+    )
 
+
+def generate_csvs(dir_path, header, data, pairs):
     def generate_csv(pair):
         values = [('{1}/{2}/{0}'.format(*d[0].split('/')), d[header[pair]]) for d in data]
         rows = [','.join([v[0], ('0.0,' * 3)[:-1], v[1]]) for v in values if v[1]]
 
         if len(rows):
-            name = file_name(pair, rows)
+            name = file_name(pair, [rows[0], rows[-1]])
             print 'Generating %s' % name
 
-            f = open(''.join([dir_path, 'generated/', name]), 'w')
+            f = open(''.join([dir_path, 'generated/range/', name]), 'w')
             f.write('Date,Open,High,Low,Close\n')
             f.write('\n'.join(rows))
             f.close()
@@ -40,6 +41,8 @@ def generate_csvs(dir_path, header, data, pairs):
 
 if __name__ == '__main__':
     dir_path = './resources/UBC/'
-    dir_list = [path for path in os.listdir(dir_path) if re.match('^ECU', path)]
+    dir_list = os.listdir(dir_path)
+    ecu_list = [path for path in dir_list if re.match('^ECU', path)]
+    eur_list = [path for path in dir_list if re.match('^[A-Z]{6}', path)]
 
-    map(lambda file_name: generate_csvs(dir_path, *read_data(dir_path, file_name)), dir_list)
+    map(lambda f: generate_csvs(dir_path, *read_data(dir_path, f)), ecu_list + eur_list)
