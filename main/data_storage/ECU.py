@@ -17,15 +17,21 @@ def read_data(dir_path, file_name):
 
 
 def generate_csvs(dir_path, header, data, pairs, date_range):
+    def file_name(pair, rows):
+        return '%s__%s_%s.csv' % tuple(
+            [pair.replace('/', '')] +
+            map(lambda d: '{2}-{0}-{1}'.format(*d.split(',')[0].split('/')), [rows[0], rows[-1]])
+        )
+
     def generate_csv(pair):
         values = [('{1}/{2}/{0}'.format(*d[0].split('/')), d[header[pair]]) for d in data]
         rows = [','.join([v[0], ('0.0,' * 3)[:-1], v[1]]) for v in values if v[1]]
 
         if len(rows):
-            file_name = '%s__%s.csv' % (pair.replace('/', ''), date_range)
-            print 'Generating %s' % file_name
+            name = file_name(pair, rows)
+            print 'Generating %s' % name
 
-            f = open(''.join([dir_path, 'generated/', file_name]), 'w')
+            f = open(''.join([dir_path, 'generated/', name]), 'w')
             f.write('Date,Open,High,Low,Close\n')
             f.write('\n'.join(rows))
             f.close()
