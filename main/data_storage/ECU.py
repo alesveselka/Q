@@ -4,6 +4,7 @@ import os
 import re
 import csv
 import time
+import random
 import requests
 from collections import defaultdict
 
@@ -37,14 +38,14 @@ def download_eur_pairs(target_dir_path):
         f.write(response.text)
         f.close()
 
-    m = [
-        (code, range.split(':')[0], range.split(':')[1], notation)
-        for code in ['AUD', 'GBP', 'CAD', 'JPY', 'CHF', 'USD']
-        for range in ['1993:1996', '1997:2000']
-        for notation in ['price', 'volume']
-    ]
+        time.sleep(random.randint(5, 15))
 
-    map(lambda pair: download(parameters(*pair)), m)
+    map(lambda pair: download(parameters(*pair)), [
+        (code, r.split(':')[0], r.split(':')[1], notation)
+        for code in ['CHF']  # ['AUD', 'GBP', 'CAD', 'JPY', 'CHF', 'USD']
+        for r in ['1993:1996', '1997:2000']
+        for notation in ['price', 'volume']
+    ])
 
 
 def read_data(dir_path, file_name):
