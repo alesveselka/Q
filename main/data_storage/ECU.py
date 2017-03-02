@@ -3,6 +3,7 @@
 import os
 import re
 import csv
+from collections import defaultdict
 
 
 def read_data(dir_path, file_name):
@@ -39,10 +40,37 @@ def generate_csvs(dir_path, header, data, pairs):
     map(generate_csv, pairs)
 
 
+def concat_files():
+    def append_file(d, f):
+        d[f[:6]].append(f)
+        return d
+
+    def generate_csv(item):
+        files = item[1]
+        rows = []
+
+        for f in files:
+            reader = csv.reader(open(''.join(['./resources/UBC/generated/range/', f])), delimiter=',', quotechar='"')
+            rows += [','.join(row) for row in reader][1:]
+
+        name = file_name(item[0], [rows[0], rows[-1]])
+        print 'Generating %s' % name
+        full_file = open(''.join(['./resources/UBC/generated/full/', name]), 'w')
+        full_file.write('Date,Open,High,Low,Close\n')
+        full_file.write('\n'.join(rows))
+        full_file.close()
+
+    dir_list = os.listdir('./resources/UBC/generated/range/')
+    pairs = reduce(append_file, dir_list, defaultdict(list))
+
+    map(generate_csv, pairs.items())
+
+
 if __name__ == '__main__':
     dir_path = './resources/UBC/'
     dir_list = os.listdir(dir_path)
     ecu_list = [path for path in dir_list if re.match('^ECU', path)]
     eur_list = [path for path in dir_list if re.match('^[A-Z]{6}', path)]
 
-    map(lambda f: generate_csvs(dir_path, *read_data(dir_path, f)), ecu_list + eur_list)
+    # map(lambda f: generate_csvs(dir_path, *read_data(dir_path, f)), ecu_list + eur_list)
+    concat_files()
