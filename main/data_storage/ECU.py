@@ -3,7 +3,48 @@
 import os
 import re
 import csv
+import time
+import requests
 from collections import defaultdict
+
+
+def download_eur_pairs(target_dir_path):
+    def parameters(symbol, first_year, last_year, notation):
+        return {
+            'b': 'EUR',
+            'c': symbol,
+            'fd': '1',
+            'fm': '1',
+            'fy': first_year,
+            'ld': '31',
+            'lm': '12',
+            'ly': last_year,
+            'y': 'daily',
+            'q': notation,
+            'f': 'csv'
+        }
+
+    def download(params):
+        response = requests.get('http://fx.sauder.ubc.ca/cgi/fxdata', params)
+        name = '%s__%s-01-01_%s-12-31.csv' % (
+            ('{0}{1}' if params['q'] == 'price' else '{1}{0}').format(params['b'], params['c']),
+            params['fy'],
+            params['ly']
+        )
+        print 'Download: %s' % name
+
+        f = open(''.join([target_dir_path, name]), 'w')
+        f.write(response.text)
+        f.close()
+
+    m = [
+        (code, range.split(':')[0], range.split(':')[1], notation)
+        for code in ['AUD', 'GBP', 'CAD', 'JPY', 'CHF', 'USD']
+        for range in ['1993:1996', '1997:2000']
+        for notation in ['price', 'volume']
+    ]
+
+    map(lambda pair: download(parameters(*pair)), m)
 
 
 def read_data(dir_path, file_name):
@@ -71,8 +112,11 @@ if __name__ == '__main__':
     ecu_list = [path for path in dir_list if re.match('^ECU', path)]
     eur_list = [path for path in dir_list if re.match('^[A-Z]{6}', path)]
 
-    map(lambda f: generate_csvs(dir_path, *read_data(dir_path, f)), ecu_list + eur_list)
-    concat_files(
-        ''.join([dir_path, 'generated/split/']),
-        ''.join([dir_path, 'generated/full/'])
-    )
+    download_eur_pairs(dir_path)
+
+    # map(lambda f: generate_csvs(dir_path, *read_data(dir_path, f)), ecu_list + eur_list)
+    #
+    # concat_files(
+    #     ''.join([dir_path, 'generated/split/']),
+    #     ''.join([dir_path, 'generated/full/'])
+    # )
