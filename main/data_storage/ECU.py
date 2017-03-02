@@ -32,7 +32,7 @@ def generate_csvs(dir_path, header, data, pairs):
             name = file_name(pair, [rows[0], rows[-1]])
             print 'Generating %s' % name
 
-            f = open(''.join([dir_path, 'generated/range/', name]), 'w')
+            f = open(''.join([dir_path, 'generated/split/', name]), 'w')
             f.write('Date,Open,High,Low,Close\n')
             f.write('\n'.join(rows))
             f.close()
@@ -40,7 +40,7 @@ def generate_csvs(dir_path, header, data, pairs):
     map(generate_csv, pairs)
 
 
-def concat_files():
+def concat_files(source_dir_path, target_dir_path):
     def append_file(d, f):
         d[f[:6]].append(f)
         return d
@@ -50,18 +50,17 @@ def concat_files():
         rows = []
 
         for f in files:
-            reader = csv.reader(open(''.join(['./resources/UBC/generated/range/', f])), delimiter=',', quotechar='"')
+            reader = csv.reader(open(''.join([source_dir_path, f])), delimiter=',', quotechar='"')
             rows += [','.join(row) for row in reader][1:]
 
         name = file_name(item[0], [rows[0], rows[-1]])
         print 'Generating %s' % name
-        full_file = open(''.join(['./resources/UBC/generated/full/', name]), 'w')
+        full_file = open(''.join([target_dir_path, name]), 'w')
         full_file.write('Date,Open,High,Low,Close\n')
         full_file.write('\n'.join(rows))
         full_file.close()
 
-    dir_list = os.listdir('./resources/UBC/generated/range/')
-    pairs = reduce(append_file, dir_list, defaultdict(list))
+    pairs = reduce(append_file, os.listdir(source_dir_path), defaultdict(list))
 
     map(generate_csv, pairs.items())
 
@@ -72,5 +71,8 @@ if __name__ == '__main__':
     ecu_list = [path for path in dir_list if re.match('^ECU', path)]
     eur_list = [path for path in dir_list if re.match('^[A-Z]{6}', path)]
 
-    # map(lambda f: generate_csvs(dir_path, *read_data(dir_path, f)), ecu_list + eur_list)
-    concat_files()
+    map(lambda f: generate_csvs(dir_path, *read_data(dir_path, f)), ecu_list + eur_list)
+    concat_files(
+        ''.join([dir_path, 'generated/split/']),
+        ''.join([dir_path, 'generated/full/'])
+    )
