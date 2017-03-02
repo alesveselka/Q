@@ -11,16 +11,15 @@ def read_data(dir_path, file_name):
     header = dict(zip(rows[0], range(len(rows[0]))))
     data = rows[1:]
     pairs = [r for r in rows[0] if re.match('[A-Z]{3}/[A-Z]{3}', r)]
-    date_range = file_name.split('__')[1].split('.')[0].replace('_Volume', '')
 
-    return header, data, pairs, date_range
+    return header, data, pairs
 
 
-def generate_csvs(dir_path, header, data, pairs, date_range):
+def generate_csvs(dir_path, header, data, pairs):
     def file_name(pair, rows):
         return '%s__%s_%s.csv' % tuple(
             [pair.replace('/', '')] +
-            map(lambda d: '{2}-{0}-{1}'.format(*d.split(',')[0].split('/')), [rows[0], rows[-1]])
+            ['{2}-{0}-{1}'.format(*r.split(',')[0].split('/')) for r in [rows[0], rows[-1]]]
         )
 
     def generate_csv(pair):
