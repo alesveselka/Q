@@ -55,7 +55,7 @@
 ```
 
 **30 years** 
-(< 1987-03-01, 42 markets)
+(< 1987-03-01, 42 markets, PLUS Gold and Silver currency crosses)
 ```
 +-----------------------+-----------------------+-----------------------+-------------------+-------------------+
 | Agricultural (21)     | Non-agricultural (8)  | Currencies (5)        | Rates (4)         | Equities (3)      |
