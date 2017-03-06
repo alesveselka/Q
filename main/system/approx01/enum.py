@@ -10,5 +10,5 @@ def enum(name, **enums):
 EventType = enum(
     'EventType',
     MARKET_DATA='MARKET_DATA',
-    SIGNALS='SIGNALS'
+    HEARTBEAT='HEARTBEAT'
 )

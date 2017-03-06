@@ -3,24 +3,31 @@
 import os
 import MySQLdb as mysql
 
+from enum import EventType
+from market import Market
 from event_dispatcher import EventDispatcher
 
 
 class InvestmentUniverse(EventDispatcher):
-    """
-    Encapsulates investment universe
-    """
-    def __init__(self, name):
+
+    def __init__(self, name, start_date, timer):
         super(InvestmentUniverse, self).__init__()
 
-        self._name = name
-        self._markets = []
+        self.__name = name
+        self.__start_date = start_date
+        self.__timer = timer
+        self.__markets = []
 
-    def _market_ids(self, cursor):
-        cursor.execute("SELECT market_ids FROM investment_universe WHERE name = '%s';" % self._name)
+        self.__timer.on(EventType.HEARTBEAT, self.__on_timer_heartbeat)
+
+    def __on_timer_heartbeat(self, *data):
+        self.__load_markets()
+
+    def __market_ids(self, cursor):
+        cursor.execute("SELECT market_ids FROM investment_universe WHERE name = '%s';" % self.__name)
         return cursor.fetchone()[0].split(',')
 
-    def markets(self):
+    def __load_markets(self):
         # TODO cache requests
         connection = mysql.connect(
             os.environ['DB_HOST'],
@@ -35,8 +42,8 @@ class InvestmentUniverse(EventDispatcher):
             WHERE m.id = '%s';
         """
 
-        for id in self._market_ids(cursor):
-            cursor.execute(sql % id)
-            self._markets.append(cursor.fetchone())
+        for market_id in self.__market_ids(cursor):
+            cursor.execute(sql % market_id)
+            self.__markets.append(Market(connection, market_id, *cursor.fetchone()))
 
-        return self._markets
+        self.dispatch(EventType.MARKET_DATA, self.__markets)
