@@ -55,7 +55,7 @@
 ```
 
 **30 years** 
-(< 1987-03-01, 42 markets, PLUS Gold and Silver currency crosses)
+(< 1987-03-01, 41 markets, PLUS Gold and Silver currency crosses)
 ```
 +-----------------------+-----------------------+-----------------------+-------------------+-------------------+
 | Agricultural (21)     | Non-agricultural (8)  | Currencies (5)        | Rates (4)         | Equities (3)      |
@@ -95,7 +95,7 @@
 | Cotton (78)           | Platinum (78)         | Japanese Yen (79)     | US 10-years (82)  | ASX SPI 200 (83)  |
 | Coffee (78)           | Silver (78)           | Swiss Franc (79)      | ASX 10-years (84) | CAC 40 (88)       |
 | Lumber (79)           | Palladium (82)        | Australian Dollar (87)| C. B. Acc. 3M (88)| Nikkei 225 $ (90) |
-| London Cocoa (81)     | Mini-Gold (84)        |                       | 30D Fed Funds (88)| Nikkei 225 S (89) |
+| London Cocoa (81)     | Mini-Gold (84)        |                       | 30D Fed Funds (88)| Nikkei 225 S (90) |
 | Robusta Coffee (81)   | Mini-Silver (83)      |                       | Long Gilt (88)    | MSCI Singap.  (89)|
 | FCOJ (78)             | Crude Oil (83)        |                       | 3M Sterling (90)  |                   |
 | Sugar (78)            | Copper (88)           |                       | US 2Y Note (90)   |                   |
@@ -127,7 +127,7 @@
 | Cotton (78)           | Platinum (78)         | Japanese Yen (79)     | US 10-years (82)  | ASX SPI 200 (83)  |
 | Coffee (78)           | Silver (78)           | Swiss Franc (79)      | ASX 10-years (84) | CAC 40 (88)       |
 | Lumber (79)           | Palladium (82)        | Australian Dollar (87)| C. B. Acc. 3M (88)| Nikkei 225 $ (90) |
-| London Cocoa (81)     | Mini-Gold (84)        | Mexican Peso (95)     | 30D Fed Funds (88)| Nikkei 225 S (89) |
+| London Cocoa (81)     | Mini-Gold (84)        | Mexican Peso (95)     | 30D Fed Funds (88)| Nikkei 225 S (90) |
 | Robusta Coffee (81)   | Mini-Silver (83)      |                       | Long Gilt (88)    | MSCI Singap.  (89)|
 | FCOJ (78)             | Crude Oil (83)        |                       | 3M Sterling (90)  | S&P GSCI (96)     |
 | Sugar (78)            | Copper (88)           |                       | US 2Y Note (90)   | Hang Seng (96)    |
@@ -159,7 +159,7 @@
 | Cotton (78)           | Platinum (78)         | Japanese Yen (79)     | US 10-years (82)  | ASX SPI 200 (83)  |
 | Coffee (78)           | Silver (78)           | Swiss Franc (79)      | ASX 10-years (84) | CAC 40 (88)       |
 | Lumber (79)           | Palladium (82)        | Australian Dollar (87)| C. B. Acc. 3M (88)| Nikkei 225 $ (90) |
-| London Cocoa (81)     | Mini-Gold (84)        | Mexican Peso (95)     | 30D Fed Funds (88)| Nikkei 225 S (89) |
+| London Cocoa (81)     | Mini-Gold (84)        | Mexican Peso (95)     | 30D Fed Funds (88)| Nikkei 225 S (90) |
 | Robusta Coffee (81)   | Mini-Silver (83)      | Euro FX (99)          | Long Gilt (88)    | MSCI Singap.  (89)|
 | FCOJ (78)             | Crude Oil (83)        |                       | 3M Sterling (90)  | S&P GSCI (96)     |
 | Sugar (78)            | Copper (88)           |                       | US 2Y Note (90)   | Hang Seng (96)    |
