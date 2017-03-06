@@ -2,4 +2,6 @@
 
 
 class Event(object):
-    pass
+
+    def __init__(self, type):
+        self._type = type
