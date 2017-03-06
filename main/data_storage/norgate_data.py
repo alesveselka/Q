@@ -421,10 +421,18 @@ def populate_investment_universe(schema):
     cursor.execute("SELECT code, id FROM `market`")
     codes = dict(cursor.fetchall())
     lines = csv_lines('./data/%s.csv' % schema)
+    columns = {
+        'market_name': 0,
+        'market_code': 1,
+        'first_data_year': 2,
+        'currency': 3,
+        'group': 4,
+        'name': 5
+    }
 
     def add(d, l):
-        if len(l[1]):
-            d[l[3]].append(str(codes[l[1]]))
+        if len(l[columns.get('market_code')]):
+            d[l[columns.get('name')]].append(str(codes[l[columns.get('market_code')]]))
         return d
 
     universes = reduce(add, lines, defaultdict(list))
