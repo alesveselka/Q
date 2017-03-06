@@ -1,12 +1,13 @@
 #!/usr/bin/python
 
 import sys
-from universe import Universe
+from investment_universe import InvestmentUniverse
 
 
 def main(universe_name):
-    universe = Universe(universe_name)
-    universe.markets()
+    universe = InvestmentUniverse(universe_name)
+    for m in universe.markets():
+        print m
 
 if __name__ == '__main__':
     if len(sys.argv) == 2 and len(sys.argv[1]):

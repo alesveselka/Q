@@ -4,13 +4,14 @@ import os
 import MySQLdb as mysql
 
 
-class Universe(object):
+class InvestmentUniverse(object):
     """
     Encapsulates investment universe
     """
     def __init__(self, name):
         self._name = name
         self._markets = []
+        self.studies
 
     def _market_ids(self, cursor):
         cursor.execute("SELECT market_ids FROM investment_universe WHERE name = '%s';" % self._name)
