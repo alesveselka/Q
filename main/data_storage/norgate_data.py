@@ -208,7 +208,7 @@ def populate_currency_pairs(schema):
         'name': 0,
         'code': 1,
         'group_id': 2,
-        'first_data_date': 3
+        'first_data_date': 3  # TODO calculate from actual data
     }
     keys = columns.keys()
     pairs = csv_lines(norgate_dir_template % schema)
@@ -379,10 +379,14 @@ def populate_currency(schema):
     cursor = mysql_connection.cursor()
     cursor.execute("SELECT id, code FROM `currency_pairs`")
     codes = cursor.fetchall()
-    dir_path = './resources/Norgate/data/Forex/'
-    dir_list = [d.split('.')[0] for d in os.listdir(dir_path)]
+    norgate_dir_path = './resources/Norgate/data/Forex/'
+    ubc_dir_path = './resources/UBC/generated/full/'
+    file_list = {
+        'norgate': [d.split('.')[0] for d in os.listdir(norgate_dir_path)],
+        'ubc': [d for d in os.listdir(ubc_dir_path)]
+    }
     now = dt.datetime.now()
-    matching_codes = filter(lambda c: c[1] in dir_list, codes)
+    matching_codes = filter(lambda c: c[1] in file_list['norgate'], codes)
     columns = [
         'currency_pair_id',
         'price_date',
@@ -399,9 +403,15 @@ def populate_currency(schema):
         d = c.split('/')
         return dt.date(int(d[2]), int(d[0]), int(d[1]))
 
+    def full_data(code, rows):
+        ubc_file_name = [f for f in file_list['ubc'] if f.startswith(code)]
+        ubc_rows = csv_lines(''.join([ubc_dir_path, ubc_file_name[0]])) if len(ubc_file_name) else []
+        ubc_fill = [r for r in ubc_rows if format_date(r[0]) < format_date(rows[0][0])]
+        return ubc_fill + rows if len(ubc_fill) else rows
+
     def values(code):
-        rows = csv_lines(''.join([dir_path, code[1], '.csv']))
-        return [[code[0], format_date(r[0]), r[1], r[2], r[3], r[4], now, now] for r in rows]
+        rows = csv_lines(''.join([norgate_dir_path, code[1], '.csv']))
+        return [[code[0], format_date(r[0]), r[1], r[2], r[3], r[4], now, now] for r in full_data(code[1], rows)]
 
     map(lambda c: insert_values(q, values(c)), matching_codes)
 
