@@ -11,7 +11,7 @@ from trading_system import TradingSystem
 
 def main(universe_name):
     timer = Timer(0.0)
-    start_date = datetime.date(1992, 03, 01)
+    start_date = datetime.date(1992, 03, 01)  # TODO possibly more than exactly 25 years ...
     connection = mysql.connect(
         os.environ['DB_HOST'],
         os.environ['DB_USER'],
