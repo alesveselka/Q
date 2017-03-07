@@ -28,16 +28,14 @@ class InvestmentUniverse(EventDispatcher):
         delta = today - self.__start_date
         print delta
 
-        for date in (self.__start_date + datetime.timedelta(n) for n in range(delta.days)):
-            print date, len([m for m in self.__markets if len(m.data(date))])
-                # m.data(date)
-            # print date  # TODO check if the date is work date, find out if there are any data, check for signals ...
+        # for date in (self.__start_date + datetime.timedelta(n) for n in range(delta.days)):
+        #     print date, len([m for m in self.__markets if len(m.data(date))])
 
         self.dispatch(EventType.MARKET_DATA, self.__markets)
 
     def __market_ids(self, cursor):
         cursor.execute("SELECT market_ids FROM investment_universe WHERE name = '%s';" % self.__name)
-        return cursor.fetchone()[0].split(',')
+        return cursor.fetchone()[0].split(',')[0]
 
     def __load_markets(self):
         cursor = self.__connection.cursor()

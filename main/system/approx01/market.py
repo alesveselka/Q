@@ -1,5 +1,7 @@
 #!/usr/bin/python
 
+from study import Study
+
 
 class Market(object):
 
@@ -14,6 +16,7 @@ class Market(object):
         self.__first_data_date = first_data_date
         self.__group = group
         self.__data = []
+        self.__studies = []
 
     def __back_adjusted_data(self):
         cursor = self.__connection.cursor()
@@ -28,6 +31,8 @@ class Market(object):
 
         cursor.execute(sql % (self.__id, code, self.__start_date.strftime('%Y-%m-%d')))
         self.__data = cursor.fetchall()
+        self.__studies.append(Study(self))
+        self.__studies[0].calculate2(self.__data)
 
         # print code, len(data), data[0]
 
