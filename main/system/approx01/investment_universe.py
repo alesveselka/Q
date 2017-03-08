@@ -8,11 +8,12 @@ from event_dispatcher import EventDispatcher
 
 class InvestmentUniverse(EventDispatcher):
 
-    def __init__(self, name, start_date, timer, connection):
+    def __init__(self, name, timer, connection):
         super(InvestmentUniverse, self).__init__()
 
         self.__name = name
-        self.__start_date = start_date
+        self.__start_contract_date = None
+        self.__start_data_date = None
         self.__timer = timer
         self.__connection = connection
         self.__markets = []
@@ -21,21 +22,25 @@ class InvestmentUniverse(EventDispatcher):
 
     def __on_timer_heartbeat(self, *data):
         self.__load_markets()  # TODO load only when study is updated?
-        self.__update_studies()
+        # self.__update_studies()
 
-        now = datetime.datetime.now()
-        today = datetime.date(now.year, now.month, now.day)
-        delta = today - self.__start_date
-        print delta
+        # now = datetime.datetime.now()
+        # today = datetime.date(now.year, now.month, now.day)
+        # delta = today - self.__start_date
+        # print delta
 
         # for date in (self.__start_date + datetime.timedelta(n) for n in range(delta.days)):
         #     print date, len([m for m in self.__markets if len(m.data(date))])
 
         self.dispatch(EventType.MARKET_DATA, self.__markets)
 
-    def __market_ids(self, cursor):
-        cursor.execute("SELECT market_ids FROM investment_universe WHERE name = '%s';" % self.__name)
-        return cursor.fetchone()[0].split(',')[0]
+    def __load_data(self, cursor):
+        cursor.execute("""
+            SELECT contract_start_date, data_start_date, market_ids
+            FROM investment_universe
+            WHERE name = '%s';
+        """ % self.__name)
+        return cursor.fetchone()
 
     def __load_markets(self):
         cursor = self.__connection.cursor()
@@ -44,10 +49,19 @@ class InvestmentUniverse(EventDispatcher):
             FROM market as m INNER JOIN  `group` as g ON m.group_id = g.id
             WHERE m.id = '%s';
         """
+        data = self.__load_data(cursor)
+        self.__start_contract_date = data[0]  # TODO remove hard-coded index
+        self.__start_data_date = data[1]  # TODO remove hard-coded index
 
-        for market_id in self.__market_ids(cursor):
+        for market_id in data[2].split(','):
             cursor.execute(sql % market_id)
-            self.__markets.append(Market(self.__connection, self.__start_date, market_id, *cursor.fetchone()))
+            self.__markets.append(Market(
+                self.__connection,
+                self.__start_contract_date,
+                self.__start_data_date,
+                market_id,
+                *cursor.fetchone())
+            )
 
     def __update_studies(self):
         for market in self.__markets:
