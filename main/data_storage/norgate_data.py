@@ -424,22 +424,31 @@ def populate_investment_universe(schema):
     columns = {
         'market_name': 0,
         'market_code': 1,
-        'first_data_year': 2,
-        'currency': 3,
-        'group': 4,
-        'name': 5
+        'first_contract_date': 2,
+        'first_data_date': 3,
+        'currency': 4,
+        'group': 5,
+        'name': 6
     }
 
     def add(d, l):
-        if len(l[columns.get('market_code')]):
+        if len(l[columns.get('market_code')]) and len(l[columns.get('first_data_date')]):
             d[l[columns.get('name')]].append(str(codes[l[columns.get('market_code')]]))
         return d
 
+    def dates(d, l, column):
+        if len(l[columns.get(column)]):
+            date_items = '{2}-{0}-{1}'.format(*l[columns.get(column)].split('/'))
+            d[l[columns.get('name')]].append(dt.date(*map(int, date_items.split('-'))))
+        return d
+
     universes = reduce(add, lines, defaultdict(list))
+    contract_dates = reduce(lambda d, l: dates(d, l, 'first_contract_date'), lines, defaultdict(list))
+    data_dates = reduce(lambda d, l: dates(d, l, 'first_data_date'), lines, defaultdict(list))
 
     insert_values(
-        query(schema, 'name, market_ids', "%s, %s"),
-        [[k, ','.join(universes[k])] for k in universes.keys()]
+        query(schema, 'name, contract_start_date, data_start_date, market_ids', "%s, %s, %s, %s"),
+        [[k, max(contract_dates[k]), max(data_dates[k]), ','.join(universes[k])] for k in universes.keys()]
     )
 
 
