@@ -59,4 +59,4 @@ def ATR(data, window):
     w = Decimal(window)
     tr = [(item[0], max(item[1], data[i][3]) - min(item[2], data[i][3])) for i, item in enumerate(data[1:])]
     dates, values = zip(*tr)
-    return [(dates[i], sum(values[i-window+1:i+1]) / w) for i in range(window-1, len(tr))]
+    return [(dates[i], sum(values[i-window+1:i+1]) / w) for i in range(window-1, len(tr))]  # TODO use EMA for average!
