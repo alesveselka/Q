@@ -6,24 +6,13 @@ from decimal import Decimal
 def HHLL(data, window):
     """
     Highest High and Lowest Low
+
+    :param data:    List of tuples(date, value) to compute the HH and LL on.
+    :param window:  The size of 'moving window'
+    :return:        List of tuples(date, highest-high value, lowest-low value)
     """
-    _max = 0
-    _min = 0
-    for i, d in enumerate(data):
-        start = i + 1 - 50 if i + 1 >= 50 else 0
-        settle_prices = [d[5] for d in data[start:i+1]]
-        print d[1], start, i, len(settle_prices), settle_prices[-1], _max, _min
-
-        # if len(settle_prices) == 50:
-        #     if settle_prices[-1] >= _max:
-        #         print 'LONG'
-        #     elif settle_prices[-1] <= _min:
-        #         print 'SHORT'
-
-        _max = max(settle_prices)  # TODO pass in NaN if there is not enough days?
-        _min = min(settle_prices)
-
-        # self.__data.append((d[1], max(), min()))
+    dates, values = zip(*data)
+    return [(dates[i], max(values[i-window:i]), min(values[i-window:i])) for i in range(window, len(data))]
 
 
 def SMA(data, window):
@@ -56,7 +45,7 @@ def EMA(data, window):
     ma = SMA(data[:window+1], window)[-1]
     emas = []
     for i in range(window, len(data)):
-        ma = (dates[i], (c * values[i]) + (1 - c) * ma[1])
+        ma = (dates[i], (c * values[i]) + (1 - c) * Decimal(ma[1]))
         emas.append(ma)
 
     return emas
@@ -75,4 +64,11 @@ def EMA(data, window):
 
 
 def ATR(data, window):
+    """
+    Average True Range
+
+    :param data:    List of tuples(date, value) to compute the ATR on.
+    :param window:  The size of 'moving window'
+    :return:        List of tuples(date, value)
+    """
     print 'atr'
