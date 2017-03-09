@@ -12,3 +12,11 @@ EventType = enum(
     MARKET_DATA='MARKET_DATA',
     HEARTBEAT='HEARTBEAT'
 )
+
+Study = enum(
+    'Study',
+    HHLL='HHLL',
+    SMA='SMA',
+    EMA='EMA',
+    ATR='ATR'
+)
