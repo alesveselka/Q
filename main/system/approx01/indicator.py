@@ -67,8 +67,11 @@ def ATR(data, window):
     """
     Average True Range
 
-    :param data:    List of tuples(date, value) to compute the ATR on.
+    :param data:    List of tuples(date, high-value, low-value, last-value) to compute the ATR on.
     :param window:  The size of 'moving window'
     :return:        List of tuples(date, value)
     """
-    print 'atr'
+    w = Decimal(window)
+    tr = [(item[0], max(item[1], data[i][3]) - min(item[2], data[i][3])) for i, item in enumerate(data[1:])]
+    dates, values = zip(*tr)
+    return [(dates[i], sum(values[i-window:i]) / w) for i in range(window, len(tr))]
