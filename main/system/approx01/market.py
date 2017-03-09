@@ -47,21 +47,28 @@ class Market(object):
     def update_studies(self):
         self.__back_adjusted_data()
 
+    def code(self):
+        return self.__code
+
     def data(self, start_date, end_date):
         return [d for d in self.__data if start_date <= d[1] <= end_date]
 
-    def study(self, study_name, window):
-        name = '_'.join([study_name, window])
+    def study(self, study_name, data, window):
+        name = '_'.join([study_name, str(window)])
         # TODO refactor 'ifs'
         # TODO remove hard-coded windows
         if name not in self.__studies:
             if study_name == Study.HHLL:
-                self.__studies[name] = HHLL([(d[1], d[5]) for d in self.__data], window)
+                # self.__studies[name] = HHLL([(d[1], d[5]) for d in data], window)
+                return HHLL([(d[1], d[5]) for d in data], window)
             elif study_name == Study.SMA:
-                self.__studies[name] = SMA([(d[1], d[5]) for d in self.__data], window)
+                # self.__studies[name] = SMA([(d[1], d[5]) for d in data], window)
+                return SMA([(d[1], d[5]) for d in data], window)
             elif study_name == Study.EMA:
-                self.__studies[name] = EMA([(d[1], d[5]) for d in self.__data], window)
+                # self.__studies[name] = EMA([(d[1], d[5]) for d in data], window)
+                return EMA([(d[1], d[5]) for d in data], window)
             elif study_name == Study.ATR:
-                self.__studies[name] = ATR([(d[1], d[3], d[4], d[5]) for d in self.__data], window)
+                # self.__studies[name] = ATR([(d[1], d[3], d[4], d[5]) for d in data], window)
+                return ATR([(d[1], d[3], d[4], d[5]) for d in data], window)
 
-        return self.__studies[name]
+        # return self.__studies[name]
