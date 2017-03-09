@@ -12,7 +12,7 @@ def HHLL(data, window):
     :return:        List of tuples(date, highest-high value, lowest-low value)
     """
     dates, values = zip(*data)
-    return [(dates[i], max(values[i-window:i]), min(values[i-window:i])) for i in range(window, len(data))]
+    return [(dates[i], max(values[i-window+1:i+1]), min(values[i-window+1:i+1])) for i in range(window-1, len(data))]
 
 
 def SMA(data, window):
@@ -24,11 +24,8 @@ def SMA(data, window):
     :return:        List of tuples(date, value)
     """
     w = Decimal(window)
-    # nones = [(d[0], None) for d in data[:window]]
     dates, values = zip(*data)
-    smas = [(dates[i], sum(values[i-window:i]) / w) for i in range(window, len(data))]
-    # return nones + smas
-    return smas
+    return [(dates[i], sum(values[i-window+1:i+1]) / w) for i in range(window-1, len(data))]
 
 
 def EMA(data, window):
@@ -42,25 +39,13 @@ def EMA(data, window):
     """
     dates, values = zip(*data)
     c = Decimal(2.0 / (window + 1))
-    ma = SMA(data[:window+1], window)[-1]
+    ma = SMA(data[:window], window)[-1]
     emas = []
-    for i in range(window, len(data)):
+    for i in range(window-1, len(data)):
         ma = (dates[i], (c * values[i]) + (1 - c) * Decimal(ma[1]))
         emas.append(ma)
 
     return emas
-
-    # print '*****************************************'
-    # ema = None
-    #
-    # for i, d in enumerate(data):
-    #     start = i + 1 - window if i + 1 >= window else 0
-    #     settle_prices = [d[1] for d in data[start:i+1]]
-    #     sma = sum(settle_prices) / Decimal(len(settle_prices))
-    #     c = Decimal(2.0 / (len(settle_prices) + 1))
-    #     # TODO the above is not needed to calculate every iteration
-    #     ema = (c * settle_prices[-1]) + ((1 - c) * (ema or sma))
-    #     print d[0], start, i, len(settle_prices), settle_prices[-1], sma, ema
 
 
 def ATR(data, window):
@@ -74,4 +59,4 @@ def ATR(data, window):
     w = Decimal(window)
     tr = [(item[0], max(item[1], data[i][3]) - min(item[2], data[i][3])) for i, item in enumerate(data[1:])]
     dates, values = zip(*tr)
-    return [(dates[i], sum(values[i-window:i]) / w) for i in range(window, len(tr))]
+    return [(dates[i], sum(values[i-window+1:i+1]) / w) for i in range(window-1, len(tr))]
