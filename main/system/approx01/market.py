@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
-from study import Study
+from study import *
+from enum import Study
 
 
 class Market(object):
@@ -17,11 +18,11 @@ class Market(object):
         self.__first_data_date = first_data_date
         self.__group = group
         self.__data = []
-        self.__studies = []
-
-        print self.__code, self.__start_contract_date, self.__start_data_date
+        self.__studies = {}
 
     def __back_adjusted_data(self):
+        # TODO 'query' object?
+        # TODO move to 'investment_universe'? Do I need the Class?
         cursor = self.__connection.cursor()
         code = ''.join([self.__code, '2']) if 'C' in self.__data_codes else self.__code
         sql = """
@@ -34,14 +35,33 @@ class Market(object):
 
         cursor.execute(sql % (self.__id, code, self.__start_data_date.strftime('%Y-%m-%d')))
         self.__data = cursor.fetchall()
-        self.__studies.append(Study(self))
-        self.__studies[0].calculate(self.__data)
 
-        print code, len(self.__data), self.__data[0]
+        # print code, len(self.__data)
+
+        # ma = EMA([(d[1], d[5]) for d in self.__data], 50)
+        # ma = ATR([(d[1], d[3], d[4], d[5]) for d in self.__data], 50)
+        # print self.__code, 'len(ma): %s' % len(ma)
+        # for value in ma:
+        #     print value
 
     def update_studies(self):
         self.__back_adjusted_data()
 
-    def data(self, date):
-        # TODO return from the beginning (or fixed window?) to the date specified
-        return [d for d in self.__data if d[1] == date]
+    def data(self, start_date, end_date):
+        return [d for d in self.__data if start_date <= d[1] <= end_date]
+
+    def study(self, study_name, window):
+        name = '_'.join([study_name, window])
+        # TODO refactor 'ifs'
+        # TODO remove hard-coded windows
+        if name not in self.__studies:
+            if study_name == Study.HHLL:
+                self.__studies[name] = HHLL([(d[1], d[5]) for d in self.__data], window)
+            elif study_name == Study.SMA:
+                self.__studies[name] = SMA([(d[1], d[5]) for d in self.__data], window)
+            elif study_name == Study.EMA:
+                self.__studies[name] = EMA([(d[1], d[5]) for d in self.__data], window)
+            elif study_name == Study.ATR:
+                self.__studies[name] = ATR([(d[1], d[3], d[4], d[5]) for d in self.__data], window)
+
+        return self.__studies[name]
