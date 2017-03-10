@@ -11,6 +11,7 @@ def HHLL(data, window):
     :param window:  The size of 'moving window'
     :return:        List of tuples(date, highest-high value, lowest-low value)
     """
+    # TODO split into 'highest' and 'lowest' to unify (date, value) structure among studies and save them to DB
     dates, values = zip(*data)
     return [(dates[i], max(values[i-window+1:i+1]), min(values[i-window+1:i+1])) for i in range(window-1, len(data))]
 
@@ -23,9 +24,18 @@ def SMA(data, window):
     :param window:  The size of 'moving window'
     :return:        List of tuples(date, value)
     """
-    w = Decimal(window)
     dates, values = zip(*data)
-    return [(dates[i], sum(values[i-window+1:i+1]) / w) for i in range(window-1, len(data))]
+    s = Decimal(0)
+    smas = []
+    for i in range(0, window):
+        s += values[i]
+        smas.append((dates[i], s / (i + 1)))
+
+    for i in range(window, len(values)):
+        s = s - values[i - window] + values[i]
+        smas.append((dates[i], s / window))
+
+    return smas
 
 
 def EMA(data, window):
