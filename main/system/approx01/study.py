@@ -6,6 +6,7 @@ from decimal import Decimal
 def HHLL(data, window):
     """
     Highest High and Lowest Low
+    Calculated data include the latest data in the window
 
     :param data:    List of tuples(date, value) to compute the HH and LL on.
     :param window:  The size of 'moving window'
@@ -20,6 +21,7 @@ def HHLL(data, window):
 def SMA(data, window):
     """
     Simple Moving Average
+    Calculated data include the latest data in the window
 
     :param data:    List of tuples(date, value) to compute the SMA on.
     :param window:  The size of 'moving window'
@@ -43,6 +45,7 @@ def EMA(data, window):
     """
     Exponential Moving Average
     https://www.oanda.com/forex-trading/learn/forex-indicators/exponential-moving-average
+    Calculated data include the latest data in the window
 
     :param data:    List of tuples(date, value) to compute the EMA on.
     :param window:  The size of 'moving window'
@@ -62,6 +65,8 @@ def EMA(data, window):
 def ATR(data, window):
     """
     Average True Range
+    Calculated data include the latest data in the window.
+    It needs one more day of data to calculate due to TR calculations
 
     :param data:    List of tuples(date, high-value, low-value, last-value) to compute the ATR on.
     :param window:  The size of 'moving window'
