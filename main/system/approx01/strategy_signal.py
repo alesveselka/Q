@@ -20,3 +20,11 @@ class Signal(object):
 
     def price(self):
         return self.__price
+
+    def __str__(self):
+        return ', '.join([
+            self.__code,
+            self.__direction,
+            str(self.__date),
+            str(self.__price)
+        ])[:-2]
