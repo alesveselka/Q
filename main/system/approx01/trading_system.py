@@ -1,9 +1,11 @@
 #!/usr/bin/python
 
 import datetime
-import time
 from enum import Study
 from enum import EventType
+from enum import Direction
+from strategy_signal import Signal
+from position import Position
 from event_dispatcher import EventDispatcher
 
 
@@ -27,7 +29,11 @@ class TradingSystem(EventDispatcher):
         now = datetime.datetime.now()
         today = datetime.date(now.year, now.month, now.day)
 
-        print '_on_market_data:', len(markets), start_date
+        print '_on_market_data:', len(markets), start_date, today
+
+        signals = []
+        positions = []
+        trades = []
 
         # TODO Parallel?!
         for m in markets:
@@ -35,80 +41,80 @@ class TradingSystem(EventDispatcher):
             last_date = market_data[-1][1]  # TODO not actual dates from records, but from iterator!
             delta = last_date - start_date
 
-            lookup_date = market_data[int(len(market_data) / 4)][1]
-            print 'Lookup date: %s' % lookup_date
-
-            t0 = time.time()
+            # TODO don't need Market to create them
             sma_100 = m.study(Study.SMA, market_data, long_window)
             sma_50 = m.study(Study.SMA, market_data, short_window)
-            # print 'SMA, time: ', (time.time() - t0), len(sma_100)
+            hhll_100 = m.study(Study.HHLL, market_data, long_window)
+            hhll_50 = m.study(Study.HHLL, market_data, short_window)
+            atr = m.study(Study.ATR, market_data, long_window)
 
-            t0 = time.time()
-            ema = m.study(Study.EMA, market_data, short_window)
-            # print 'EMA, time: %s' % (time.time() - t0)
-
-            t0 = time.time()
-            hhll = m.study(Study.HHLL, market_data, short_window)
-            # print 'HHLL, time: %s' % (time.time() - t0)
-
-            t0 = time.time()
-            atr = m.study(Study.ATR, market_data, short_window)
-            # print 'ATR, time: %s' % (time.time() - t0)
-
-            # t0 = time.time()
-            # sma_lookup = [s for s in sma_100 if s[0] == lookup_date]
-            # print 'SMA lookup: %s, time: %s' % (sma_lookup, time.time() - t0)
-            #
-            # t0 = time.time()
-            # ema_lookup = [e for e in ema if e[0] == lookup_date]
-            # print 'EMA lookup: %s, time: %s' % (ema_lookup, time.time() - t0)
-            #
-            # t0 = time.time()
-            # hhll_lookup = [e for e in hhll if e[0] == lookup_date]
-            # print 'HHLL lookup: %s, time: %s' % (ema_lookup, time.time() - t0)
-            #
-            # t0 = time.time()
-            # atr_lookup = [e for e in atr if e[0] == lookup_date]
-            # print 'ATR lookup: %s, time: %s' % (atr_lookup, time.time() - t0)
-
-
-
+            # TODO not actual dates from records, but from iterator!
+            # TODO implement custom iterator over the data dates?
             for date in (start_date + datetime.timedelta(n) for n in range(delta.days+1)):
                 data_window = m.data(start_date, date)
 
-                if len(data_window) >= long_window + 1:  # querying '-2' index, so I need one more record
-                    print 'Processing %s from %s to %s' % (m.code(), start_date, date)
+                if len(data_window) >= long_window + 1:  # querying '-2' index, because I need one more record
+                    # print 'Processing %s from %s to %s' % (m.code(), start_date, date)
 
-                    # TODO calculate up-front from all data and then use just cached values (if date lookup is faster than calculation ... ?)
-                    # sma_100 = m.study(Study.SMA, data_window, long_window)
-                    # sma_50 = m.study(Study.SMA, data_window, short_window)
-                    # hhll = m.study(Study.HHLL, data_window, short_window)
-                    # atr = m.study(Study.ATR, data_window, short_window)
-                    # print data_window[-2][1], sma_100[0], date
                     sma_100_lookup = [s for s in sma_100 if data_window[-2][1] <= s[0] <= date]
                     sma_50_lookup = [s for s in sma_50 if data_window[-2][1] <= s[0] <= date]
-                    ema_lookup = [s for s in ema if data_window[-2][1] <= s[0] <= date]
-                    hhll_lookup = [s for s in hhll if data_window[-2][1] <= s[0] <= date]
+                    hhll_lookup = [s for s in hhll_50 if data_window[-2][1] <= s[0] <= date]
                     atr_lookup = [s for s in atr if data_window[-2][1] <= s[0] <= date]
+                    last_price = data_window[-1][5]
+                    market_positions = [p for p in positions if p.code() == m.code()]
+                    signal = None
 
-                    # TODO remove hard-coded values (5=Settle, etc.)
-                    if data_window[-1][5] > hhll_lookup[-2][1]:
-                        if sma_50_lookup[-2][1] > sma_100_lookup[-2][1]:
-                            # TODO check if Long position has not already exist
-                            print 'LONG!'
+                    """
+                    Exit Positions
+                    """
+                    if len(market_positions):
+                        position = positions[0]
+                        hl = [h for h in hhll_100 if h[0] == date]
+                        if len(hl):  # TODO if date represent actual date from records, the 'if' will not be necessary
+                            if position.direction() == Direction.LONG:
+                                stop_loss = hl[0][1] - 3 * atr_lookup[-1][1]
+                                if last_price <= stop_loss:
+                                    print 'EXIT!', date
+                                    positions.remove(position)
+                            elif position.direction() == Direction.SHORT:
+                                stop_loss = hl[0][2] + 3 * atr_lookup[-1][1]
+                                if last_price >= stop_loss:
+                                    print 'EXIT!', date
+                                    positions.remove(position)
 
-                    if data_window[-1][5] < hhll_lookup[-2][2]:
-                        if sma_50_lookup[-2][1] < sma_100_lookup[-2][1]:
-                            # TODO check if Short position has not already exist
-                            print 'SHORT!'
+                    """
+                    Signals
+                    """
+                    if sma_50_lookup[-2][1] > sma_100_lookup[-2][1]:
+                        if last_price > hhll_lookup[-2][1]:
+                            # TODO 'code' is not the actual instrument code, but general market code
+                            signal = Signal(m.code(), Direction.LONG, date, last_price)
 
-                    # # TODO remove hard-coded values (5=Settle, etc.)
-                    # if data_window[-1][5] > hhll[-2][1]:
-                    #     if sma_50[-2][1] > sma_100[-2][1]:
-                    #         # TODO check if Long position has not already exist
-                    #         print 'LONG!'
-                    #
-                    # if data_window[-1][5] < hhll[-2][2]:
-                    #     if sma_50[-2][1] < sma_100[-2][1]:
-                    #         # TODO check if Short position has not already exist
-                    #         print 'SHORT!'
+                    elif sma_50_lookup[-2][1] < sma_100_lookup[-2][1]:
+                        if last_price < hhll_lookup[-2][2]:
+                            # TODO 'code' is not the actual instrument code, but general market code
+                            signal = Signal(m.code(), Direction.SHORT, date, last_price)
+
+                    """
+                    Open Positions (Position Candidate)
+                    """
+                    # TODO also check if there IS position, but in opposite direction!
+                    if not len(market_positions) and signal:
+                        print 'appending ', Position(signal, 1)
+                        positions.append(Position(signal, 1))  # TODO enter day will be signal date + 1 (opened next day)
+
+        # for signal in signals:
+        #     market = [m for m in markets if m.code() == signal.code()][0]
+        #     market_data = market.data(start_date, today)
+        #
+        #     atr = market.study(Study.ATR, market_data, short_window)
+        #
+        #     print signal
+        #
+        #     if len([p for p in positions if p.code() == signal.code()]):
+        #         # TODO check SL
+        #         data_window = market.data(start_date, date)
+        #         atr_lookup = [s for s in atr if data_window[-2][1] <= s[0] <= date]
+        #     else:
+        #         print 'appending ', Position(signal, 1)
+        #         positions.append(Position(signal, 1))

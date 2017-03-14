@@ -1,5 +1,6 @@
 #!/usr/bin/python
 
+import time
 from study import *
 from enum import Study
 
@@ -36,14 +37,6 @@ class Market(object):
         cursor.execute(sql % (self.__id, code, self.__start_data_date.strftime('%Y-%m-%d')))
         self.__data = cursor.fetchall()
 
-        # print code, len(self.__data)
-
-        # ma = EMA([(d[1], d[5]) for d in self.__data], 50)
-        # ma = ATR([(d[1], d[3], d[4], d[5]) for d in self.__data], 50)
-        # print self.__code, 'len(ma): %s' % len(ma)
-        # for value in ma:
-        #     print value
-
     def update_studies(self):
         self.__back_adjusted_data()
 
@@ -57,6 +50,7 @@ class Market(object):
         name = '_'.join([study_name, str(window)])
         # TODO refactor 'ifs'
         # TODO remove hard-coded windows
+        # TODO the studies don't have to be here - there is no dependency on local vars ...
         if name not in self.__studies:
             if study_name == Study.HHLL:
                 # self.__studies[name] = HHLL([(d[1], d[5]) for d in data], window)

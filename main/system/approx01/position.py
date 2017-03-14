@@ -6,7 +6,7 @@ class Position(object):
     def __init__(self, signal, quantity):
         self.__code = signal.code()
         self.__direction = signal.direction()
-        self.__date = signal.date()
+        self.__date = signal.date()  # TODO enter day will be signal date + 1 (opened next day)
         self.__price = signal.price()
         self.__quantity = quantity
 

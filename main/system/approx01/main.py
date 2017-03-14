@@ -1,7 +1,6 @@
 #!/usr/bin/python
 
 import sys
-import datetime
 import os
 import MySQLdb as mysql
 from timer import Timer

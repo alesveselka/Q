@@ -60,9 +60,9 @@ class InvestmentUniverse(EventDispatcher):
         data = self.__load_data(cursor)
         self.__start_contract_date = data[0]  # TODO remove hard-coded index
         self.__start_data_date = data[1]  # TODO remove hard-coded index
-
+        # print data[2].split(',').index('5')
         # for market_id in data[2].split(','):
-        for market_id in [int(data[2].split(',')[74])]:
+        for market_id in [int(data[2].split(',')[37])]:  # JY = 37@25Y, ES = 74@15Y
             cursor.execute(sql % market_id)
             self.__markets.append(Market(
                 self.__connection,
@@ -71,6 +71,8 @@ class InvestmentUniverse(EventDispatcher):
                 market_id,
                 *cursor.fetchone())
             )
+
+        # TODO query single markets here, join calculated studies and dispatch event with fetched data for System; iterate for each symbol
 
     def __update_studies(self):
         for market in self.__markets:
