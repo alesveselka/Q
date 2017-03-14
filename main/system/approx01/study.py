@@ -12,6 +12,7 @@ def HHLL(data, window):
     :return:        List of tuples(date, highest-high value, lowest-low value)
     """
     # TODO split into 'highest' and 'lowest' to unify (date, value) structure among studies and save them to DB
+    # TODO speed up similar to SMA!
     dates, values = zip(*data)
     return [(dates[i], max(values[i-window+1:i+1]), min(values[i-window+1:i+1])) for i in range(window-1, len(data))]
 
@@ -35,7 +36,7 @@ def SMA(data, window):
         s = s - values[i - window] + values[i]
         smas.append((dates[i], s / window))
 
-    return smas
+    return smas[window-1:]
 
 
 def EMA(data, window):
