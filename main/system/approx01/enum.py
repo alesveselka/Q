@@ -20,3 +20,9 @@ Study = enum(
     EMA='EMA',
     ATR='ATR'
 )
+
+Direction = enum(
+    'Direction',
+    LONG='LONG',
+    SHORT='SHORT'
+)
