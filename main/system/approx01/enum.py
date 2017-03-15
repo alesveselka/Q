@@ -26,3 +26,9 @@ Direction = enum(
     LONG='LONG',
     SHORT='SHORT'
 )
+
+SignalType = enum(
+    'SignalType',
+    OPEN='OPEN',
+    CLOSE='CLOSE'
+)
