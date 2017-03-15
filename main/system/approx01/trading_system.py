@@ -2,6 +2,7 @@
 
 import datetime
 from math import floor
+from decimal import Decimal
 from enum import Study
 from enum import EventType
 from enum import Direction
@@ -43,8 +44,6 @@ class TradingSystem(EventDispatcher):
         # TODO Parallel?!
         for m in markets:
             market_data = m.data(start_date, today)
-            last_date = market_data[-1][1]  # TODO not actual dates from records, but from iterator!
-            delta = last_date - start_date
 
             # TODO don't need Market to create them
             sma_long = m.study(Study.SMA, market_data, long_window)
@@ -53,9 +52,7 @@ class TradingSystem(EventDispatcher):
             hhll_short = m.study(Study.HHLL, market_data, short_window)
             atr = m.study(Study.ATR, market_data, long_window)
 
-            # TODO not actual dates from records, but from iterator!
-            # TODO implement custom iterator over the data dates?
-            for date in (start_date + datetime.timedelta(n) for n in range(delta.days+1)):
+            for date in [d[1] for d in market_data]:
                 data_window = m.data(start_date, date)
 
                 if len(data_window) >= long_window + 1:  # querying '-2' index, because I need one more record
@@ -75,9 +72,12 @@ class TradingSystem(EventDispatcher):
                     market_positions = [p for p in positions if p.market().code() == m.code()]
 
                     """
-                    Close Positions
+                    Mark-To-Market!!!
                     """
 
+                    """
+                    Close Positions
+                    """
                     if len(close_signals) and len(market_positions):
                         for signal in close_signals:
                             for position in [p for p in market_positions if p.market().code() == signal.market().code()]:
@@ -118,15 +118,15 @@ class TradingSystem(EventDispatcher):
                     if len(market_positions):
                         for position in market_positions:
                             hl = [h for h in hhll_long if h[0] == date]
-                            if len(hl):  # TODO if date represent actual date from records, the 'if' will not be necessary
-                                if position.direction() == Direction.LONG:
-                                    stop_loss = hl[0][1] - 3 * atr_lookup[-1][1]
-                                    if last_price <= stop_loss:
-                                        signals.append(Signal(m, SignalType.CLOSE, Direction.LONG, date, last_price))
-                                elif position.direction() == Direction.SHORT:
-                                    stop_loss = hl[0][2] + 3 * atr_lookup[-1][1]
-                                    if last_price >= stop_loss:
-                                        signals.append(Signal(m, SignalType.CLOSE, Direction.SHORT, date, last_price))
+
+                            if position.direction() == Direction.LONG:
+                                stop_loss = hl[0][1] - 3 * atr_lookup[-1][1]
+                                if last_price <= stop_loss:
+                                    signals.append(Signal(m, SignalType.CLOSE, Direction.LONG, date, last_price))
+                            elif position.direction() == Direction.SHORT:
+                                stop_loss = hl[0][2] + 3 * atr_lookup[-1][1]
+                                if last_price >= stop_loss:
+                                    signals.append(Signal(m, SignalType.CLOSE, Direction.SHORT, date, last_price))
 
                     """
                     Open Signals
@@ -141,5 +141,9 @@ class TradingSystem(EventDispatcher):
                             # TODO 'code' is not the actual instrument code, but general market code
                             signals.append(Signal(m, SignalType.OPEN, Direction.SHORT, date, last_price))
 
+        total = 0
         for t in trades:
             print t
+            total += float(t.result() * Decimal(t.quantity()) * t.market().point_value())
+
+        print 'Total $ %s in %s trades' % (total, len(trades))
