@@ -72,7 +72,7 @@ class TradingSystem(EventDispatcher):
                     last_price = data_window[-1][5]
                     open_signals = [s for s in signals if s.type() == SignalType.OPEN]
                     close_signals = [s for s in signals if s.type() == SignalType.CLOSE]
-                    market_positions = [p for p in positions if p.code() == m.code()]
+                    market_positions = [p for p in positions if p.market().code() == m.code()]
 
                     """
                     Close Positions
@@ -80,11 +80,11 @@ class TradingSystem(EventDispatcher):
 
                     if len(close_signals) and len(market_positions):
                         for signal in close_signals:
-                            for position in [p for p in market_positions if p.code() == signal.code()]:
-                                # print 'Close ', Position(position.code(), position.direction(), date, open_price, position.quantity())
+                            for position in [p for p in market_positions if p.market().code() == signal.market().code()]:
+                                # print 'Close ', Position(position.market(), position.direction(), date, open_price, position.quantity())
                                 positions.remove(position)
                                 trades.append(Trade(
-                                    position.code(),
+                                    position.market(),
                                     position.direction(),
                                     position.quantity(),
                                     position.date(),
@@ -104,7 +104,7 @@ class TradingSystem(EventDispatcher):
 
                             # TODO if 'quantity < 1.0' I can't afford it
                             if floor(quantity):
-                                position = Position(m.code(), signal.direction(), date, open_price, floor(quantity))
+                                position = Position(m, signal.direction(), date, open_price, floor(quantity))
                                 # print 'Open ', position
                                 positions.append(position)
                             else:
@@ -122,11 +122,11 @@ class TradingSystem(EventDispatcher):
                                 if position.direction() == Direction.LONG:
                                     stop_loss = hl[0][1] - 3 * atr_lookup[-1][1]
                                     if last_price <= stop_loss:
-                                        signals.append(Signal(m.code(), SignalType.CLOSE, Direction.LONG, date, last_price))
+                                        signals.append(Signal(m, SignalType.CLOSE, Direction.LONG, date, last_price))
                                 elif position.direction() == Direction.SHORT:
                                     stop_loss = hl[0][2] + 3 * atr_lookup[-1][1]
                                     if last_price >= stop_loss:
-                                        signals.append(Signal(m.code(), SignalType.CLOSE, Direction.SHORT, date, last_price))
+                                        signals.append(Signal(m, SignalType.CLOSE, Direction.SHORT, date, last_price))
 
                     """
                     Open Signals
@@ -134,12 +134,12 @@ class TradingSystem(EventDispatcher):
                     if sma_short_lookup[-2][1] > sma_long_lookup[-2][1]:
                         if last_price > hhll_lookup[-2][1]:
                             # TODO 'code' is not the actual instrument code, but general market code
-                            signals.append(Signal(m.code(), SignalType.OPEN, Direction.LONG, date, last_price))
+                            signals.append(Signal(m, SignalType.OPEN, Direction.LONG, date, last_price))
 
                     elif sma_short_lookup[-2][1] < sma_long_lookup[-2][1]:
                         if last_price < hhll_lookup[-2][2]:
                             # TODO 'code' is not the actual instrument code, but general market code
-                            signals.append(Signal(m.code(), SignalType.OPEN, Direction.SHORT, date, last_price))
+                            signals.append(Signal(m, SignalType.OPEN, Direction.SHORT, date, last_price))
 
         for t in trades:
             print t

@@ -3,8 +3,8 @@
 
 class Trade(object):
 
-    def __init__(self, code, direction, quantity, enter_date, enter_price, exit_date, exit_price):
-        self.__code = code  # TODO replace with 'market'?
+    def __init__(self, market, direction, quantity, enter_date, enter_price, exit_date, exit_price):
+        self.__market = market
         self.__direction = direction
         self.__quantity = quantity
         self.__enter_date = enter_date
@@ -14,7 +14,7 @@ class Trade(object):
 
     def __str__(self):
         return ', '.join([
-            self.__code,
+            self.__market.code(),
             self.__direction,
             str(self.__quantity),
             'ENTER: ',

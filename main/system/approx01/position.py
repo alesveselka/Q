@@ -3,15 +3,15 @@
 
 class Position(object):
 
-    def __init__(self, code, direction, date, price, quantity):
-        self.__code = code
+    def __init__(self, market, direction, date, price, quantity):
+        self.__market = market
         self.__direction = direction
         self.__date = date
         self.__price = price
         self.__quantity = quantity
 
-    def code(self):
-        return self.__code
+    def market(self):
+        return self.__market
 
     def direction(self):
         return self.__direction
@@ -27,7 +27,7 @@ class Position(object):
 
     def __str__(self):
         return ', '.join([
-            self.__code,
+            self.__market.code(),
             self.__direction,
             str(self.__date),
             str(self.__price),

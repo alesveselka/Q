@@ -3,15 +3,15 @@
 
 class Signal(object):
 
-    def __init__(self, code, type, direction, date, price):
-        self.__code = code
+    def __init__(self, market, type, direction, date, price):
+        self.__market = market
         self.__type = type
         self.__direction = direction
         self.__date = date
         self.__price = price
 
-    def code(self):
-        return self.__code
+    def market(self):
+        return self.__market
 
     def type(self):
         return self.__type
@@ -27,7 +27,7 @@ class Signal(object):
 
     def __str__(self):
         return ', '.join([
-            self.__code,
+            self.__market.code(),
             self.__type,
             self.__direction,
             str(self.__date),
