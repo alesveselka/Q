@@ -8,6 +8,7 @@ from enum import Direction
 from enum import SignalType
 from strategy_signal import Signal
 from position import Position
+from trade import Trade
 from risk import Risk
 from event_dispatcher import EventDispatcher
 
@@ -80,8 +81,17 @@ class TradingSystem(EventDispatcher):
                     if len(close_signals) and len(market_positions):
                         for signal in close_signals:
                             for position in [p for p in market_positions if p.code() == signal.code()]:
-                                print 'Close ', Position(position.code(), position.direction(), date, open_price, position.quantity())
+                                # print 'Close ', Position(position.code(), position.direction(), date, open_price, position.quantity())
                                 positions.remove(position)
+                                trades.append(Trade(
+                                    position.code(),
+                                    position.direction(),
+                                    position.quantity(),
+                                    position.date(),
+                                    position.price(),
+                                    date,
+                                    open_price
+                                ))
 
                     """
                     Open Positions
@@ -95,7 +105,7 @@ class TradingSystem(EventDispatcher):
                             # TODO if 'quantity < 1.0' I can't afford it
                             if floor(quantity):
                                 position = Position(m.code(), signal.direction(), date, open_price, floor(quantity))
-                                print 'Open ', position
+                                # print 'Open ', position
                                 positions.append(position)
                             else:
                                 print 'Too low of quantity! Can\'t afford it.', quantity
@@ -130,3 +140,6 @@ class TradingSystem(EventDispatcher):
                         if last_price < hhll_lookup[-2][2]:
                             # TODO 'code' is not the actual instrument code, but general market code
                             signals.append(Signal(m.code(), SignalType.OPEN, Direction.SHORT, date, last_price))
+
+        for t in trades:
+            print t
