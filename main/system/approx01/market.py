@@ -7,7 +7,19 @@ from enum import Study
 
 class Market(object):
 
-    def __init__(self, connection, start_contract_date, start_data_date, market_id, name, code, data_codes, currency, first_data_date, group):
+    def __init__(self,
+                 connection,
+                 start_contract_date,
+                 start_data_date,
+                 market_id,
+                 name,
+                 code,
+                 data_codes,
+                 currency,
+                 first_data_date,
+                 group,
+                 point_value):
+
         self.__connection = connection
         self.__start_contract_date = start_contract_date
         self.__start_data_date = start_data_date
@@ -18,6 +30,7 @@ class Market(object):
         self.__currency = currency
         self.__first_data_date = first_data_date
         self.__group = group
+        self.__point_value = point_value
         self.__data = []
         self.__studies = {}
 
@@ -42,6 +55,9 @@ class Market(object):
 
     def code(self):
         return self.__code
+
+    def point_value(self):
+        return self.__point_value
 
     def data(self, start_date, end_date):
         return [d for d in self.__data if start_date <= d[1] <= end_date]

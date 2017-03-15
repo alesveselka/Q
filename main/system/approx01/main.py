@@ -4,6 +4,7 @@ import sys
 import os
 import MySQLdb as mysql
 from timer import Timer
+from risk import Risk
 from investment_universe import InvestmentUniverse
 from trading_system import TradingSystem
 
@@ -16,7 +17,11 @@ def main(universe_name):
         os.environ['DB_PASS'],
         os.environ['DB_NAME']
     )
-    system = TradingSystem(InvestmentUniverse(universe_name, timer, connection))
+    risk_position_sizing = 0.002
+    system = TradingSystem(
+        InvestmentUniverse(universe_name, timer, connection),
+        Risk(risk_position_sizing)
+    )
     timer.start()  # TODO start after data is loaded
 
 if __name__ == '__main__':

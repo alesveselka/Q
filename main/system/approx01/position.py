@@ -3,11 +3,11 @@
 
 class Position(object):
 
-    def __init__(self, signal, quantity):
-        self.__code = signal.code()
-        self.__direction = signal.direction()
-        self.__date = signal.date()  # TODO enter day will be signal date + 1 (opened next day)
-        self.__price = signal.price()
+    def __init__(self, code, direction, date, price, quantity):
+        self.__code = code
+        self.__direction = direction
+        self.__date = date
+        self.__price = price
         self.__quantity = quantity
 
     def code(self):
@@ -22,10 +22,14 @@ class Position(object):
     def price(self):
         return self.__price
 
+    def quantity(self):
+        return self.__quantity
+
     def __str__(self):
         return ', '.join([
             self.__code,
             self.__direction,
             str(self.__date),
-            str(self.__price)
-        ])[:-2]
+            str(self.__price),
+            str(self.__quantity)
+        ])

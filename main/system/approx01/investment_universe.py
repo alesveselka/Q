@@ -18,6 +18,7 @@ class InvestmentUniverse(EventDispatcher):
         self.__connection = connection
         self.__markets = []
 
+        # TODO trigger the start and loading on 'subscription' from other objects?
         self.__timer.on(EventType.HEARTBEAT, self.__on_timer_heartbeat)
 
     def __on_timer_heartbeat(self, *data):
@@ -53,16 +54,16 @@ class InvestmentUniverse(EventDispatcher):
         # TODO 'query' object?
         cursor = self.__connection.cursor()
         sql = """
-            SELECT m.name, m.code, m.data_codes, m.currency, m.first_data_date, g.name as group_name
+            SELECT m.name, m.code, m.data_codes, m.currency, m.first_data_date, g.name as group_name, m.point_value
             FROM market as m INNER JOIN  `group` as g ON m.group_id = g.id
             WHERE m.id = '%s';
         """
         data = self.__load_data(cursor)
         self.__start_contract_date = data[0]  # TODO remove hard-coded index
         self.__start_data_date = data[1]  # TODO remove hard-coded index
-        # print data[2].split(',').index('5')
+        # print data[2].split(',').index('33')
         # for market_id in data[2].split(','):
-        for market_id in [int(data[2].split(',')[37])]:  # JY = 37@25Y, ES = 74@15Y
+        for market_id in [int(data[2].split(',')[74])]:  # JY = 37@25Y, W = 16@25Y, ES = 74@15Y
             cursor.execute(sql % market_id)
             self.__markets.append(Market(
                 self.__connection,
