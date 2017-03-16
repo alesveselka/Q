@@ -9,12 +9,15 @@
 * IRA Margin
 
 ###Margin Accounts
+Note that for commodities including futures, single-stock futures and futures options, 
+margin is the amount of cash a client must put up as collateral to support a futures contract.
 
 * Margin
 * Portfolio Margin
 * IRA Margin
 
 #####Securities Margin
+For securities, margin is the amount of cash a client borrows.
 
 * **Margin Loan**
   Amount of money that an investor borrows from his broker to buy securities.
