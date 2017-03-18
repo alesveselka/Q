@@ -26,7 +26,7 @@ def margins(soup):
 
     for row in table_rows:
         for r in row:
-            cells = [cell.text for cell in r.select('td')]
+            cells = [cell.text.replace(' 2', '') for cell in r.select('td')]
             ex_code = cells[0].lower()
             ex_name = [e[0] for e in ex if e[1].replace(' ', '').lower() == ex_code][0]
             lines.append(','.join([ex_name] + cells))
