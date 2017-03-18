@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 import bs4
+import csv
 import requests
 
 
@@ -13,14 +14,14 @@ def exchanges(soup):
     def transform(element):
         items = element.split(' (')
         if len(items) == 1: items.append(items[0].split(' ')[0])
-        return ','.join(items).replace(')', '')
-    return ['Name,Code'] + [transform(h.text) for h in soup.select('h5')]
+        return [item.replace(')', '') for item in items]
+    return [['Name', 'Code']] + [transform(h.text) for h in soup.select('h5')]
 
 
 def margins(soup):
-    ex = [e.split(',') for e in exchanges(soup)[1:]]
+    ex = exchanges(soup)[1:]
     tables = soup.select('.table-responsive > table')
-    header = ','.join(['Exchange Name', 'Exchange Code'] + [h.text.replace(' 1', '') for h in tables[0].select('tr > th')][1:])
+    header = ['Exchange Name', 'Exchange Code'] + [h.text.replace(' 1', '') for h in tables[0].select('tr > th')][1:]
     table_rows = [t.select('tbody > tr') for t in tables]
     lines = [header]
 
@@ -29,15 +30,14 @@ def margins(soup):
             cells = [cell.text.replace(' 2', '') for cell in r.select('td')]
             ex_code = cells[0].lower()
             ex_name = [e[0] for e in ex if e[1].replace(' ', '').lower() == ex_code][0]
-            lines.append(','.join([ex_name] + cells))
+            lines.append([ex_name] + cells)
 
     return lines
 
 
 def save_to_file(file_path, lines):
-    f = open(file_path, 'w')
-    f.write('\n'.join(lines))
-    f.close()
+    writer = csv.writer(open(file_path, 'wb'), delimiter=',', quotechar='"')
+    writer.writerows(lines)
 
 
 if __name__ == '__main__':
