@@ -11,6 +11,7 @@ from strategy_signal import Signal
 from position import Position
 from trade import Trade
 from risk import Risk
+from study import SMA
 from event_dispatcher import EventDispatcher
 
 
@@ -51,6 +52,7 @@ class TradingSystem(EventDispatcher):
             hhll_long = m.study(Study.HHLL, market_data, long_window)
             hhll_short = m.study(Study.HHLL, market_data, short_window)
             atr = m.study(Study.ATR, market_data, long_window)
+            volume_sma = SMA([(d[1], d[6]) for d in market_data], short_window)
 
             for date in [d[1] for d in market_data]:
                 data_window = m.data(start_date, date)

@@ -62,6 +62,7 @@ class InvestmentUniverse(EventDispatcher):
               m.currency,
               m.first_data_date,
               g.name as group_name,
+              m.tick_value,
               m.point_value,
               m.overnight_initial_margin
             FROM market as m INNER JOIN  `group` as g ON m.group_id = g.id
