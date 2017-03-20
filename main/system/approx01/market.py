@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 import time
+from math import ceil
 from study import *
 from enum import Study
 
@@ -18,7 +19,8 @@ class Market(object):
                  currency,
                  first_data_date,
                  group,
-                 point_value):
+                 point_value,
+                 margin):
 
         self.__connection = connection
         self.__start_contract_date = start_contract_date
@@ -31,6 +33,7 @@ class Market(object):
         self.__first_data_date = first_data_date
         self.__group = group
         self.__point_value = point_value
+        self.__margin = margin
         self.__data = []
         self.__studies = {}
 
@@ -39,8 +42,9 @@ class Market(object):
         # TODO move to 'investment_universe'? Do I need the Class?
         cursor = self.__connection.cursor()
         code = ''.join([self.__code, '2']) if 'C' in self.__data_codes else self.__code
+        # TODO also fetch 'volume' for slippage estimation ...
         sql = """
-            SELECT code, price_date, open_price, high_price, low_price, settle_price
+            SELECT code, price_date, open_price, high_price, low_price, settle_price, volume
             FROM continuous_back_adjusted
             WHERE market_id = '%s'
             AND code = '%s'
@@ -61,6 +65,12 @@ class Market(object):
 
     def data(self, start_date, end_date):
         return [d for d in self.__data if start_date <= d[1] <= end_date]
+
+    def margin(self):
+        # TODO convert non-base-currency point_value!
+        settle_price = self.__data[-1][5]
+        margin_multiple = (self.__margin if self.__margin else Decimal(0.1)) / (settle_price * self.__point_value)
+        return ceil(settle_price * self.__point_value * margin_multiple)
 
     def study(self, study_name, data, window):
         name = '_'.join([study_name, str(window)])

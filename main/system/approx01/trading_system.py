@@ -71,8 +71,27 @@ class TradingSystem(EventDispatcher):
                     close_signals = [s for s in signals if s.type() == SignalType.CLOSE]
                     market_positions = [p for p in positions if p.market().code() == m.code()]
 
+                    # TODO need margins
+                    # TODO need SMA Volume for slippage
                     """
                     Mark-To-Market!!!
+                    Open - Settlement || Settlement - Settlement || Settlement - Exit
+
+                    Has Open Positions
+                        New Transaction - Mark to Market non-base FX balance (MTM amount is available next day!)
+                        New Transaction - Mark to Market PnL
+
+                        Interest on FX debit (Margin Loan)
+
+                    Has new Signals
+                        Available Funds? (+ commissions)
+                            Instrument NOT in base currency?
+                                Convert by current rate
+
+                        New Transaction - Margin Loan
+
+                        New Transaction - open position
+                        New Transaction - substract commission
                     """
 
                     """

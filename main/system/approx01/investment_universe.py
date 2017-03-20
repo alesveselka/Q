@@ -39,7 +39,7 @@ class InvestmentUniverse(EventDispatcher):
         #         'markets': self.__markets
         #     })
 
-        self.dispatch(EventType.MARKET_DATA, self.__markets, self.__start_data_date)
+        # self.dispatch(EventType.MARKET_DATA, self.__markets, self.__start_data_date)
 
     def __load_data(self, cursor):
         # TODO 'query' object?
@@ -53,8 +53,17 @@ class InvestmentUniverse(EventDispatcher):
     def __load_markets(self):
         # TODO 'query' object?
         cursor = self.__connection.cursor()
+        # TODO replace with 'entity'?
         sql = """
-            SELECT m.name, m.code, m.data_codes, m.currency, m.first_data_date, g.name as group_name, m.point_value
+            SELECT
+              m.name,
+              m.code,
+              m.data_codes,
+              m.currency,
+              m.first_data_date,
+              g.name as group_name,
+              m.point_value,
+              m.overnight_initial_margin
             FROM market as m INNER JOIN  `group` as g ON m.group_id = g.id
             WHERE m.id = '%s';
         """
@@ -62,8 +71,8 @@ class InvestmentUniverse(EventDispatcher):
         self.__start_contract_date = data[0]  # TODO remove hard-coded index
         self.__start_data_date = data[1]  # TODO remove hard-coded index
         # print data[2].split(',').index('33')
-        # for market_id in data[2].split(','):
-        for market_id in [int(data[2].split(',')[74])]:  # JY = 37@25Y, W = 16@25Y, ES = 74@15Y
+        for market_id in data[2].split(','):
+        # for market_id in [int(data[2].split(',')[74])]:  # JY = 37@25Y, W = 16@25Y, ES = 74@15Y
             cursor.execute(sql % market_id)
             self.__markets.append(Market(
                 self.__connection,
