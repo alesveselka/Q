@@ -123,6 +123,7 @@ def populate_market(schema):
         m[columns.get('group_id')] = groups.get(m[columns.get('group_id')])
         return True
 
+    # TODO also include in the 'map'?
     def append_margins(m):
         margins = [[g[5], g[6], g[7], g[8]] for g in IB_margins  # TODO remove hard-coded indexes
                     if g[1] == m[IB_columns.get('exchange_code')]
