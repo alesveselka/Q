@@ -46,7 +46,4 @@ if __name__ == '__main__':
     # save_to_file(''.join([dir_path, 'IB_exchanges.csv']), exchanges(page()))
     save_to_file(''.join([dir_path, 'IB_margins.csv']), margins(page()))
 
-    # TODO map IB and Norgate exchanges
-    # TODO map IB and Norgate markets
-    # TODO insert into DB
     # TODO estimate each margin percentage of price and volatility
