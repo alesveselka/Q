@@ -78,23 +78,33 @@ def populate_market(schema):
     exchanges = dict(cursor.fetchall())
     columns = {
         'name': 0,
-        'code': 2,
-        'data_codes': 3,
-        'exchange_id': 4,
-        'group_id': 5,
-        'contract_size': 6,
-        'quotation': 7,
-        'tick_size': 8,
-        'tick_value': 9,
-        'point_value': 10,
-        'currency': 11,
-        'first_contract': 12,
-        'first_data_date': 13,
-        'last_trading_day': 14,
-        'first_notice_day': 15
+        'code': 4,
+        'data_codes': 5,
+        'exchange_id': 6,
+        'group_id': 8,
+        'contract_size': 9,
+        'quotation': 10,
+        'tick_size': 11,
+        'tick_value': 12,
+        'point_value': 13,
+        'currency': 14,
+        'first_contract': 15,
+        'first_data_date': 16,
+        'last_trading_day': 17,
+        'first_notice_day': 18,
+        'intraday_initial_margin': 19,
+        'intraday_maintenance_margin': 20,
+        'overnight_initial_margin': 21,
+        'overnight_maintenance_margin': 22
+    }
+    IB_columns = {
+        'underlying': 2,
+        'trading_class': 3,
+        'exchange_code': 7
     }
     keys = columns.keys()
     markets = csv_lines(norgate_dir_template % schema)
+    IB_margins = csv_lines(norgate_dir_template % 'IB_margins')
 
     # TODO move following 'utility' functions to its own library
     def contains(key, data, market): return market[columns.get(key)] in data
@@ -114,6 +124,14 @@ def populate_market(schema):
         m[columns.get('group_id')] = groups.get(m[columns.get('group_id')])
         return True
 
+    # TODO also include in the 'map'?
+    def append_margins(m):
+        margins = [[g[5], g[6], g[7], g[8]] for g in IB_margins  # TODO remove hard-coded indexes
+                    if g[1] == m[IB_columns.get('exchange_code')]
+                    and g[2] == m[IB_columns.get('underlying')]
+                    and g[4] == m[IB_columns.get('trading_class')]]
+        return m + map(lambda g: g if g != 'N/A' else 0, margins[0] if len(margins) else [0, 0, 0, 0])  # TODO simplify
+
     map(lambda m: (
         (contains('exchange_id', exchanges, m) or print_lookup_error(m, 'exchange_id'))
         and (contains('group_id', groups, m) or print_lookup_error(m, 'group_id'))
@@ -123,7 +141,7 @@ def populate_market(schema):
 
     insert_values(
         query(schema, ','.join(keys), ("%s, " * len(keys))[:-2]),
-        [[m[columns.get(k)] for k in keys] for m in markets]
+        [[append_margins(m)[columns.get(k)] for k in keys] for m in markets]
     )
 
 
