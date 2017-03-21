@@ -59,6 +59,7 @@ class TradingSystem(EventDispatcher):
             hhll_long = m.study(Study.HHLL, market_data, long_window)
             hhll_short = m.study(Study.HHLL, market_data, short_window)
             atr = m.study(Study.ATR, market_data, long_window)
+            atr_short = m.study(Study.ATR, market_data, short_window)
             volume_sma = SMA([(d[1], d[6]) for d in market_data], short_window)
 
             for date in [d[1] for d in market_data]:
@@ -97,7 +98,9 @@ class TradingSystem(EventDispatcher):
                                               }.get(signal.direction()),
                                               date,
                                               open_price,
-                                              position.quantity()
+                                              position.quantity(),
+                                              atr_short[-1][1],
+                                              volume_sma[-1][1]
                                               )
                                 self.__broker.transfer(order)
 
@@ -130,7 +133,9 @@ class TradingSystem(EventDispatcher):
                                     }.get(signal.direction()),
                                     date,
                                     open_price,
-                                    floor(quantity)
+                                    floor(quantity),
+                                    atr_short[-1][1],
+                                    volume_sma[-1][1]
                                 )
                                 self.__broker.transfer(order)
 
