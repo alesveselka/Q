@@ -5,6 +5,10 @@ import os
 import MySQLdb as mysql
 from timer import Timer
 from risk import Risk
+from portfolio import Portfolio
+from account import Account
+from broker import Broker
+from enum import Currency
 from investment_universe import InvestmentUniverse
 from trading_system import TradingSystem
 
@@ -18,9 +22,14 @@ def main(universe_name):
         os.environ['DB_NAME']
     )
     risk_position_sizing = 0.002
+    account = Account(1e6, Currency.EUR)
+    portfolio = Portfolio()
     system = TradingSystem(
         InvestmentUniverse(universe_name, timer, connection),
-        Risk(risk_position_sizing)
+        Risk(risk_position_sizing),
+        account,  # TODO access from broker?
+        portfolio,  # TODO access from broker?
+        Broker(account, portfolio)
     )
     timer.start()  # TODO start after data is loaded
 
