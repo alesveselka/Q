@@ -7,8 +7,10 @@ from enum import Study
 from enum import EventType
 from enum import Direction
 from enum import SignalType
+from enum import OrderType
 from strategy_signal import Signal
 from position import Position
+from order import Order
 from trade import Trade
 from risk import Risk
 from study import SMA
@@ -17,11 +19,14 @@ from event_dispatcher import EventDispatcher
 
 class TradingSystem(EventDispatcher):
 
-    def __init__(self, investment_universe, risk):
+    def __init__(self, investment_universe, risk, account, portfolio, broker):
         super(TradingSystem, self).__init__()
 
         self.__investment_universe = investment_universe
         self.__risk = risk
+        self.__account = account
+        self.__portfolio = portfolio
+        self.__broker = broker
 
         self.__subscribe()
 
@@ -121,12 +126,24 @@ class TradingSystem(EventDispatcher):
                         for signal in open_signals:
                             # TODO replace 'risk factor' and  'equity'
                             # TODO convert non-base-currency point_value to the base-currency value!
-                            quantity = (self.__risk.position_sizing() * 1000000) / float(atr_lookup[-1][1] * m.point_value())
+                            quantity = (self.__risk.position_sizing() * self.__account.equity()) / float(atr_lookup[-1][1] * m.point_value())
 
                             # TODO if 'quantity < 1.0' I can't afford it
                             if floor(quantity):
                                 position = Position(m, signal.direction(), date, open_price, floor(quantity))
+                                # TODO move to its own 'operation' object?
+                                order = Order(m, {
+                                        Direction.LONG: OrderType.BUY,
+                                        Direction.SHORT: OrderType.SELL
+                                    }.get(signal.direction()),
+                                    date,
+                                    open_price,
+                                    floor(quantity)
+                                )
+                                self.__broker.transfer(order)
+                                # self.__portfolio.add_position(self.__account.add_transaction(order))
                                 # print 'Open ', position
+                                # TODO oder can be rejected and thus result in no new position!
                                 positions.append(position)
                             else:
                                 print 'Too low of quantity! Can\'t afford it.', quantity

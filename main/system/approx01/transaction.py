@@ -3,12 +3,13 @@
 
 class Transaction(object):
 
-    def __init__(self, market, transaction_type, date, price, quantity):
+    def __init__(self, market, transaction_type, date, price, quantity, commission):
         self.__market = market
         self.__type = transaction_type
         self.__date = date
         self.__price = price
         self.__quantity = quantity
+        self.__commission = commission
 
     def market(self):
         return self.__market
@@ -24,3 +25,6 @@ class Transaction(object):
 
     def quantity(self):
         return self.__quantity
+
+    def commission(self):
+        return self.__commission

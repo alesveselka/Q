@@ -68,22 +68,32 @@ class Market(object):
     def code(self):
         return self.__code
 
+    def currency(self):
+        return self.__currency
+
     def point_value(self):
         return self.__point_value
 
     def data(self, start_date, end_date):
+        """
+        Filter and return data that fall in between dates passed in
+
+        :param start_date:  Date of first date of the data range
+        :param end_date:    Date of last date of the data range
+        :return:            List of market data records
+        """
         return [d for d in self.__data if start_date <= d[1] <= end_date]
 
-    def margin(self):
+    def margin(self, price):
         """
         Calculates margin estimate
 
-        :return:    Number representing margin in account-base-currency
+        :param price:   Market price for margin calculation
+        :return:        Number representing margin in account-base-currency
         """
         # TODO convert non-base-currency point_value!
-        settle_price = self.__data[-1][5]
-        margin_multiple = (self.__margin if self.__margin else Decimal(0.1)) / (settle_price * self.__point_value)
-        return ceil(settle_price * self.__point_value * margin_multiple)
+        margin_multiple = (self.__margin if self.__margin else Decimal(0.1)) / (price * self.__point_value)
+        return ceil(price * self.__point_value * margin_multiple)
 
     def slippage(self, average_volume, atr):
         """
