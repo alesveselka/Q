@@ -102,7 +102,7 @@ class Market(object):
 
         :param average_volume:  Average volume for slippage estimation
         :param atr:             ATR of Settlement price
-        :return:                Number representing slippage in account-base-currency
+        :return:                Number representing slippage in market points
         """
         # TODO remove hard-coded slippage-map (pass in as dependency)
         slippage_atr = filter(lambda s: s.get('min') <= average_volume < s.get('max'), [
@@ -113,12 +113,8 @@ class Market(object):
             {'atr': 0.05, 'min': 50000, 'max': 200000},
             {'atr': 0.01, 'min': 200000, 'max': 1e9}
         ])[0].get('atr')
-        # TODO convert non-base-currency point_value!
         slippage_value = Decimal(slippage_atr) * atr * self.__point_value
-
-        # print self.__code, self.__data[-1][5], atr, (self.__point_value / self.__tick_value), average_volume, slippage_atr, slippage_value
-
-        return floor(slippage_value / self.__tick_value) + float(self.__tick_value)
+        return Decimal(floor(slippage_value / self.__tick_value) + float(self.__tick_value)) / self.__point_value
 
     def study(self, study_name, data, window):
         name = '_'.join([study_name, str(window)])
