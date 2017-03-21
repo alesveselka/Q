@@ -44,3 +44,18 @@ Currency = enum(
     CHF='Swiss Franc',
     USD='United States Dollar'
 )
+
+OrderType = enum(
+    'OrderType',
+    BUY='BUY',
+    SELL='SELL'
+)
+
+TransactionType = enum(
+    'TransactionType',
+    BTO='BTO',
+    BTC='BTC',
+    STO='STO',
+    STC='STC',
+    MTM='MTM'
+)
