@@ -28,3 +28,14 @@ class Transaction(object):
 
     def commission(self):
         return self.__commission
+
+    def __str__(self):
+        return ' '.join([
+            'Transaction',
+            self.__market.code(),
+            self.__type,
+            str(self.__date),
+            str(self.__price),
+            str(self.__quantity),
+            str(self.__commission)
+        ])
