@@ -25,7 +25,7 @@ class Account(object):
 
         :return:    Number representing actual equity value
         """
-        balance = reduce(lambda t, b: t + b, self.__fx_balances, 0)  # TODO FX conversion!
+        balance = reduce(lambda t, k: t + self.__fx_balances.get(k), self.__fx_balances.keys(), 0)  # TODO FX conversion!
         return balance
 
     def available_funds(self):
@@ -35,14 +35,25 @@ class Account(object):
 
         :return:    Number representing funds available for trading
         """
-        balance = reduce(lambda t, b: t + b, self.__fx_balances, 0)  # TODO FX conversion!
-        margin = reduce(lambda t, b: t + b, self.__margin_loan_balances, 0)  # TODO FX conversion!
+        balance = reduce(lambda t, k: t + self.__fx_balances.get(k), self.__fx_balances.keys(), 0)  # TODO FX conversion!
+        margin = reduce(lambda t, k: t + self.__margin_loan_balances.get(k), self.__margin_loan_balances.keys(), 0)  # TODO FX conversion!
         return balance - margin
 
     def take_margin_loan(self, margin, currency):
+        """
+        Add margin to margin-loan-balances
+
+        :param margin:      Margin amount to be added
+        :param currency:    Currency denomination of the margin
+        """
         self.__margin_loan_balances[currency] += margin
 
     def add_transaction(self, transaction):
+        """
+        Add transaction and update related balances
+
+        :param transaction:     Transaction object to be added
+        """
         self.__fx_balances[transaction.market().currency()] -= transaction.commission()
 
         self.__transactions.append(transaction)  # TODO modify balances ...
