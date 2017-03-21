@@ -26,6 +26,7 @@ class Broker(object):
         commission = self.__commission * order.quantity()
         price = (order.price() + slippage) if order.type() == OrderType.BUY else order.price() - slippage  # TODO pass in slippage separe?
         positions_in_market = self.__portfolio.positions_in_market(market)
+        transaction = None
 
         if len(positions_in_market):
             # -to-close transactions
@@ -34,14 +35,18 @@ class Broker(object):
                                           OrderType.SELL: TransactionType.STC
                                       }.get(order.type()),
                                       order.date(),
+                                      order.price(),
                                       price,
                                       order.quantity(),
                                       commission)
 
+            print transaction
             self.__account.add_transaction(transaction)
             self.__account.close_margin_loan(margin, Currency.USD)
 
-            self.__portfolio.remove_position(positions_in_market[0])  # TODO what if there is ore than one position?
+            # TODO what if there is more than one position?
+            positions_in_market[0].mark_to_market(order.date(), order.price())
+            self.__portfolio.remove_position(positions_in_market[0])
         else:
             # -to-open transactions
             if self.__account.available_funds() > margin + commission:
@@ -52,10 +57,11 @@ class Broker(object):
                                               OrderType.SELL: TransactionType.STO
                                           }.get(order.type()),
                                           order.date(),
+                                          order.price(),
                                           price,
                                           order.quantity(),
                                           commission)
-
+                print transaction
                 self.__account.add_transaction(transaction)
 
                 # TODO maybe just pass in Transaction and let Position figure out the parameters?
@@ -68,3 +74,5 @@ class Broker(object):
                                     transaction.quantity())
 
                 self.__portfolio.add_position(position)
+
+        return transaction
