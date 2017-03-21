@@ -9,5 +9,11 @@ class Portfolio(object):
     def add_position(self, position):
         self.__positions.append(position)
 
-    def has_position(self):
-        return True
+    def remove_position(self, position):
+        self.__positions.remove(position)
+
+    def positions_in_market(self, market):
+        return [p for p in self.__positions if p.market() == market]
+
+    def positions(self):
+        return self.__positions

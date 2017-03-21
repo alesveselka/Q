@@ -8,8 +8,10 @@ from enum import EventType
 from enum import Direction
 from enum import SignalType
 from enum import OrderType
+from enum import TransactionType
 from strategy_signal import Signal
 from position import Position
+from transaction import Transaction
 from order import Order
 from trade import Trade
 from risk import Risk
@@ -78,8 +80,97 @@ class TradingSystem(EventDispatcher):
                     close_signals = [s for s in signals if s.type() == SignalType.CLOSE]
                     market_positions = [p for p in positions if p.market().code() == m.code()]
 
-                    # TODO need margins
-                    # TODO need SMA Volume for slippage
+                    # TODO re-calculate margins
+
+                    """
+                    Close Positions
+                    """
+                    if len(close_signals) and len(market_positions):
+                        for signal in close_signals:
+                            for position in [p for p in market_positions if p.market().code() == signal.market().code()]:
+                                print 'Close ', Position(position.market(), position.direction(), date, open_price, position.quantity())
+                                print 'Realized via MTM: ', position.mark_to_market(date, open_price), position.pnl()
+
+                                order = Order(m, {
+                                                  Direction.LONG: OrderType.BUY,
+                                                  Direction.SHORT: OrderType.SELL
+                                              }.get(signal.direction()),
+                                              date,
+                                              open_price,
+                                              position.quantity()
+                                              )
+                                self.__broker.transfer(order)
+
+                                positions.remove(position)
+                                trades.append(Trade(
+                                    position.market(),
+                                    position.direction(),
+                                    position.quantity(),
+                                    position.date(),
+                                    position.price(),
+                                    date,
+                                    open_price
+                                ))
+
+                    """
+                    Open Positions
+                    """
+                    if len(open_signals) and not len(market_positions):
+                        for signal in open_signals:
+                            # TODO convert non-base-currency point_value to the base-currency value!
+                            quantity = (self.__risk.position_sizing() * self.__account.equity()) / float(atr_lookup[-1][1] * m.point_value())
+
+                            # TODO if 'quantity < 1.0' I can't afford it
+                            if floor(quantity):
+                                position = Position(m, signal.direction(), date, open_price, floor(quantity))
+                                # TODO move to its own 'operation' object?
+                                order = Order(m, {
+                                        Direction.LONG: OrderType.BUY,
+                                        Direction.SHORT: OrderType.SELL
+                                    }.get(signal.direction()),
+                                    date,
+                                    open_price,
+                                    floor(quantity)
+                                )
+                                self.__broker.transfer(order)
+
+                                # print 'Open ', position
+                                # TODO oder can be rejected and thus result in no new position!
+                                positions.append(position)
+                            else:
+                                print 'Too low of quantity! Can\'t afford it.', quantity
+
+                    """
+                    Close Signals
+                    """
+                    del signals[:]
+
+                    if len(market_positions):
+                        for position in market_positions:
+                            hl = [h for h in hhll_long if h[0] == date]
+
+                            if position.direction() == Direction.LONG:
+                                stop_loss = hl[0][1] - 3 * atr_lookup[-1][1]
+                                if last_price <= stop_loss:
+                                    signals.append(Signal(m, SignalType.CLOSE, Direction.SHORT, date, last_price))
+                            elif position.direction() == Direction.SHORT:
+                                stop_loss = hl[0][2] + 3 * atr_lookup[-1][1]
+                                if last_price >= stop_loss:
+                                    signals.append(Signal(m, SignalType.CLOSE, Direction.LONG, date, last_price))
+
+                    """
+                    Open Signals
+                    """
+                    if sma_short_lookup[-2][1] > sma_long_lookup[-2][1]:
+                        if last_price > hhll_lookup[-2][1]:
+                            # TODO 'code' is not the actual instrument code, but general market code
+                            signals.append(Signal(m, SignalType.OPEN, Direction.LONG, date, last_price))
+
+                    elif sma_short_lookup[-2][1] < sma_long_lookup[-2][1]:
+                        if last_price < hhll_lookup[-2][2]:
+                            # TODO 'code' is not the actual instrument code, but general market code
+                            signals.append(Signal(m, SignalType.OPEN, Direction.SHORT, date, last_price))
+
                     """
                     Mark-To-Market!!!
                     Open - Settlement || Settlement - Settlement || Settlement - Exit
@@ -100,84 +191,18 @@ class TradingSystem(EventDispatcher):
                         New Transaction - open position
                         New Transaction - substract commission
                     """
+                    # self.__broker.mark_to_market(m, data_window[-2][5], data_window[-1][5])  # TODO synchronize via events
 
-                    """
-                    Close Positions
-                    """
-                    if len(close_signals) and len(market_positions):
-                        for signal in close_signals:
-                            for position in [p for p in market_positions if p.market().code() == signal.market().code()]:
-                                # print 'Close ', Position(position.market(), position.direction(), date, open_price, position.quantity())
-                                positions.remove(position)
-                                trades.append(Trade(
-                                    position.market(),
-                                    position.direction(),
-                                    position.quantity(),
-                                    position.date(),
-                                    position.price(),
-                                    date,
-                                    open_price
-                                ))
+                    for p in self.__portfolio.positions():
+                    # for p in positions:
+                        if p.market() == m:  # TODO compare by IDs?
+                            diff = p.mark_to_market(date, last_price)
 
-                    """
-                    Open Positions
-                    """
-                    if len(open_signals) and not len(market_positions):
-                        for signal in open_signals:
-                            # TODO replace 'risk factor' and  'equity'
-                            # TODO convert non-base-currency point_value to the base-currency value!
-                            quantity = (self.__risk.position_sizing() * self.__account.equity()) / float(atr_lookup[-1][1] * m.point_value())
+                            # TODO do I need 'quantity' in this type of transaction?
+                            transaction = Transaction(m, TransactionType.MTM, date, diff, p.quantity(), 0)
+                            self.__account.add_transaction(transaction)
 
-                            # TODO if 'quantity < 1.0' I can't afford it
-                            if floor(quantity):
-                                position = Position(m, signal.direction(), date, open_price, floor(quantity))
-                                # TODO move to its own 'operation' object?
-                                order = Order(m, {
-                                        Direction.LONG: OrderType.BUY,
-                                        Direction.SHORT: OrderType.SELL
-                                    }.get(signal.direction()),
-                                    date,
-                                    open_price,
-                                    floor(quantity)
-                                )
-                                self.__broker.transfer(order)
-                                # self.__portfolio.add_position(self.__account.add_transaction(order))
-                                # print 'Open ', position
-                                # TODO oder can be rejected and thus result in no new position!
-                                positions.append(position)
-                            else:
-                                print 'Too low of quantity! Can\'t afford it.', quantity
-
-                    """
-                    Close Signals
-                    """
-                    del signals[:]
-
-                    if len(market_positions):
-                        for position in market_positions:
-                            hl = [h for h in hhll_long if h[0] == date]
-
-                            if position.direction() == Direction.LONG:
-                                stop_loss = hl[0][1] - 3 * atr_lookup[-1][1]
-                                if last_price <= stop_loss:
-                                    signals.append(Signal(m, SignalType.CLOSE, Direction.LONG, date, last_price))
-                            elif position.direction() == Direction.SHORT:
-                                stop_loss = hl[0][2] + 3 * atr_lookup[-1][1]
-                                if last_price >= stop_loss:
-                                    signals.append(Signal(m, SignalType.CLOSE, Direction.SHORT, date, last_price))
-
-                    """
-                    Open Signals
-                    """
-                    if sma_short_lookup[-2][1] > sma_long_lookup[-2][1]:
-                        if last_price > hhll_lookup[-2][1]:
-                            # TODO 'code' is not the actual instrument code, but general market code
-                            signals.append(Signal(m, SignalType.OPEN, Direction.LONG, date, last_price))
-
-                    elif sma_short_lookup[-2][1] < sma_long_lookup[-2][1]:
-                        if last_price < hhll_lookup[-2][2]:
-                            # TODO 'code' is not the actual instrument code, but general market code
-                            signals.append(Signal(m, SignalType.OPEN, Direction.SHORT, date, last_price))
+                    # TODO interests
 
         total = 0
         for t in trades:

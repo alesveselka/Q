@@ -22,6 +22,7 @@ def main(universe_name):
         os.environ['DB_NAME']
     )
     risk_position_sizing = 0.002
+    commission = 20.0
     account = Account(1e6, Currency.EUR)
     portfolio = Portfolio()
     system = TradingSystem(
@@ -29,7 +30,7 @@ def main(universe_name):
         Risk(risk_position_sizing),
         account,  # TODO access from broker?
         portfolio,  # TODO access from broker?
-        Broker(account, portfolio)
+        Broker(account, portfolio, commission)
     )
     timer.start()  # TODO start after data is loaded
 

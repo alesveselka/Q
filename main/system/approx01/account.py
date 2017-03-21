@@ -48,6 +48,15 @@ class Account(object):
         """
         self.__margin_loan_balances[currency] += margin
 
+    def close_margin_loan(self, margin, currency):
+        """
+        Remove margin from margin-loan_balances
+
+        :param margin:      Margin amount to be subtracted
+        :param currency:    Currency denomination of the margin
+        """
+        self.__margin_loan_balances[currency] -= margin
+
     def add_transaction(self, transaction):
         """
         Add transaction and update related balances
