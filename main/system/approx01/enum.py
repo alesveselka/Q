@@ -67,8 +67,8 @@ TransactionType = enum(
     MARGIN_LOAN='Margin Loan'
 )
 
-AccountChange = enum(
-    'AccountChange',
+AccountAction = enum(
+    'AccountAction',
     CREDIT='CREDIT',
     DEBIT='DEBIT'
 )

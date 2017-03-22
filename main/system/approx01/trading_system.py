@@ -101,7 +101,7 @@ class TradingSystem(EventDispatcher):
                                               atr_short[-1][1],
                                               volume_sma[-1][1]
                                               )
-                                transaction = self.__broker.transfer(order)
+                                result = self.__broker.transfer(order)
 
                                 # positions.remove(position)
                                 trades.append(Trade(
@@ -111,7 +111,7 @@ class TradingSystem(EventDispatcher):
                                     position.date(),
                                     position.price(),
                                     date,
-                                    position.price()  # TODO without slippage
+                                    result.price()
                                 ))
 
                     """

@@ -2,11 +2,13 @@
 
 from enum import Direction
 from enum import OrderType
+from enum import OrderResultType
 from enum import TransactionType
-from enum import AccountChange
+from enum import AccountAction
 from enum import Currency
 from transaction import Transaction
 from position import Position
+from order_result import OrderResult
 from decimal import Decimal
 
 
@@ -25,35 +27,24 @@ class Broker(object):
         commission = self.__commission * order.quantity()
         price = (order.price() + slippage) if (order.type() == OrderType.BTO or order.type() == OrderType.BTC) else order.price() - slippage  # TODO pass in slippage separe?
         positions_in_market = self.__portfolio.positions_in_market(market)
-        transaction = None
 
         if len(positions_in_market):
             # -to-close transactions
-            # transaction1 = Transaction(market, {
-            #                               OrderType.BTC: TransactionType.BTC,
-            #                               OrderType.SELL: TransactionType.STC
-            #                           }.get(order.type()),
-            #                           order.date(),
-            #                           order.price(),
-            #                           price,
-            #                           order.quantity(),
-            #                           commission)
 
             transaction1 = Transaction(
                 TransactionType.COMMISSION,
-                AccountChange.DEBIT,
+                AccountAction.DEBIT,
                 order.date(),
                 commission,
                 market.currency(),
                 '%s %d x %s' % (order.type(), order.quantity(), market.code())
             )
 
-            # print transaction
             self.__account.add_transaction(transaction1)
 
             transaction2 = Transaction(
                 TransactionType.MARGIN_LOAN,
-                AccountChange.DEBIT,
+                AccountAction.DEBIT,
                 order.date(),
                 margin,  # TODO make sure the margin actually match!
                 market.currency(),
@@ -62,48 +53,51 @@ class Broker(object):
 
             self.__account.add_transaction(transaction2)
 
+            position = positions_in_market[0]
+            mtm = position.mark_to_market(order.date(), price) * market.point_value()
+            transaction3 = Transaction(
+                TransactionType.MTM_POSITION,
+                AccountAction.CREDIT if mtm > 0 else AccountAction.DEBIT,
+                order.date(),
+                mtm,
+                market.currency(),
+                'MTM %.2f(%s) at %.2f' % (mtm, market.currency(), price)
+            )
+
+            self.__account.add_transaction(transaction3)
+
             print transaction1
             print transaction2
+            print transaction3
 
             # self.__account.close_margin_loan(margin, Currency.USD)
 
             # TODO what if there is more than one position?
-            # positions_in_market[0].mark_to_market(order.date(), order.price())
-            self.__portfolio.remove_position(positions_in_market[0])
+
+            self.__portfolio.remove_position(position)
         else:
             # -to-open transactions
             if self.__account.available_funds() > margin + commission:
-                self.__account.take_margin_loan(margin, Currency.USD)
-
-                # transaction = Transaction(market, {
-                #                               OrderType.BUY: TransactionType.BTO,
-                #                               OrderType.SELL: TransactionType.STO
-                #                           }.get(order.type()),
-                #                           order.date(),
-                #                           order.price(),
-                #                           price,
-                #                           order.quantity(),
-                #                           commission)
+                # self.__account.take_margin_loan(margin, Currency.USD)
 
                 transaction1 = Transaction(
-                    TransactionType.COMMISSION,
-                    AccountChange.DEBIT,
-                    order.date(),
-                    commission,
-                    market.currency(),
-                    '%s %d x %s' % (order.type(), order.quantity(), market.code())
-                )
-
-                # print transaction
-                self.__account.add_transaction(transaction1)
-
-                transaction2 = Transaction(
                     TransactionType.MARGIN_LOAN,
-                    AccountChange.CREDIT,
+                    AccountAction.CREDIT,
                     order.date(),
                     margin,
                     market.currency(),
                     'Take %.2f(%s) margin loan' % (margin, market.currency())
+                )
+
+                self.__account.add_transaction(transaction1)
+
+                transaction2 = Transaction(
+                    TransactionType.COMMISSION,
+                    AccountAction.DEBIT,
+                    order.date(),
+                    commission,
+                    market.currency(),
+                    '%s %d x %s' % (order.type(), order.quantity(), market.code())
                 )
 
                 self.__account.add_transaction(transaction2)
@@ -122,4 +116,4 @@ class Broker(object):
 
                 self.__portfolio.add_position(position)
 
-        return transaction
+        return OrderResult(OrderResultType.FILLED, order.date(), price)
