@@ -23,7 +23,7 @@ def main(universe_name):
         os.environ['DB_NAME']
     )
     risk_position_sizing = Decimal(0.002)
-    commission = 20.0
+    commission = 10.0
     account = Account(Decimal(1e6), Currency.EUR)
     portfolio = Portfolio()
     system = TradingSystem(
