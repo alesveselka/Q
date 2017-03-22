@@ -114,7 +114,7 @@ class Market(object):
             {'atr': 0.01, 'min': 200000, 'max': 1e9}
         ])[0].get('atr')
         slippage_value = Decimal(slippage_atr) * atr * self.__point_value
-        return Decimal(floor(slippage_value / self.__tick_value) + float(self.__tick_value)) / self.__point_value
+        return (Decimal(ceil(slippage_value / self.__tick_value)) * self.__tick_value) / self.__point_value
 
     def study(self, study_name, data, window):
         name = '_'.join([study_name, str(window)])
