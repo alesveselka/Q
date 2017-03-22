@@ -53,6 +53,11 @@ OrderType = enum(
     STC='STC',
 )
 
+OrderResultType = enum(
+    'OrderResultType',
+    FILLED='FILLED'
+)
+
 TransactionType = enum(
     'TransactionType',
     MTM_POSITION='MTM Position',
