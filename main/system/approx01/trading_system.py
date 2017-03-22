@@ -79,7 +79,7 @@ class TradingSystem(EventDispatcher):
                     last_price = data_window[-1][5]
                     open_signals = [s for s in signals if s.type() == SignalType.OPEN]
                     close_signals = [s for s in signals if s.type() == SignalType.CLOSE]
-                    market_positions = [p for p in positions if p.market().code() == m.code()]
+                    market_positions = [p for p in self.__portfolio.positions() if p.market().code() == m.code()]
 
                     # TODO re-calculate margins
 
@@ -89,12 +89,11 @@ class TradingSystem(EventDispatcher):
                     if len(close_signals) and len(market_positions):
                         for signal in close_signals:
                             for position in [p for p in market_positions if p.market().code() == signal.market().code()]:
-                                print 'Close ', Position(position.market(), position.direction(), date, open_price, position.quantity())
-                                print 'Realized via MTM: ', position.mark_to_market(date, open_price), position.pnl()
+                                # print 'Close ', Position(position.market(), position.direction(), date, open_price, position.quantity())
 
                                 order = Order(m, {
-                                                  Direction.LONG: OrderType.BUY,
-                                                  Direction.SHORT: OrderType.SELL
+                                                  Direction.LONG: OrderType.BTC,
+                                                  Direction.SHORT: OrderType.STC
                                               }.get(signal.direction()),
                                               date,
                                               open_price,
@@ -102,9 +101,9 @@ class TradingSystem(EventDispatcher):
                                               atr_short[-1][1],
                                               volume_sma[-1][1]
                                               )
-                                self.__broker.transfer(order)
+                                transaction = self.__broker.transfer(order)
 
-                                positions.remove(position)
+                                # positions.remove(position)
                                 trades.append(Trade(
                                     position.market(),
                                     position.direction(),
@@ -112,7 +111,7 @@ class TradingSystem(EventDispatcher):
                                     position.date(),
                                     position.price(),
                                     date,
-                                    open_price
+                                    position.price()  # TODO without slippage
                                 ))
 
                     """
@@ -128,8 +127,8 @@ class TradingSystem(EventDispatcher):
                                 position = Position(m, signal.direction(), date, open_price, floor(quantity))
                                 # TODO move to its own 'operation' object?
                                 order = Order(m, {
-                                        Direction.LONG: OrderType.BUY,
-                                        Direction.SHORT: OrderType.SELL
+                                        Direction.LONG: OrderType.BTO,
+                                        Direction.SHORT: OrderType.STO
                                     }.get(signal.direction()),
                                     date,
                                     open_price,
@@ -204,8 +203,9 @@ class TradingSystem(EventDispatcher):
                             diff = p.mark_to_market(date, last_price)
 
                             # TODO do I need 'quantity' in this type of transaction?
-                            transaction = Transaction(m, TransactionType.MTM, date, diff, p.quantity(), 0)
-                            self.__account.add_transaction(transaction)
+                            # transaction = Transaction(m, TransactionType.MTM, date, last_price, last_price, p.quantity(), 0)
+                            # print transaction
+                            # self.__account.add_transaction(transaction)
 
                     # TODO interests
 
@@ -215,3 +215,4 @@ class TradingSystem(EventDispatcher):
             total += float(t.result() * Decimal(t.quantity()) * t.market().point_value())
 
         print 'Total $ %s in %s trades' % (total, len(trades))
+        print 'Equity: ', self.__account.equity()

@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-from enum import Currency
+from enum import TransactionType
 from collections import defaultdict
 
 
@@ -63,9 +63,34 @@ class Account(object):
 
         :param transaction:     Transaction object to be added
         """
-        self.__fx_balances[transaction.market().currency()] -= transaction.commission()
+        # self.__fx_balances[transaction.market().currency()] -= transaction.commission()
 
         self.__transactions.append(transaction)  # TODO modify balances ...
 
+        # previous_transaction = self.__previous_transaction(transaction.market(), transaction.type() ,transaction.date())
+        #
+        # if previous_transaction:
+        #     print transaction, previous_transaction, transaction.price() - previous_transaction.price()
+        # else:
+        #     print transaction
+
         # TODO dispatching event instead? (TransactionFilled? ...Complete?)
         return True
+
+    def __previous_transaction(self, market, type, date):
+        if type == TransactionType.MTM:
+            for t in reversed(self.__transactions):
+                if t.market() == market:
+                    if t.date() < date and t.type() == TransactionType.MTM:
+                        return t
+                    elif t.date() == date and (t.type() == TransactionType.BTO or t.type() == TransactionType.STO):
+                        return t
+        elif type == TransactionType.BTC or type == TransactionType.STC:
+            for t in reversed(self.__transactions):
+                if t.market() == market:
+                    if t.date() < date and t.type() == TransactionType.MTM:
+                        return t
+                    elif t.date() == date and (t.type() == TransactionType.BTO or t.type() == TransactionType.STO):
+                        return t
+
+        return None

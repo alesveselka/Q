@@ -3,47 +3,39 @@
 
 class Transaction(object):
 
-    def __init__(self, market, transaction_type, date, order_price, price, quantity, commission):
-        self.__market = market
+    def __init__(self, transaction_type, account_change, date, amount, currency, notes):
         self.__type = transaction_type
+        self.__account_type = account_change
         self.__date = date
-        self.__order_price = order_price
-        self.__price = price
-        self.__quantity = quantity
-        self.__commission = commission
-
-    def market(self):
-        return self.__market
+        self.__amount = amount
+        self.__currency = currency
+        self.__notes = notes
 
     def type(self):
         return self.__type
 
+    def account_change(self):
+        return self.__account_type
+
     def date(self):
         return self.__date
 
-    def order_price(self):
-        return self.__order_price
+    def amount(self):
+        return self.__amount
 
-    def price(self):
-        return self.__price
+    def currency(self):
+        return self.__currency
 
-    def quantity(self):
-        return self.__quantity
-
-    def commission(self):
-        return self.__commission
-
-    def slippage(self):
-        return abs(self.__price - self.__order_price)
+    def notes(self):
+        return self.__notes
 
     def __str__(self):
         return ' '.join([
             'Transaction',
             self.__type,
-            self.__market.code(),
+            self.__account_type,
             str(self.__date),
-            str(self.__price),
-            str(int(self.__quantity)),
-            str(self.__commission),
-            str(float(self.slippage()))
+            str(self.__amount),
+            self.__currency,
+            self.__notes
         ])

@@ -47,15 +47,23 @@ Currency = enum(
 
 OrderType = enum(
     'OrderType',
-    BUY='BUY',
-    SELL='SELL'
-)
-
-TransactionType = enum(
-    'TransactionType',
     BTO='BTO',
     BTC='BTC',
     STO='STO',
     STC='STC',
-    MTM='MTM'
+)
+
+TransactionType = enum(
+    'TransactionType',
+    POSITION_MTM='POSITION_MTM',
+    FX_BALANCE_MTM='FX_BALANCE_MTM',
+    COMMISSION='COMMISSION',
+    INTEREST='INTEREST',
+    MARGIN_LOAN='MARGIN_LOAN'
+)
+
+AccountChange = enum(
+    'AccountChange',
+    CREDIT='CREDIT',
+    DEBIT='DEBIT'
 )
