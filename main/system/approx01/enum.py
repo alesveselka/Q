@@ -55,11 +55,11 @@ OrderType = enum(
 
 TransactionType = enum(
     'TransactionType',
-    POSITION_MTM='POSITION_MTM',
-    FX_BALANCE_MTM='FX_BALANCE_MTM',
-    COMMISSION='COMMISSION',
-    INTEREST='INTEREST',
-    MARGIN_LOAN='MARGIN_LOAN'
+    MTM_POSITION='MTM Position',
+    MTM_FX_BALANCE='MTM Fx Balance',
+    COMMISSION='Commission',
+    INTEREST='Interest',
+    MARGIN_LOAN='Margin Loan'
 )
 
 AccountChange = enum(
