@@ -29,7 +29,7 @@ class Broker(object):
         positions_in_market = self.__portfolio.positions_in_market(market)
 
         if len(positions_in_market):
-            # -to-close transactions
+            # -to-close transactions TODO do I need this check? The orders already know this!
 
             transaction1 = Transaction(
                 TransactionType.COMMISSION,
@@ -37,7 +37,7 @@ class Broker(object):
                 order.date(),
                 commission,
                 market.currency(),
-                '%s %d x %s' % (order.type(), order.quantity(), market.code())
+                '%s %d x %s at %.2f' % (order.type(), order.quantity(), market.code(), price)
             )
 
             self.__account.add_transaction(transaction1)
@@ -53,7 +53,7 @@ class Broker(object):
 
             self.__account.add_transaction(transaction2)
 
-            position = positions_in_market[0]
+            position = positions_in_market[0]  # TODO what if there is more than one position?
             mtm = position.mark_to_market(order.date(), price) * market.point_value()
             transaction3 = Transaction(
                 TransactionType.MTM_POSITION,
@@ -71,8 +71,6 @@ class Broker(object):
             print transaction3
 
             # self.__account.close_margin_loan(margin, Currency.USD)
-
-            # TODO what if there is more than one position?
 
             self.__portfolio.remove_position(position)
         else:
@@ -97,7 +95,7 @@ class Broker(object):
                     order.date(),
                     commission,
                     market.currency(),
-                    '%s %d x %s' % (order.type(), order.quantity(), market.code())
+                    '%s %d x %s at %.2f' % (order.type(), order.quantity(), market.code(), price)
                 )
 
                 self.__account.add_transaction(transaction2)
@@ -105,15 +103,33 @@ class Broker(object):
                 print transaction1
                 print transaction2
 
-                # TODO maybe just pass in Transaction and let Position figure out the parameters?
                 position = Position(market, {
-                                        OrderType.BTO: Direction.LONG,
-                                        OrderType.STO: Direction.SHORT
-                                    }.get(order.type()),
-                                    order.date(),
-                                    price,
-                                    order.quantity())
+                        OrderType.BTO: Direction.LONG,
+                        OrderType.STO: Direction.SHORT
+                    }.get(order.type()),
+                    order.date(),
+                    price,
+                    order.quantity())
 
                 self.__portfolio.add_position(position)
 
         return OrderResult(OrderResultType.FILLED, order.date(), price)
+
+    def mark_to_market(self, date):
+        for p in self.__portfolio.positions():
+            market = p.market()
+            price = market.data(date, date)[-1][5]
+            mtm = p.mark_to_market(date, price) * p.market().point_value()  # TODO convert non-base Fx
+
+            transaction = Transaction(
+                TransactionType.MTM_POSITION,
+                AccountAction.CREDIT if mtm > 0 else AccountAction.DEBIT,
+                date,
+                mtm,
+                market.currency(),
+                'MTM %.2f(%s) at %.2f' % (mtm, market.currency(), price)
+            )
+
+            self.__account.add_transaction(transaction)
+
+            print transaction

@@ -195,17 +195,8 @@ class TradingSystem(EventDispatcher):
                         New Transaction - open position
                         New Transaction - substract commission
                     """
-                    # self.__broker.mark_to_market(m, data_window[-2][5], data_window[-1][5])  # TODO synchronize via events
 
-                    for p in self.__portfolio.positions():
-                    # for p in positions:
-                        if p.market() == m:  # TODO compare by IDs?
-                            diff = p.mark_to_market(date, last_price)
-
-                            # TODO do I need 'quantity' in this type of transaction?
-                            # transaction = Transaction(m, TransactionType.MTM, date, last_price, last_price, p.quantity(), 0)
-                            # print transaction
-                            # self.__account.add_transaction(transaction)
+                    self.__broker.mark_to_market(date)  # TODO sync via events
 
                     # TODO interests
 
