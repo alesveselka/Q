@@ -25,11 +25,26 @@ class Broker(object):
         margin = market.margin(order.price())
         slippage = Decimal(market.slippage(order.market_volume(), order.market_atr()))
         commission = self.__commission * order.quantity()
-        price = (order.price() + slippage) if (order.type() == OrderType.BTO or order.type() == OrderType.BTC) else order.price() - slippage  # TODO pass in slippage separe?
+        price = (order.price() + slippage) if (order.type() == OrderType.BTO or order.type() == OrderType.BTC) else (order.price() - slippage)  # TODO pass in slippage separe?
         positions_in_market = self.__portfolio.positions_in_market(market)
 
         if len(positions_in_market):
             # -to-close transactions TODO do I need this check? The orders already know this!
+
+            position = positions_in_market[0]  # TODO what if there is more than one position?
+            mtm = position.mark_to_market(order.date(), price) * Decimal(position.quantity()) * market.point_value()  # TODO convert non-base Fx
+            transaction3 = Transaction(
+                TransactionType.MTM_POSITION,
+                AccountAction.CREDIT if mtm > 0 else AccountAction.DEBIT,
+                order.date(),
+                abs(mtm),
+                market.currency(),
+                'MTM %.2f(%s) at %.2f' % (mtm, market.currency(), price)
+            )
+
+            self.__account.add_transaction(transaction3)
+
+            print transaction3, float(self.__account.equity()), float(self.__account.available_funds())
 
             transaction1 = Transaction(
                 TransactionType.COMMISSION,
@@ -42,6 +57,8 @@ class Broker(object):
 
             self.__account.add_transaction(transaction1)
 
+            print transaction1, float(self.__account.equity()), float(self.__account.available_funds())
+
             transaction2 = Transaction(
                 TransactionType.MARGIN_LOAN,
                 AccountAction.DEBIT,
@@ -53,22 +70,7 @@ class Broker(object):
 
             self.__account.add_transaction(transaction2)
 
-            position = positions_in_market[0]  # TODO what if there is more than one position?
-            mtm = position.mark_to_market(order.date(), price) * market.point_value()
-            transaction3 = Transaction(
-                TransactionType.MTM_POSITION,
-                AccountAction.CREDIT if mtm > 0 else AccountAction.DEBIT,
-                order.date(),
-                abs(mtm),
-                market.currency(),
-                'MTM %.2f(%s) at %.2f' % (mtm, market.currency(), price)
-            )
-
-            self.__account.add_transaction(transaction3)
-
-            print transaction1
-            print transaction2
-            print transaction3
+            print transaction2, float(self.__account.equity()), float(self.__account.available_funds())
 
             # self.__account.close_margin_loan(margin, Currency.USD)
 
@@ -89,6 +91,8 @@ class Broker(object):
 
                 self.__account.add_transaction(transaction1)
 
+                print transaction1, float(self.__account.equity()), float(self.__account.available_funds())
+
                 transaction2 = Transaction(
                     TransactionType.COMMISSION,
                     AccountAction.DEBIT,
@@ -100,26 +104,26 @@ class Broker(object):
 
                 self.__account.add_transaction(transaction2)
 
-                print transaction1
-                print transaction2
+                print transaction2, float(self.__account.equity()), float(self.__account.available_funds())
 
                 position = Position(market, {
                         OrderType.BTO: Direction.LONG,
                         OrderType.STO: Direction.SHORT
                     }.get(order.type()),
                     order.date(),
+                    order.price(),
                     price,
                     order.quantity())
 
                 self.__portfolio.add_position(position)
 
-        return OrderResult(OrderResultType.FILLED, order.date(), price)
+        return OrderResult(OrderResultType.FILLED, order.date(), price, commission)
 
     def mark_to_market(self, date):
         for p in self.__portfolio.positions():
             market = p.market()
             price = market.data(date, date)[-1][5]
-            mtm = p.mark_to_market(date, price) * p.market().point_value()  # TODO convert non-base Fx
+            mtm = p.mark_to_market(date, price) * Decimal(p.quantity()) * p.market().point_value()  # TODO convert non-base Fx
 
             transaction = Transaction(
                 TransactionType.MTM_POSITION,
@@ -132,4 +136,4 @@ class Broker(object):
 
             self.__account.add_transaction(transaction)
 
-            print transaction
+            print transaction, float(self.__account.equity()), float(self.__account.available_funds())
