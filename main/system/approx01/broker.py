@@ -59,7 +59,7 @@ class Broker(object):
                 TransactionType.MTM_POSITION,
                 AccountAction.CREDIT if mtm > 0 else AccountAction.DEBIT,
                 order.date(),
-                mtm,
+                abs(mtm),
                 market.currency(),
                 'MTM %.2f(%s) at %.2f' % (mtm, market.currency(), price)
             )
@@ -125,7 +125,7 @@ class Broker(object):
                 TransactionType.MTM_POSITION,
                 AccountAction.CREDIT if mtm > 0 else AccountAction.DEBIT,
                 date,
-                mtm,
+                abs(mtm),
                 market.currency(),
                 'MTM %.2f(%s) at %.2f' % (mtm, market.currency(), price)
             )

@@ -41,7 +41,8 @@ class TradingSystem(EventDispatcher):
         markets = data[0]
         start_date = data[1]
         now = datetime.datetime.now()
-        today = datetime.date(now.year, now.month, now.day)
+        # today = datetime.date(now.year, now.month, now.day)
+        today = datetime.date(2016, 10, 1)
 
         print '_on_market_data:', len(markets), start_date, today
 
@@ -120,7 +121,7 @@ class TradingSystem(EventDispatcher):
                     if len(open_signals) and not len(market_positions):
                         for signal in open_signals:
                             # TODO convert non-base-currency point_value to the base-currency value!
-                            quantity = (self.__risk.position_sizing() * self.__account.equity()) / float(atr_lookup[-1][1] * m.point_value())
+                            quantity = (self.__risk.position_sizing() * self.__account.equity()) / Decimal(atr_lookup[-1][1] * m.point_value())
 
                             # TODO if 'quantity < 1.0' I can't afford it
                             if floor(quantity):
@@ -206,4 +207,4 @@ class TradingSystem(EventDispatcher):
             total += float(t.result() * Decimal(t.quantity()) * t.market().point_value())
 
         print 'Total $ %s in %s trades' % (total, len(trades))
-        print 'Equity: ', self.__account.equity()
+        print 'Equity: ', self.__account.equity(), self.__account.available_funds()

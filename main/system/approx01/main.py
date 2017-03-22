@@ -11,6 +11,7 @@ from broker import Broker
 from enum import Currency
 from investment_universe import InvestmentUniverse
 from trading_system import TradingSystem
+from decimal import Decimal
 
 
 def main(universe_name):
@@ -21,9 +22,9 @@ def main(universe_name):
         os.environ['DB_PASS'],
         os.environ['DB_NAME']
     )
-    risk_position_sizing = 0.002
+    risk_position_sizing = Decimal(0.002)
     commission = 20.0
-    account = Account(1e6, Currency.EUR)
+    account = Account(Decimal(1e6), Currency.EUR)
     portfolio = Portfolio()
     system = TradingSystem(
         InvestmentUniverse(universe_name, timer, connection),
