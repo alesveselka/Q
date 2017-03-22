@@ -9,6 +9,7 @@ from enum import Currency
 from transaction import Transaction
 from position import Position
 from order_result import OrderResult
+from collections import defaultdict
 from decimal import Decimal
 
 
@@ -20,11 +21,10 @@ class Broker(object):
         self.__commission = commission
         self.__orders = []
 
-    def transfer(self, order):
+    def transfer(self, order, margin):
         market = order.market()
-        margin = market.margin(order.price())
         slippage = Decimal(market.slippage(order.market_volume(), order.market_atr()))
-        commission = self.__commission * order.quantity()
+        commission = self.__commission * order.quantity()  # TODO convert non-base Fx
         price = (order.price() + slippage) if (order.type() == OrderType.BTO or order.type() == OrderType.BTC) else (order.price() - slippage)  # TODO pass in slippage separe?
         positions_in_market = self.__portfolio.positions_in_market(market)
 
@@ -39,7 +39,7 @@ class Broker(object):
                 order.date(),
                 abs(mtm),
                 market.currency(),
-                'MTM %.2f(%s) at %.2f' % (mtm, market.currency(), price)
+                'MTM %.2f(%s) at %.2f' % (float(mtm), market.currency(), price)
             )
 
             self.__account.add_transaction(transaction3)
@@ -131,9 +131,42 @@ class Broker(object):
                 date,
                 abs(mtm),
                 market.currency(),
-                'MTM %.2f(%s) at %.2f' % (mtm, market.currency(), price)
+                'MTM %.2f(%s) at %.2f' % (float(mtm), market.currency(), price)
             )
 
             self.__account.add_transaction(transaction)
 
             print transaction, float(self.__account.equity()), float(self.__account.available_funds())
+
+    def update_margin_loans(self, date, price):
+        if len(self.__portfolio.positions()):
+            margin_loans = defaultdict(Decimal)
+
+            for p in self.__portfolio.positions():
+                market = p.market()
+                margin_loans[market.currency()] += Decimal(market.margin(price))
+
+            for currency in margin_loans.keys():
+                debit_transaction = Transaction(
+                    TransactionType.MARGIN_LOAN,
+                    AccountAction.DEBIT,
+                    date,
+                    self.__account.margin_loan_balance(currency),
+                    currency,
+                    'Close %.2f(%s) margin loan' % (self.__account.margin_loan_balance(currency), currency)
+                )
+                self.__account.add_transaction(debit_transaction)
+
+                print debit_transaction, float(self.__account.equity()), float(self.__account.available_funds())
+
+                credit_transaction = Transaction(
+                    TransactionType.MARGIN_LOAN,
+                    AccountAction.CREDIT,
+                    date,
+                    margin_loans[currency],
+                    currency,
+                    'Take %.2f(%s) margin loan' % (float(margin_loans[currency]), currency)
+                )
+                self.__account.add_transaction(credit_transaction)
+
+                print credit_transaction, float(self.__account.equity()), float(self.__account.available_funds())

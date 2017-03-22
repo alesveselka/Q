@@ -10,7 +10,7 @@ class Account(object):
 
     def __init__(self, initial_balance, base_currency):
         # self.__balance = initial_balance  # Update MTM, Cash, Bonds on new market data
-        # self.__base_currency = base_currency
+        self.__base_currency = base_currency
 
         # self.__securities = [CZK, USD, ...]  # Cash, Commissions, Interest on Credit
         # TODO margin in non-base-currency need to be converted?
@@ -41,6 +41,16 @@ class Account(object):
         margin = reduce(lambda t, k: t + self.__margin_loan_balances.get(k), self.__margin_loan_balances.keys(), 0)  # TODO FX conversion!
         return balance - margin
 
+    def margin_loan_balance(self, currency):
+        """
+        Return margin loan balance for currency Fx passed in
+
+        :param currency:    String representing Fx currency
+        :return:            Number representing the balance
+        """
+        return self.__margin_loan_balances[currency]
+
+    # TODO not used ...
     def take_margin_loan(self, margin, currency):
         """
         Add margin to margin-loan-balances
@@ -50,6 +60,7 @@ class Account(object):
         """
         self.__margin_loan_balances[currency] += margin
 
+    # TODO not used ...
     def close_margin_loan(self, margin, currency):
         """
         Remove margin from margin-loan_balances

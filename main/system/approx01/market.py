@@ -37,6 +37,7 @@ class Market(object):
         self.__tick_value = tick_value
         self.__point_value = point_value
         self.__margin = margin
+        self.__margin_multiple = 0.0
         self.__data = []
         self.__studies = {}
 
@@ -56,6 +57,10 @@ class Market(object):
 
         cursor.execute(sql % (self.__id, code, self.__start_data_date.strftime('%Y-%m-%d')))
         self.__data = cursor.fetchall()
+
+        # TODO update more realistically
+        # TODO convert non-base-currency point_value!
+        self.__margin_multiple = (self.__margin if self.__margin else Decimal(0.1)) / (self.__data[-1][5] * self.__point_value)
 
     def update_studies(self):
         self.__back_adjusted_data()
@@ -92,8 +97,7 @@ class Market(object):
         :return:        Number representing margin in account-base-currency
         """
         # TODO convert non-base-currency point_value!
-        margin_multiple = (self.__margin if self.__margin else Decimal(0.1)) / (price * self.__point_value)
-        return ceil(price * self.__point_value * margin_multiple)
+        return ceil(price * self.__point_value * self.__margin_multiple)
 
     def slippage(self, average_volume, atr):
         """

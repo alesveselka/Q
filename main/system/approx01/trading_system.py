@@ -42,8 +42,8 @@ class TradingSystem(EventDispatcher):
         start_date = data[1]
         # start_date = datetime.date(2016, 1, 1)
         now = datetime.datetime.now()
-        today = datetime.date(now.year, now.month, now.day)
-        # today = datetime.date(2016, 10, 1)
+        # today = datetime.date(now.year, now.month, now.day)
+        today = datetime.date(2016, 10, 1)
 
         print '_on_market_data:', len(markets), start_date, today
 
@@ -54,6 +54,7 @@ class TradingSystem(EventDispatcher):
         # TODO Parallel?!
         for m in markets:
             market_data = m.data(start_date, today)
+            last_price = 0
 
             # TODO don't need Market to create them
             sma_long = m.study(Study.SMA, market_data, long_window)
@@ -77,13 +78,14 @@ class TradingSystem(EventDispatcher):
                     sma_short_lookup = [s for s in sma_short if data_window[-2][1] <= s[0] <= date]
                     hhll_lookup = [s for s in hhll_short if data_window[-2][1] <= s[0] <= date]
                     atr_lookup = [s for s in atr if data_window[-2][1] <= s[0] <= date]
+                    previous_last_price = last_price
                     open_price = data_window[-1][2]
                     last_price = data_window[-1][5]
                     open_signals = [s for s in signals if s.type() == SignalType.OPEN]
                     close_signals = [s for s in signals if s.type() == SignalType.CLOSE]
                     market_positions = [p for p in self.__portfolio.positions() if p.market().code() == m.code()]
 
-                    # TODO re-calculate margins
+                    self.__broker.update_margin_loans(date, previous_last_price)  # TODO sync via events
 
                     """
                     Close Positions
@@ -103,7 +105,7 @@ class TradingSystem(EventDispatcher):
                                               atr_short[-1][1],  # TODO use loopups!
                                               volume_sma[-1][1]
                                               )
-                                result = self.__broker.transfer(order)
+                                result = self.__broker.transfer(order, m.margin(previous_last_price))
 
                                 # positions.remove(position)
                                 trades.append(Trade(  # TODO add slippage and commissions
@@ -140,7 +142,7 @@ class TradingSystem(EventDispatcher):
                                     atr_short[-1][1],
                                     volume_sma[-1][1]
                                 )
-                                result = self.__broker.transfer(order)
+                                result = self.__broker.transfer(order, m.margin(previous_last_price))
 
                                 # position = Position(m, signal.direction(), date, result.price(), open_price, floor(quantity))
                                 # print 'Open ', position, result.price()
@@ -201,7 +203,9 @@ class TradingSystem(EventDispatcher):
                         New Transaction - substract commission
                     """
 
+                    # TODO mark to market non-base FX balances
                     self.__broker.mark_to_market(date)  # TODO sync via events
+                    # TODO apply interest
 
                     # TODO interests
 
@@ -219,6 +223,6 @@ class TradingSystem(EventDispatcher):
             len(trades),
             commissions,
             slippage,
-            slippage * t.market().point_value()
+            float(slippage * t.market().point_value())
         )
-        print 'Equity: ', self.__account.equity(), self.__account.available_funds()
+        print 'Equity: %.2f, funds: %.2f' % (self.__account.equity(), self.__account.available_funds())
