@@ -67,13 +67,28 @@ class Account(object):
         """
         self.__transactions.append(transaction)
 
-        if transaction.type() == TransactionType.MARGIN_LOAN:
-            if transaction.account_action() == AccountAction.CREDIT:
-                self.__margin_loan_balances[transaction.currency()] += transaction.amount()
-            elif transaction.account_action() == AccountAction.DEBIT:
-                self.__margin_loan_balances[transaction.currency()] -= transaction.amount()
-        else:
-            if transaction.account_action() == AccountAction.CREDIT:
-                self.__fx_balances[transaction.currency()] += transaction.amount()
-            elif transaction.account_action() == AccountAction.DEBIT:
-                self.__fx_balances[transaction.currency()] -= transaction.amount()
+        {AccountAction.CREDIT: self.__credit, AccountAction.DEBIT: self.__debit}[transaction.account_action()](
+            {TransactionType.MARGIN_LOAN: self.__margin_loan_balances}.get(transaction.type(), self.__fx_balances),
+            transaction.currency(),
+            transaction.amount()
+        )
+
+    def __credit(self, balance, currency, amount):
+        """
+        Credit specific balance with the amount passed in
+
+        :param balance:     Dictionary of balances
+        :param currency:    Currency denomination of the amount to be credited
+        :param amount:      Amount to be credited
+        """
+        balance[currency] += amount
+
+    def __debit(self, balance, currency, amount):
+        """
+        Debit specific balance with the amount passed in
+
+        :param balance:     Dictionary of balances
+        :param currency:    Currency denomination of the amount to be debited
+        :param amount:      Amount to be debited
+        """
+        balance[currency] -= amount
