@@ -30,12 +30,11 @@ class Transaction(object):
         return self.__notes
 
     def __str__(self):
-        return ' '.join([
-            'Transaction',
+        return 'Transaction: %s, %s of %.2f(%s) on %s (%s)' % (
             self.__type,
             self.__account_type,
-            str(self.__date),
-            str(self.__amount),
+            self.__amount,
             self.__currency,
+            str(self.__date),
             self.__notes
-        ])
+        )
