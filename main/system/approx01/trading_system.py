@@ -40,9 +40,10 @@ class TradingSystem(EventDispatcher):
         long_window = 100
         markets = data[0]
         start_date = data[1]
+        # start_date = datetime.date(2016, 1, 1)
         now = datetime.datetime.now()
-        # today = datetime.date(now.year, now.month, now.day)
-        today = datetime.date(2016, 10, 1)
+        today = datetime.date(now.year, now.month, now.day)
+        # today = datetime.date(2016, 10, 1)
 
         print '_on_market_data:', len(markets), start_date, today
 
@@ -99,20 +100,23 @@ class TradingSystem(EventDispatcher):
                                               date,
                                               open_price,
                                               position.quantity(),
-                                              atr_short[-1][1],
+                                              atr_short[-1][1],  # TODO use loopups!
                                               volume_sma[-1][1]
                                               )
                                 result = self.__broker.transfer(order)
 
                                 # positions.remove(position)
-                                trades.append(Trade(
+                                trades.append(Trade(  # TODO add slippage and commissions
                                     position.market(),
                                     position.direction(),
                                     position.quantity(),
                                     position.date(),
                                     position.price(),
+                                    abs(position.order_price() - position.price()),
                                     date,
-                                    result.price()
+                                    result.price(),
+                                    abs(result.price() - open_price),
+                                    result.commission() * 2
                                 ))
 
                     """
@@ -125,7 +129,6 @@ class TradingSystem(EventDispatcher):
 
                             # TODO if 'quantity < 1.0' I can't afford it
                             if floor(quantity):
-                                position = Position(m, signal.direction(), date, open_price, floor(quantity))
                                 # TODO move to its own 'operation' object?
                                 order = Order(m, {
                                         Direction.LONG: OrderType.BTO,
@@ -137,11 +140,12 @@ class TradingSystem(EventDispatcher):
                                     atr_short[-1][1],
                                     volume_sma[-1][1]
                                 )
-                                self.__broker.transfer(order)
+                                result = self.__broker.transfer(order)
 
-                                # print 'Open ', position
+                                # position = Position(m, signal.direction(), date, result.price(), open_price, floor(quantity))
+                                # print 'Open ', position, result.price()
                                 # TODO oder can be rejected and thus result in no new position!
-                                positions.append(position)
+                                # positions.append(position)
                             else:
                                 print 'Too low of quantity! Can\'t afford it.', quantity
 
@@ -201,10 +205,20 @@ class TradingSystem(EventDispatcher):
 
                     # TODO interests
 
-        total = 0
+        total = 0.0
+        commissions = 0.0
+        slippage = Decimal(0.0)
         for t in trades:
             print t
             total += float(t.result() * Decimal(t.quantity()) * t.market().point_value())
+            commissions += t.commissions()
+            slippage += t.slippage()
 
-        print 'Total $ %s in %s trades' % (total, len(trades))
+        print 'Total $ %s in %s trades (commissions: %.2f, slippage: %.2f(%.2f))' % (
+            total,
+            len(trades),
+            commissions,
+            slippage,
+            slippage * t.market().point_value()
+        )
         print 'Equity: ', self.__account.equity(), self.__account.available_funds()

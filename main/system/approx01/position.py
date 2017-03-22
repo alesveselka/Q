@@ -5,10 +5,11 @@ from enum import Direction
 
 class Position(object):
 
-    def __init__(self, market, direction, date, price, quantity):
+    def __init__(self, market, direction, date, order_price, price, quantity):
         self.__market = market
         self.__direction = direction
         self.__date = date
+        self.__order_price = order_price
         self.__price = price
         self.__quantity = quantity
         self.__pnls = []
@@ -24,6 +25,9 @@ class Position(object):
 
     def price(self):
         return self.__price
+
+    def order_price(self):
+        return self.__order_price
 
     def quantity(self):
         return self.__quantity
