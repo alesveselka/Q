@@ -40,9 +40,10 @@ class Position(object):
         :param price:   Number representing price to be marked
         :return:        Number representing calculated Profit or Loss in market points
         """
-        previous_price = self.__pnls[-1][1] if len(self.__pnls) else self.__price
+        pnl_index = self.__pnl_index(date)
+        previous_index = pnl_index - 1 if pnl_index > 0 else -1
+        previous_price = self.__pnls[previous_index][1] if len(self.__pnls) else self.__price
         pnl = (price - previous_price) if self.__direction == Direction.LONG else (previous_price - price)
-        pnl_index = self.__pnl_index(date)  # TODO get previous price based on this index!
 
         if pnl_index > -1:
             self.__pnls[pnl_index] = (date, price, pnl)

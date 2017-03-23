@@ -14,7 +14,6 @@ class Account(object):
         self.__investment_universe = investment_universe  # TODO don't need it - just currency pairs
 
         # self.__securities = [CZK, USD, ...]  # Cash, Commissions, Interest on Credit
-        # TODO margin in non-base-currency need to be converted?
         self.__fx_balances = defaultdict(Decimal)  # MTM in Fx until transferred, Interest on Debit (from Margin Loans)
         self.__margin_loan_balances = defaultdict(Decimal)  # Margins
         self.__transactions = [] # (Date, Type(Comm., Interest, Transfer, MTM, ...), Quantity, Cost Price, Currency)

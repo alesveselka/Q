@@ -58,7 +58,6 @@ class Market(object):
         self.__data = cursor.fetchall()
 
         # TODO update more realistically
-        # TODO convert non-base-currency point_value!
         self.__margin_multiple = (self.__margin if self.__margin else Decimal(0.1)) / (self.__data[-1][5] * self.__point_value)
 
     def update_studies(self):
@@ -95,7 +94,6 @@ class Market(object):
         :param price:   Market price for margin calculation
         :return:        Number representing margin in account-base-currency
         """
-        # TODO convert non-base-currency point_value!
         return ceil(price * self.__point_value * self.__margin_multiple)
 
     def slippage(self, average_volume, atr):
