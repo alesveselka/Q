@@ -41,7 +41,7 @@ class Account(object):
         # TODO use specific date, not just last day in data!
         # TODO remove hard-coded values
         rate = pair[0].data()[-1][4] if len(pair) else Decimal(1)
-        return amount / rate
+        return Decimal(amount) / rate
 
     def equity(self):
         """

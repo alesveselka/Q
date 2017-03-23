@@ -24,7 +24,7 @@ class Broker(object):
     def transfer(self, order, margin):
         market = order.market()
         slippage = Decimal(market.slippage(order.market_volume(), order.market_atr()))
-        commission = self.__commission * order.quantity()  # TODO convert non-base Fx
+        commission = self.__commission * order.quantity()
         price = (order.price() + slippage) if (order.type() == OrderType.BTO or order.type() == OrderType.BTC) else (order.price() - slippage)  # TODO pass in slippage separe?
         positions_in_market = self.__portfolio.positions_in_market(market)
 
@@ -32,7 +32,7 @@ class Broker(object):
             # -to-close transactions TODO do I need this check? The orders already know this!
 
             position = positions_in_market[0]  # TODO what if there is more than one position?
-            mtm = position.mark_to_market(order.date(), price) * Decimal(position.quantity()) * market.point_value()  # TODO convert non-base Fx
+            mtm = position.mark_to_market(order.date(), price) * Decimal(position.quantity()) * market.point_value()
             transaction3 = Transaction(
                 TransactionType.MTM_POSITION,
                 AccountAction.CREDIT if mtm > 0 else AccountAction.DEBIT,
@@ -63,7 +63,7 @@ class Broker(object):
                 TransactionType.MARGIN_LOAN,
                 AccountAction.DEBIT,
                 order.date(),
-                margin,  # TODO make sure the margin actually match!
+                margin,
                 market.currency(),
                 'Close %.2f(%s) margin loan' % (margin, market.currency())
             )
@@ -75,7 +75,7 @@ class Broker(object):
             self.__portfolio.remove_position(position)
         else:
             # -to-open transactions
-            if self.__account.available_funds() > margin + commission:
+            if self.__account.available_funds() > self.__account.base_value(margin + commission, market.currency()):
 
                 transaction1 = Transaction(
                     TransactionType.MARGIN_LOAN,
@@ -120,7 +120,7 @@ class Broker(object):
         for p in self.__portfolio.positions():
             market = p.market()
             price = market.data(date, date)[-1][5]
-            mtm = p.mark_to_market(date, price) * Decimal(p.quantity()) * p.market().point_value()  # TODO convert non-base Fx
+            mtm = p.mark_to_market(date, price) * Decimal(p.quantity()) * p.market().point_value()
 
             transaction = Transaction(
                 TransactionType.MTM_POSITION,

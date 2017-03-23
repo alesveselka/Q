@@ -140,7 +140,7 @@ class TradingSystem(EventDispatcher):
                                     atr_short_lookup[-1][1],
                                     volume_lookup[-1][1]
                                 )
-                                result = self.__broker.transfer(order, m.margin(previous_last_price))  # TODO convert FX (On Broker side?)
+                                result = self.__broker.transfer(order, m.margin(previous_last_price))
 
                                 # print 'Open ', position, result.price()
                             else:

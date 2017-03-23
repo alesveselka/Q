@@ -37,7 +37,7 @@ class Trade(object):
         return (self.__enter_slip + self.__exit_slip) * Decimal(self.__quantity)
 
     def __str__(self):
-        return '%s, %s, %d, Enter at %.2f(%.2f) on %s, Exit at %.2f(%.2f) on %s, (pts: %.2f, %.2f, s: %.2f, c: %.2f)' % (
+        return '%s, %s, %d, Enter at %.2f(%.2f) on %s, Exit at %.2f(%.2f) on %s, (pts: %.2f, %.2f, s: %.2f, c: %.2f) %s' % (
             self.__market.code(),
             self.__direction,
             self.__quantity,
@@ -50,5 +50,6 @@ class Trade(object):
             self.result(),
             float(self.result() * Decimal(self.__quantity) * self.__market.point_value()),  # TODO convert non-base-currency to the base-currency value
             float(self.slippage() * self.__market.point_value()),
-            self.__commissions
+            self.__commissions,
+            self.__market.currency()
         )
