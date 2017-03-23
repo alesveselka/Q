@@ -17,6 +17,7 @@ class InvestmentUniverse(EventDispatcher):
         self.__timer = timer
         self.__connection = connection
         self.__markets = []
+        self.__currency_pairs = []
 
         # TODO trigger the start and loading on 'subscription' from other objects?
         self.__timer.on(EventType.HEARTBEAT, self.__on_timer_heartbeat)
@@ -39,7 +40,7 @@ class InvestmentUniverse(EventDispatcher):
         #         'markets': self.__markets
         #     })
 
-        self.dispatch(EventType.MARKET_DATA, self.__markets, self.__start_data_date)
+        # self.dispatch(EventType.MARKET_DATA, self.__markets, self.__start_data_date)
 
     def __load_data(self, cursor):
         # TODO 'query' object?
@@ -54,7 +55,7 @@ class InvestmentUniverse(EventDispatcher):
         # TODO 'query' object?
         cursor = self.__connection.cursor()
         # TODO replace with 'entity'?
-        sql = """
+        market_query = """
             SELECT
               m.name,
               m.code,
@@ -68,13 +69,14 @@ class InvestmentUniverse(EventDispatcher):
             FROM market as m INNER JOIN  `group` as g ON m.group_id = g.id
             WHERE m.id = '%s';
         """
+
         data = self.__load_data(cursor)
         self.__start_contract_date = data[0]  # TODO remove hard-coded index
         self.__start_data_date = data[1]  # TODO remove hard-coded index
         # print data[2].split(',').index('33')
         # for market_id in data[2].split(','):
         for market_id in [int(data[2].split(',')[74])]:  # JY = 37@25Y, W = 16@25Y, ES = 74@15Y
-            cursor.execute(sql % market_id)
+            cursor.execute(market_query % market_id)
             self.__markets.append(Market(
                 self.__connection,
                 self.__start_contract_date,
@@ -82,6 +84,21 @@ class InvestmentUniverse(EventDispatcher):
                 market_id,
                 *cursor.fetchone())
             )
+
+        currency_query = """
+            SELECT
+                c.id,
+                c.code,
+                c.name,
+                c.first_data_date
+            FROM currency_pairs as c INNER JOIN `group` as g ON c.group_id = g.id
+            WHERE g.name = 'Primary';
+        """
+
+        cursor.execute(currency_query)
+        result = cursor.fetchall()
+        # for r in result:
+        #     print r
 
         # TODO query single markets here, join calculated studies and dispatch event with fetched data for System; iterate for each symbol
 
