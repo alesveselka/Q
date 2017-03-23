@@ -8,9 +8,10 @@ from decimal import Decimal
 
 class Account(object):
 
-    def __init__(self, initial_balance, base_currency):
+    def __init__(self, initial_balance, base_currency, investment_universe):
         # self.__balance = initial_balance  # Update MTM, Cash, Bonds on new market data
         self.__base_currency = base_currency
+        self.__investment_universe = investment_universe  # TODO don't need it - just currency pairs
 
         # self.__securities = [CZK, USD, ...]  # Cash, Commissions, Interest on Credit
         # TODO margin in non-base-currency need to be converted?
@@ -20,6 +21,14 @@ class Account(object):
 
         self.__fx_balances[base_currency] = initial_balance
 
+    def base_currency(self):
+        """
+        Returns account's base currency
+
+        :return:    String representing the base currency symbol
+        """
+        return self.__base_currency
+
     def equity(self):
         """
         Calculate and returns actual equity value
@@ -27,7 +36,7 @@ class Account(object):
 
         :return:    Number representing actual equity value
         """
-        balance = reduce(lambda t, k: t + self.__fx_balances.get(k), self.__fx_balances.keys(), Decimal(0))  # TODO FX conversion!
+        balance = reduce(lambda t, k: t + self.__base_value(self.__fx_balances.get(k), k), self.__fx_balances.keys(), Decimal(0))
         return balance
 
     def available_funds(self):
@@ -37,8 +46,8 @@ class Account(object):
 
         :return:    Number representing funds available for trading
         """
-        balance = reduce(lambda t, k: t + self.__fx_balances.get(k), self.__fx_balances.keys(), 0)  # TODO FX conversion!
-        margin = reduce(lambda t, k: t + self.__margin_loan_balances.get(k), self.__margin_loan_balances.keys(), 0)  # TODO FX conversion!
+        balance = reduce(lambda t, k: t + self.__base_value(self.__fx_balances.get(k), k), self.__fx_balances.keys(), 0)
+        margin = reduce(lambda t, k: t + self.__base_value(self.__margin_loan_balances.get(k), k), self.__margin_loan_balances.keys(), 0)
         return balance - margin
 
     def margin_loan_balance(self, currency):
@@ -83,3 +92,17 @@ class Account(object):
         :param amount:      Amount to be debited
         """
         balance[currency] -= amount
+
+    def __base_value(self, amount, currency):
+        """
+        Return value converted to account-base-currency
+
+        :param amount:      Amount to be converted
+        :param currency:    Quote currency in the pair
+        :return:            Converted amount in the account-base-currency
+        """
+        pair = self.__investment_universe.currency_pair('%s%s' % (self.__base_currency, currency))
+        # TODO use specific date, not just last day in data!
+        # TODO remove hard-coded values
+        rate = pair[0].data()[-1][4] if len(pair) else Decimal(1)
+        return amount / rate

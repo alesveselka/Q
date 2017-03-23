@@ -18,7 +18,7 @@ class InvestmentUniverse(EventDispatcher):
         self.__timer = timer
         self.__connection = connection
         self.__markets = []
-        self.__currency_pairs = []
+        self.__currency_pairs = []  # TODO separate currency pairs and make it available to broker as well
 
         # TODO trigger the start and loading on 'subscription' from other objects?
         self.__timer.on(EventType.HEARTBEAT, self.__on_timer_heartbeat)
@@ -41,7 +41,7 @@ class InvestmentUniverse(EventDispatcher):
         #         'markets': self.__markets
         #     })
 
-        # self.dispatch(EventType.MARKET_DATA, self.__markets, self.__start_data_date)
+        self.dispatch(EventType.MARKET_DATA, self.__markets, self.__start_data_date)
 
     def __load_data(self, cursor):
         # TODO 'query' object?
@@ -76,7 +76,7 @@ class InvestmentUniverse(EventDispatcher):
         self.__start_data_date = data[1]  # TODO remove hard-coded index
         # print data[2].split(',').index('33')
         # for market_id in data[2].split(','):
-        for market_id in [int(data[2].split(',')[37])]:  # JY = 37@25Y, W = 16@25Y, ES = 74@15Y
+        for market_id in [int(data[2].split(',')[16])]:  # JY = 37@25Y, W = 16@25Y, ES = 74@15Y
             cursor.execute(market_query % market_id)
             self.__markets.append(Market(
                 self.__connection,
@@ -113,3 +113,9 @@ class InvestmentUniverse(EventDispatcher):
 
         for currency_pair in self.__currency_pairs:
             currency_pair.load_data()
+
+    def currency_pairs(self):
+        return self.__currency_pairs
+
+    def currency_pair(self, pair):
+        return [cp for cp in self.__currency_pairs if cp.code() == pair]

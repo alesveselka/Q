@@ -36,13 +36,13 @@ SignalType = enum(
 
 Currency = enum(
     'Currency',
-    AUD='Australian Dollar',
-    GBP='British Pound',
-    CAD='Canadian Dollar',
-    EUR='Euro',
-    JPY='Japanese Yen',
-    CHF='Swiss Franc',
-    USD='United States Dollar'
+    AUD='AUD',
+    GBP='GBP',
+    CAD='CAD',
+    EUR='EUR',
+    JPY='JPY',
+    CHF='CHF',
+    USD='USD'
 )
 
 OrderType = enum(

@@ -40,11 +40,11 @@ class TradingSystem(EventDispatcher):
         short_window = 50
         long_window = 100
         markets = data[0]
-        start_date = data[1]
-        # start_date = datetime.date(2016, 1, 1)
+        # start_date = data[1]
+        start_date = datetime.date(2016, 1, 1)
         now = datetime.datetime.now()
-        # today = datetime.date(now.year, now.month, now.day)
-        today = datetime.date(2016, 10, 1)
+        today = datetime.date(now.year, now.month, now.day)
+        # today = datetime.date(2016, 10, 1)
 
         print '_on_market_data:', len(markets), start_date, today
 
@@ -144,7 +144,7 @@ class TradingSystem(EventDispatcher):
                                     atr_short_lookup[-1][1],
                                     volume_lookup[-1][1]
                                 )
-                                result = self.__broker.transfer(order, m.margin(previous_last_price))
+                                result = self.__broker.transfer(order, m.margin(previous_last_price))  # TODO convert FX (On Broker side?)
 
                                 # print 'Open ', position, result.price()
                             else:
@@ -211,6 +211,7 @@ class TradingSystem(EventDispatcher):
         total = 0.0
         commissions = 0.0
         slippage = Decimal(0.0)
+        print ('-' * 10), 'trades', ('-' * 10)
         for t in trades:
             print t
             total += float(t.result() * Decimal(t.quantity()) * t.market().point_value())

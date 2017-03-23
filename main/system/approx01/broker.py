@@ -44,7 +44,7 @@ class Broker(object):
 
             self.__account.add_transaction(transaction3)
 
-            # print transaction3, float(self.__account.equity()), float(self.__account.available_funds())
+            print transaction3, float(self.__account.equity()), float(self.__account.available_funds())
 
             transaction1 = Transaction(
                 TransactionType.COMMISSION,
@@ -57,7 +57,7 @@ class Broker(object):
 
             self.__account.add_transaction(transaction1)
 
-            # print transaction1, float(self.__account.equity()), float(self.__account.available_funds())
+            print transaction1, float(self.__account.equity()), float(self.__account.available_funds())
 
             transaction2 = Transaction(
                 TransactionType.MARGIN_LOAN,
@@ -70,15 +70,12 @@ class Broker(object):
 
             self.__account.add_transaction(transaction2)
 
-            # print transaction2, float(self.__account.equity()), float(self.__account.available_funds())
-
-            # self.__account.close_margin_loan(margin, Currency.USD)
+            print transaction2, float(self.__account.equity()), float(self.__account.available_funds())
 
             self.__portfolio.remove_position(position)
         else:
             # -to-open transactions
             if self.__account.available_funds() > margin + commission:
-                # self.__account.take_margin_loan(margin, Currency.USD)
 
                 transaction1 = Transaction(
                     TransactionType.MARGIN_LOAN,
@@ -91,7 +88,7 @@ class Broker(object):
 
                 self.__account.add_transaction(transaction1)
 
-                # print transaction1, float(self.__account.equity()), float(self.__account.available_funds())
+                print transaction1, float(self.__account.equity()), float(self.__account.available_funds())
 
                 transaction2 = Transaction(
                     TransactionType.COMMISSION,
@@ -104,7 +101,7 @@ class Broker(object):
 
                 self.__account.add_transaction(transaction2)
 
-                # print transaction2, float(self.__account.equity()), float(self.__account.available_funds())
+                print transaction2, float(self.__account.equity()), float(self.__account.available_funds())
 
                 position = Position(market, {
                         OrderType.BTO: Direction.LONG,

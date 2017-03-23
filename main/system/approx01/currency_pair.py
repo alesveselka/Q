@@ -24,4 +24,8 @@ class CurrencyPair(object):
         cursor.execute(sql % (self.__currency_pair_id, self.__start_data_date.strftime('%Y-%m-%d')))
         self.__data = cursor.fetchall()
 
-        print 'Data loaded: ', self.__code, len(self.__data), self.__data[-1][4]
+    def code(self):
+        return self.__code
+
+    def data(self):
+        return self.__data

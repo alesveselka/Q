@@ -24,10 +24,12 @@ def main(universe_name):
     )
     risk_position_sizing = Decimal(0.002)
     commission = 10.0  # TODO convert to base-currency
-    account = Account(Decimal(1e6), Currency.EUR)
+    # TODO load currency-pairs here first and then start the rest
+    investment_universe = InvestmentUniverse(universe_name, timer, connection)
+    account = Account(Decimal(1e6), Currency.EUR, investment_universe)
     portfolio = Portfolio()
     system = TradingSystem(
-        InvestmentUniverse(universe_name, timer, connection),
+        investment_universe,
         Risk(risk_position_sizing),
         account,  # TODO access from broker?
         portfolio,  # TODO access from broker?
