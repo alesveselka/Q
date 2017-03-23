@@ -78,6 +78,8 @@ class TradingSystem(EventDispatcher):
                     sma_short_lookup = [s for s in sma_short if data_window[-2][1] <= s[0] <= date]
                     hhll_lookup = [s for s in hhll_short if data_window[-2][1] <= s[0] <= date]
                     atr_lookup = [s for s in atr if data_window[-2][1] <= s[0] <= date]
+                    atr_short_lookup = [s for s in atr_short if data_window[-2][1] <= s[0] <= date]
+                    volume_lookup = [s for s in volume_sma if data_window[-2][1] <= s[0] <= date]
                     previous_last_price = last_price
                     open_price = data_window[-1][2]
                     last_price = data_window[-1][5]
@@ -96,18 +98,17 @@ class TradingSystem(EventDispatcher):
                                 # print 'Close ', Position(position.market(), position.direction(), date, open_price, position.quantity())
 
                                 order = Order(m, {
-                                                  Direction.LONG: OrderType.BTC,
-                                                  Direction.SHORT: OrderType.STC
-                                              }.get(signal.direction()),
-                                              date,
-                                              open_price,
-                                              position.quantity(),
-                                              atr_short[-1][1],  # TODO use loopups!
-                                              volume_sma[-1][1]
-                                              )
+                                        Direction.LONG: OrderType.BTC,
+                                        Direction.SHORT: OrderType.STC
+                                    }.get(signal.direction()),
+                                    date,
+                                    open_price,
+                                    position.quantity(),
+                                    atr_short_lookup[-1][1],
+                                    volume_lookup[-1][1]
+                                )
                                 result = self.__broker.transfer(order, m.margin(previous_last_price))
 
-                                # positions.remove(position)
                                 trades.append(Trade(  # TODO add slippage and commissions
                                     position.market(),
                                     position.direction(),
@@ -139,15 +140,12 @@ class TradingSystem(EventDispatcher):
                                     date,
                                     open_price,
                                     floor(quantity),
-                                    atr_short[-1][1],
-                                    volume_sma[-1][1]
+                                    atr_short_lookup[-1][1],
+                                    volume_lookup[-1][1]
                                 )
                                 result = self.__broker.transfer(order, m.margin(previous_last_price))
 
-                                # position = Position(m, signal.direction(), date, result.price(), open_price, floor(quantity))
                                 # print 'Open ', position, result.price()
-                                # TODO oder can be rejected and thus result in no new position!
-                                # positions.append(position)
                             else:
                                 print 'Too low of quantity! Can\'t afford it.', quantity
 
