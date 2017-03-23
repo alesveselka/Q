@@ -36,6 +36,7 @@ class TradingSystem(EventDispatcher):
         self.__investment_universe.on(EventType.MARKET_DATA, self.__on_market_data)
 
     def __on_market_data(self, data):
+        # TODO pass in the configuration of parameters
         short_window = 50
         long_window = 100
         markets = data[0]
@@ -109,7 +110,7 @@ class TradingSystem(EventDispatcher):
                                 )
                                 result = self.__broker.transfer(order, m.margin(previous_last_price))
 
-                                trades.append(Trade(  # TODO add slippage and commissions
+                                trades.append(Trade(
                                     position.market(),
                                     position.direction(),
                                     position.quantity(),

@@ -49,6 +49,6 @@ class Trade(object):
             str(self.__exit_date),
             self.result(),
             float(self.result() * Decimal(self.__quantity) * self.__market.point_value()),  # TODO convert non-base-currency to the base-currency value
-            self.slippage() * self.__market.point_value(),
+            float(self.slippage() * self.__market.point_value()),
             self.__commissions
         )

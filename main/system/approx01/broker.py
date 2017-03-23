@@ -44,7 +44,7 @@ class Broker(object):
 
             self.__account.add_transaction(transaction3)
 
-            print transaction3, float(self.__account.equity()), float(self.__account.available_funds())
+            # print transaction3, float(self.__account.equity()), float(self.__account.available_funds())
 
             transaction1 = Transaction(
                 TransactionType.COMMISSION,
@@ -57,7 +57,7 @@ class Broker(object):
 
             self.__account.add_transaction(transaction1)
 
-            print transaction1, float(self.__account.equity()), float(self.__account.available_funds())
+            # print transaction1, float(self.__account.equity()), float(self.__account.available_funds())
 
             transaction2 = Transaction(
                 TransactionType.MARGIN_LOAN,
@@ -70,7 +70,7 @@ class Broker(object):
 
             self.__account.add_transaction(transaction2)
 
-            print transaction2, float(self.__account.equity()), float(self.__account.available_funds())
+            # print transaction2, float(self.__account.equity()), float(self.__account.available_funds())
 
             # self.__account.close_margin_loan(margin, Currency.USD)
 
@@ -91,7 +91,7 @@ class Broker(object):
 
                 self.__account.add_transaction(transaction1)
 
-                print transaction1, float(self.__account.equity()), float(self.__account.available_funds())
+                # print transaction1, float(self.__account.equity()), float(self.__account.available_funds())
 
                 transaction2 = Transaction(
                     TransactionType.COMMISSION,
@@ -104,7 +104,7 @@ class Broker(object):
 
                 self.__account.add_transaction(transaction2)
 
-                print transaction2, float(self.__account.equity()), float(self.__account.available_funds())
+                # print transaction2, float(self.__account.equity()), float(self.__account.available_funds())
 
                 position = Position(market, {
                         OrderType.BTO: Direction.LONG,
@@ -136,7 +136,7 @@ class Broker(object):
 
             self.__account.add_transaction(transaction)
 
-            print transaction, float(self.__account.equity()), float(self.__account.available_funds())
+            # print transaction, float(self.__account.equity()), float(self.__account.available_funds())
 
     def update_margin_loans(self, date, price):
         if len(self.__portfolio.positions()):
@@ -157,7 +157,7 @@ class Broker(object):
                 )
                 self.__account.add_transaction(debit_transaction)
 
-                print debit_transaction, float(self.__account.equity()), float(self.__account.available_funds())
+                # print debit_transaction, float(self.__account.equity()), float(self.__account.available_funds())
 
                 credit_transaction = Transaction(
                     TransactionType.MARGIN_LOAN,
@@ -169,4 +169,4 @@ class Broker(object):
                 )
                 self.__account.add_transaction(credit_transaction)
 
-                print credit_transaction, float(self.__account.equity()), float(self.__account.available_funds())
+                # print credit_transaction, float(self.__account.equity()), float(self.__account.available_funds())
