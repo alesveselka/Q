@@ -27,11 +27,10 @@ Direction = enum(
     SHORT='SHORT'
 )
 
-# TODO rename to 'ENTER' and 'EXIT' (so not to confuse with OHLC names)
 SignalType = enum(
     'SignalType',
-    OPEN='OPEN',
-    CLOSE='CLOSE'
+    ENTER='ENTER',
+    EXIT='EXIT'
 )
 
 Currency = enum(

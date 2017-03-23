@@ -84,8 +84,8 @@ class TradingSystem(EventDispatcher):
                     previous_last_price = last_price
                     open_price = data_window[-1][2]
                     last_price = data_window[-1][5]
-                    open_signals = [s for s in signals if s.type() == SignalType.OPEN]
-                    close_signals = [s for s in signals if s.type() == SignalType.CLOSE]
+                    open_signals = [s for s in signals if s.type() == SignalType.ENTER]
+                    close_signals = [s for s in signals if s.type() == SignalType.EXIT]
                     market_positions = [p for p in self.__portfolio.positions() if p.market().code() == m.code()]
 
                     self.__broker.update_margin_loans(date, previous_last_price)  # TODO sync via events
@@ -162,11 +162,11 @@ class TradingSystem(EventDispatcher):
                             if position.direction() == Direction.LONG:
                                 stop_loss = hl[0][1] - 3 * atr_lookup[-1][1]
                                 if last_price <= stop_loss:
-                                    signals.append(Signal(m, SignalType.CLOSE, Direction.SHORT, date, last_price))
+                                    signals.append(Signal(m, SignalType.EXIT, Direction.SHORT, date, last_price))
                             elif position.direction() == Direction.SHORT:
                                 stop_loss = hl[0][2] + 3 * atr_lookup[-1][1]
                                 if last_price >= stop_loss:
-                                    signals.append(Signal(m, SignalType.CLOSE, Direction.LONG, date, last_price))
+                                    signals.append(Signal(m, SignalType.EXIT, Direction.LONG, date, last_price))
 
                     """
                     Open Signals
@@ -174,12 +174,12 @@ class TradingSystem(EventDispatcher):
                     if sma_short_lookup[-2][1] > sma_long_lookup[-2][1]:
                         if last_price > hhll_lookup[-2][1]:
                             # TODO 'code' is not the actual instrument code, but general market code
-                            signals.append(Signal(m, SignalType.OPEN, Direction.LONG, date, last_price))
+                            signals.append(Signal(m, SignalType.ENTER, Direction.LONG, date, last_price))
 
                     elif sma_short_lookup[-2][1] < sma_long_lookup[-2][1]:
                         if last_price < hhll_lookup[-2][2]:
                             # TODO 'code' is not the actual instrument code, but general market code
-                            signals.append(Signal(m, SignalType.OPEN, Direction.SHORT, date, last_price))
+                            signals.append(Signal(m, SignalType.ENTER, Direction.SHORT, date, last_price))
 
                     """
                     Mark-To-Market!!!
