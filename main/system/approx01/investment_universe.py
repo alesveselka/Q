@@ -27,20 +27,6 @@ class InvestmentUniverse(EventDispatcher):
         self.__load_markets()  # TODO load only when study is updated?
         self.__update_studies()
 
-        # Simulate available data as they come in ...
-        # now = datetime.datetime.now()
-        # today = datetime.date(now.year, now.month, now.day)
-        # delta = today - self.__start_data_date  # TODO replace 'today' with last available data
-        # print delta
-
-        # for date in (self.__start_data_date + datetime.timedelta(n) for n in range(delta.days)):
-        #     # print self.__start_data_date, date, len([m for m in self.__markets if len(m.data(self.__start_data_date, date))])
-        #     self.dispatch(EventType.MARKET_DATA, {
-        #         'start_date': self.__start_data_date,
-        #         'end_date': date,
-        #         'markets': self.__markets
-        #     })
-
         self.dispatch(EventType.MARKET_DATA, self.__markets, self.__start_data_date)
 
     def __load_data(self, cursor):
@@ -104,8 +90,6 @@ class InvestmentUniverse(EventDispatcher):
                 self.__start_data_date,
                 *c
             ))
-
-        # TODO query single markets here, join calculated studies and dispatch event with fetched data for System; iterate for each symbol
 
     def __update_studies(self):
         for market in self.__markets:

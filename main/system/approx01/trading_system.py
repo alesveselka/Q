@@ -8,13 +8,9 @@ from enum import EventType
 from enum import Direction
 from enum import SignalType
 from enum import OrderType
-from enum import TransactionType
 from strategy_signal import Signal
-from position import Position
-from transaction import Transaction
 from order import Order
 from trade import Trade
-from risk import Risk
 from study import SMA
 from event_dispatcher import EventDispatcher
 
@@ -128,8 +124,8 @@ class TradingSystem(EventDispatcher):
                     """
                     if len(open_signals) and not len(market_positions):
                         for signal in open_signals:
-                            # TODO convert non-base-currency point_value to the base-currency value!
-                            quantity = (self.__risk.position_sizing() * self.__account.equity()) / Decimal(atr_lookup[-1][1] * m.point_value())
+                            quantity = (self.__risk.position_sizing() * self.__account.equity()) / \
+                                       Decimal(atr_lookup[-1][1] * self.__account.base_value(m.point_value(), m.currency()))
 
                             # TODO if 'quantity < 1.0' I can't afford it
                             if floor(quantity):
