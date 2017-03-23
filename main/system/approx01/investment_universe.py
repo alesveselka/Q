@@ -3,6 +3,7 @@
 import datetime
 from enum import EventType
 from market import Market
+from currency_pair import CurrencyPair
 from event_dispatcher import EventDispatcher
 
 
@@ -75,15 +76,15 @@ class InvestmentUniverse(EventDispatcher):
         self.__start_data_date = data[1]  # TODO remove hard-coded index
         # print data[2].split(',').index('33')
         # for market_id in data[2].split(','):
-        for market_id in [int(data[2].split(',')[74])]:  # JY = 37@25Y, W = 16@25Y, ES = 74@15Y
+        for market_id in [int(data[2].split(',')[37])]:  # JY = 37@25Y, W = 16@25Y, ES = 74@15Y
             cursor.execute(market_query % market_id)
             self.__markets.append(Market(
                 self.__connection,
                 self.__start_contract_date,
                 self.__start_data_date,
                 market_id,
-                *cursor.fetchone())
-            )
+                *cursor.fetchone()
+            ))
 
         currency_query = """
             SELECT
@@ -97,11 +98,18 @@ class InvestmentUniverse(EventDispatcher):
 
         cursor.execute(currency_query)
         result = cursor.fetchall()
-        # for r in result:
-        #     print r
+        for c in result:
+            self.__currency_pairs.append(CurrencyPair(
+                self.__connection,
+                self.__start_data_date,
+                *c
+            ))
 
         # TODO query single markets here, join calculated studies and dispatch event with fetched data for System; iterate for each symbol
 
     def __update_studies(self):
         for market in self.__markets:
             market.update_studies()
+
+        for currency_pair in self.__currency_pairs:
+            currency_pair.load_data()

@@ -46,7 +46,6 @@ class Market(object):
         # TODO move to 'investment_universe'? Do I need the Class?
         cursor = self.__connection.cursor()
         code = ''.join([self.__code, '2']) if 'C' in self.__data_codes else self.__code
-        # TODO also fetch 'volume' for slippage estimation ...
         sql = """
             SELECT code, price_date, open_price, high_price, low_price, settle_price, volume
             FROM continuous_back_adjusted
