@@ -122,7 +122,7 @@ class Broker(object):
             price = market.data(date, date)[-1][5]
             mtm = p.mark_to_market(date, price) * Decimal(p.quantity()) * p.market().point_value()
             transaction = Transaction(
-                TransactionType.MTM_POSITION,
+                TransactionType.MTM_TRANSACTION if p.date() == date else TransactionType.MTM_POSITION,
                 AccountAction.CREDIT if mtm > 0 else AccountAction.DEBIT,
                 date,
                 abs(mtm),
@@ -132,7 +132,7 @@ class Broker(object):
 
             self.__account.add_transaction(transaction)
 
-            # print transaction, float(self.__account.equity()), float(self.__account.available_funds())
+            print transaction, float(self.__account.equity()), float(self.__account.available_funds())
 
     def translate_fx_balances(self, date):
         base_currency = self.__account.base_currency()
