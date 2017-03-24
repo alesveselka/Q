@@ -89,6 +89,22 @@ class Account(object):
         """
         return self.__fx_balances[currency]
 
+    def to_fx_balance_string(self):
+        """
+        Return string representation of the Fx balances
+
+        :return:    String representing the account's Fx balances
+        """
+        return '{%s}' % ', '.join(['%s: %.2f' % (b[0], float(b[1])) for b in self.__fx_balances.items() if b[1]])
+
+    def to_margin_loans_string(self):
+        """
+        Return string representation of the margin loan balances
+
+        :return:    String representing the account's margin loan balances
+        """
+        return '{%s}' % ', '.join(['%s: %.2f' % (b[0], float(b[1])) for b in self.__margin_loan_balances.items() if b[1]])
+
     def add_transaction(self, transaction):
         """
         Add transaction and update related balances

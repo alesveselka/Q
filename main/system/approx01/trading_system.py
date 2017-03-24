@@ -228,3 +228,5 @@ class TradingSystem(EventDispatcher):
             float(slippage * t.market().point_value())
         )
         print 'Equity: %.2f, funds: %.2f' % (self.__account.equity(), self.__account.available_funds())
+        print 'Fx Balances: ', self.__account.to_fx_balance_string()
+        print 'Margin Balances: ', self.__account.to_margin_loans_string()
