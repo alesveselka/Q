@@ -34,7 +34,7 @@ class Broker(object):
             position = positions_in_market[0]  # TODO what if there is more than one position?
             mtm = position.mark_to_market(order.date(), price) * Decimal(position.quantity()) * market.point_value()
             transaction3 = Transaction(
-                TransactionType.MTM_POSITION,
+                TransactionType.MTM_TRANSACTION,
                 AccountAction.CREDIT if mtm > 0 else AccountAction.DEBIT,
                 order.date(),
                 abs(mtm),
@@ -51,7 +51,7 @@ class Broker(object):
                 AccountAction.DEBIT,
                 order.date(),
                 commission,
-                market.currency(),
+                market.currency(),  # TODO market's currency is not necessarily commission's currency
                 '%s %d x %s at %.2f' % (order.type(), order.quantity(), market.code(), price)
             )
 
@@ -95,7 +95,7 @@ class Broker(object):
                     AccountAction.DEBIT,
                     order.date(),
                     commission,
-                    market.currency(),
+                    market.currency(),  # TODO market's currency is not necessarily commission's currency
                     '%s %d x %s at %.2f' % (order.type(), order.quantity(), market.code(), price)
                 )
 
@@ -121,7 +121,6 @@ class Broker(object):
             market = p.market()
             price = market.data(date, date)[-1][5]
             mtm = p.mark_to_market(date, price) * Decimal(p.quantity()) * p.market().point_value()
-
             transaction = Transaction(
                 TransactionType.MTM_POSITION,
                 AccountAction.CREDIT if mtm > 0 else AccountAction.DEBIT,
@@ -132,6 +131,27 @@ class Broker(object):
             )
 
             self.__account.add_transaction(transaction)
+
+            # print transaction, float(self.__account.equity()), float(self.__account.available_funds())
+
+    def translate_fx_balances(self, date):
+        base_currency = self.__account.base_currency()
+        currencies = self.__account.fx_balance_currencies()
+        for currency in currencies:
+            # TODO get previous and current rate
+
+            balance = self.__account.fx_balance(currency)
+
+            # transaction = Transaction(
+            #     TransactionType.MTM_POSITION,
+            #     AccountAction.CREDIT if mtm > 0 else AccountAction.DEBIT,
+            #     date,
+            #     abs(mtm),
+            #     market.currency(),
+            #     'MTM %.2f(%s) at %.2f' % (float(mtm), market.currency(), price)
+            # )
+            #
+            # self.__account.add_transaction(transaction)
 
             # print transaction, float(self.__account.equity()), float(self.__account.available_funds())
 

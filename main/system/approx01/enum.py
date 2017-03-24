@@ -59,8 +59,9 @@ OrderResultType = enum(
 
 TransactionType = enum(
     'TransactionType',
+    MTM_TRANSACTION='MTM Transaction',
     MTM_POSITION='MTM Position',
-    MTM_FX_BALANCE='MTM Fx Balance',
+    FX_BALANCE_TRANSLATION='Fx Balance Translation',
     COMMISSION='Commission',
     INTEREST='Interest',
     MARGIN_LOAN='Margin Loan'

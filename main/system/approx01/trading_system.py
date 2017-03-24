@@ -199,10 +199,12 @@ class TradingSystem(EventDispatcher):
                     """
 
                     # TODO mark to market non-base FX balances
+                    self.__broker.translate_fx_balances(date)
                     self.__broker.mark_to_market(date)  # TODO sync via events
                     # TODO apply interest
 
                     # TODO interests
+                    # TODO Fx hedge
 
         total = 0.0
         commissions = 0.0
