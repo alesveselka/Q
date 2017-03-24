@@ -84,6 +84,10 @@ class TradingSystem(EventDispatcher):
                     close_signals = [s for s in signals if s.type() == SignalType.EXIT]
                     market_positions = [p for p in self.__portfolio.positions() if p.market().code() == m.code()]
 
+                    # TODO temporal binding!!!
+                    # TODO structure fx balances by day and move this to the end of day?
+                    self.__broker.translate_fx_balances(date)
+
                     self.__broker.update_margin_loans(date, previous_last_price)  # TODO sync via events
 
                     """
@@ -198,8 +202,8 @@ class TradingSystem(EventDispatcher):
                         New Transaction - substract commission
                     """
 
+                    # TODO move to day's open?
                     # TODO mark to market non-base FX balances
-                    self.__broker.translate_fx_balances(date)
                     self.__broker.mark_to_market(date)  # TODO sync via events
                     # TODO apply interest
 

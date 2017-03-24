@@ -1,5 +1,7 @@
 #!/usr/bin/python
 
+import datetime as dt
+
 
 class CurrencyPair(object):
 
@@ -27,5 +29,12 @@ class CurrencyPair(object):
     def code(self):
         return self.__code
 
-    def data(self):
-        return self.__data
+    def data(self, start_date=dt.date(1970, 1, 1), end_date=dt.date(2100, 1, 1)):
+        """
+        Return list of data in the range specified by starting and ending dates passed in
+
+        :param start_date:  Date, start fo the data range
+        :param end_date:    Date, end of the data range
+        :return:            List of data
+        """
+        return [d for d in self.__data if start_date <= d[0] <= end_date]

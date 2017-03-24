@@ -33,7 +33,7 @@ def main(universe_name):
         Risk(risk_position_sizing),
         account,  # TODO access from broker?
         portfolio,  # TODO access from broker?
-        Broker(account, portfolio, commission)
+        Broker(account, portfolio, commission, investment_universe)
     )
     timer.start()  # TODO start after data is loaded
 

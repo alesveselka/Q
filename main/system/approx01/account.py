@@ -16,7 +16,7 @@ class Account(object):
         # self.__securities = [CZK, USD, ...]  # Cash, Commissions, Interest on Credit
         self.__fx_balances = defaultdict(Decimal)  # MTM in Fx until transferred, Interest on Debit (from Margin Loans)
         self.__margin_loan_balances = defaultdict(Decimal)  # Margins
-        self.__transactions = [] # (Date, Type(Comm., Interest, Transfer, MTM, ...), Quantity, Cost Price, Currency)
+        self.__transactions = []
 
         self.__fx_balances[base_currency] = initial_balance
 
@@ -71,6 +71,23 @@ class Account(object):
         :return:            Number representing the balance
         """
         return self.__margin_loan_balances[currency]
+
+    def fx_balance_currencies(self):
+        """
+        Return list of currencies the account is holding Fx balances in
+
+        :return:    List of strings, each representing currency symbol
+        """
+        return self.__fx_balances.keys()
+
+    def fx_balance(self, currency):
+        """
+        Returns balance in currency specified in argument
+
+        :param currency:    String - the currency symbol of requested Fx balance
+        :return:            Number representing the Fx balance
+        """
+        return self.__fx_balances[currency]
 
     def add_transaction(self, transaction):
         """
