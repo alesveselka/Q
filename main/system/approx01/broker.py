@@ -135,7 +135,7 @@ class Broker(object):
 
             print transaction, float(self.__account.equity()), float(self.__account.available_funds())
 
-    def translate_fx_balances(self, date):
+    def translate_fx_balances(self, date, previous_day):
         base_currency = self.__account.base_currency()
         for currency in [c for c in self.__account.fx_balance_currencies() if c != base_currency]:
             pair = self.__investment_universe.currency_pair('%s%s' % (base_currency, currency))
@@ -143,7 +143,7 @@ class Broker(object):
             rate = pair[0].data(end_date=date)[-1][4] if len(pair) else Decimal(1)
             prior_rate = pair[0].data(end_date=date)[-2][4] if len(pair) else rate
             rate_difference = rate - prior_rate
-            balance = self.__account.fx_balance(currency)
+            balance = self.__account.fx_balance(currency, previous_day)
             translation = balance * rate_difference
 
             transaction = Transaction(
@@ -157,7 +157,7 @@ class Broker(object):
 
             self.__account.add_transaction(transaction)
 
-            print transaction, float(self.__account.equity()), float(self.__account.available_funds())
+            # print transaction, float(self.__account.equity()), float(self.__account.available_funds())
 
     def update_margin_loans(self, date, price):
         if len(self.__portfolio.positions()):

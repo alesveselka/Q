@@ -64,6 +64,7 @@ class TradingSystem(EventDispatcher):
 
             for date in [d[1] for d in market_data]:
                 data_window = m.data(start_date, date)
+                previous_date = data_window[-2][1] if len(data_window) > 1 else start_date
 
                 if len(data_window) >= long_window + 1:  # querying '-2' index, because I need one more record
                     # print 'Processing %s from %s to %s' % (m.code(), start_date, date)
@@ -83,10 +84,6 @@ class TradingSystem(EventDispatcher):
                     open_signals = [s for s in signals if s.type() == SignalType.ENTER]
                     close_signals = [s for s in signals if s.type() == SignalType.EXIT]
                     market_positions = [p for p in self.__portfolio.positions() if p.market().code() == m.code()]
-
-                    # TODO temporal binding!!!
-                    # TODO structure fx balances by day and move this to the end of day?
-                    self.__broker.translate_fx_balances(date)
 
                     self.__broker.update_margin_loans(date, previous_last_price)  # TODO sync via events
 
@@ -122,6 +119,7 @@ class TradingSystem(EventDispatcher):
                                     abs(result.price() - open_price),
                                     result.commission() * 2
                                 ))
+                                # TODO once is position close, convert Fx P/L to base-currency
 
                     """
                     Open Positions
@@ -182,29 +180,12 @@ class TradingSystem(EventDispatcher):
                             signals.append(Signal(m, SignalType.ENTER, Direction.SHORT, date, last_price))
 
                     """
-                    Mark-To-Market!!!
-                    Open - Settlement || Settlement - Settlement || Settlement - Exit
-
-                    Has Open Positions
-                        New Transaction - Mark to Market non-base FX balance (MTM amount is available next day!)
-                        New Transaction - Mark to Market PnL
-
-                        Interest on FX debit (Margin Loan)
-
-                    Has new Signals
-                        Available Funds? (+ commissions)
-                            Instrument NOT in base currency?
-                                Convert by current rate
-
-                        New Transaction - Margin Loan
-
-                        New Transaction - open position
-                        New Transaction - substract commission
+                    Mark to Market
                     """
+                    # TODO sync via events
+                    self.__broker.mark_to_market(date)
+                    self.__broker.translate_fx_balances(date, previous_date)
 
-                    # TODO move to day's open?
-                    # TODO mark to market non-base FX balances
-                    self.__broker.mark_to_market(date)  # TODO sync via events
                     # TODO apply interest
 
                     # TODO interests

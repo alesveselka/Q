@@ -63,14 +63,28 @@ class Account(object):
         margin = reduce(lambda t, k: t + self.base_value(self.__margin_loan_balances.get(k), k), self.__margin_loan_balances.keys(), 0)
         return balance - margin
 
-    def margin_loan_balance(self, currency):
+    def margin_loan_balance(self, currency, date=None):
         """
         Return margin loan balance for currency Fx passed in
+        If 'date' is passed in, iterate through transactions and calculates Fx balance to the date
 
         :param currency:    String representing Fx currency
+        :param date:        Date of the final balance
         :return:            Number representing the balance
         """
-        return self.__margin_loan_balances[currency]
+        balance = self.__margin_loan_balances[currency]
+        if date:
+            for t in reversed(self.__transactions):
+                if t.date() > date:
+                    if t.type() == TransactionType.MARGIN_LOAN and t.currency() == currency:
+                        if t.account_action() == AccountAction.CREDIT:
+                            balance -= t.amount()
+                        elif t.account_action() == AccountAction.DEBIT:
+                            balance += t.amount()
+                else:
+                    break
+
+        return balance
 
     def fx_balance_currencies(self):
         """
@@ -80,14 +94,28 @@ class Account(object):
         """
         return self.__fx_balances.keys()
 
-    def fx_balance(self, currency):
+    def fx_balance(self, currency, date=None):
         """
         Returns balance in currency specified in argument
+        If 'date' is passed in, iterate through transactions and calculates Fx balance to the date
 
         :param currency:    String - the currency symbol of requested Fx balance
+        :param date:        Date of the final balance
         :return:            Number representing the Fx balance
         """
-        return self.__fx_balances[currency]
+        balance = self.__fx_balances[currency]
+        if date:
+            for t in reversed(self.__transactions):
+                if t.date() > date:
+                    if t.type() != TransactionType.MARGIN_LOAN and t.currency() == currency:
+                        if t.account_action() == AccountAction.CREDIT:
+                            balance -= t.amount()
+                        elif t.account_action() == AccountAction.DEBIT:
+                            balance += t.amount()
+                else:
+                    break
+
+        return balance
 
     def to_fx_balance_string(self):
         """
