@@ -12,9 +12,10 @@ import re
 import calendar
 import requests
 import bs4
+import MySQLdb as mysql
 
 
-def aud():
+def aud_immediate():
     """
     Fetches and parses cash-rate page of Reserve Bank of Australia
     The table rows are as follow:
@@ -42,5 +43,22 @@ def aud():
     return result
 
 
+def aud_three_months(connection):
+    """
+    Calculates rates from Futures data (inverted yield: 100 - interest date)
+
+    :param connection:  MySQL connector's connection instance
+    :return:            List of tuples (date, float)
+    """
+    cursor = connection.cursor()
+    cursor.execute("SELECT price_date, settle_price FROM `continuous_spliced` WHERE code = 'YIR'")
+    data = cursor.fetchall()
+
+    return [(d[0], float(100-d[1])) for d in data]
+
+
 if __name__ == '__main__':
-    aud()
+    mysql_connection = mysql.connect('localhost', 'sec_user', 'root', 'norgate')
+
+    # aud_immediate()
+    aud_three_months(mysql_connection)
