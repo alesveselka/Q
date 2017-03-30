@@ -184,12 +184,13 @@ class TradingSystem(EventDispatcher):
                     """
                     # TODO sync via events
                     self.__broker.mark_to_market(date)
-                    self.__broker.translate_fx_balances(date, previous_date)
+                    self.__broker.translate_fx_balances(date, previous_date)  # TODO write tests!!!
 
                     # TODO apply interest
 
                     # TODO interests
                     # TODO Fx hedge
+                    # TODO cash management (3Mo IR?)
 
         total = 0.0
         commissions = 0.0

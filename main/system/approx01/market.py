@@ -77,6 +77,7 @@ class Market(object):
     def point_value(self):
         return self.__point_value
 
+    # TODO specify default values as in CurrencyPair
     def data(self, start_date, end_date):
         """
         Filter and return data that fall in between dates passed in
