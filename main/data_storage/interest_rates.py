@@ -195,7 +195,11 @@ def cad_three_months():
 def eur():
     """
     Download, parse and construct lists of short-term and mid-term interest rates
-    from range of pages across the years
+    from range of pages across the years.
+
+    For short-term, I use either monthly-overnight or yearly-overnight, yearly-1-week,
+    yearly-2-weeks, yearly-1-month term as approximation depending what is available in particular year.
+    For mid-term I use typical 3-months rate.
 
     :return:    Two lists of tuples (date, float)
     """
