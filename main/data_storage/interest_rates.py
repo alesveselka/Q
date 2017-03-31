@@ -150,6 +150,22 @@ def gbp_three_months():
         print r
 
 
+def cad_immediate():
+    api_url = 'https://api.stlouisfed.org/fred/series/observations'
+    params = 'series_id=%s&api_key=%s&file_type=json' % ('INTGSTCAM193N', os.environ['FRED_API_KEY'])
+    response = requests.get('%s?%s' % (api_url, params))
+    data = json.loads(response.text)
+    result = []
+    rate = 0
+
+    for o in data['observations'][:150]:
+        rate = float(o['value']) if o['value'] != '.' else rate
+        last_date = dt.date(*map(int, o['date'].split('-')))
+        result.append((last_date, rate))
+
+    return result
+
+
 if __name__ == '__main__':
     months = {k: i for i, k in enumerate(calendar.month_abbr) if k}
     mysql_connection = mysql.connect(
@@ -164,4 +180,5 @@ if __name__ == '__main__':
     # aud_immediate()
     # aud_three_months(mysql_connection)
     # gbp_immediate()
-    gbp_three_months()
+    # gbp_three_months()
+    cad_immediate()
