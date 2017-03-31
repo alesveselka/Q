@@ -235,6 +235,19 @@ def eur():
     return sorted(shorts), rates['Y_3_months']
 
 
+def eur_three_months(yearly_data):
+    """
+    Concat yearly data with daily ones on date where daily data start
+
+    :param yearly_data:     list of tuples (date, float)
+    :return:                list of tuples (date, float)
+    """
+    daily_data = fred_data('EUR3MTD156N')
+    first_date = daily_data[0][0]
+
+    return [y for y in yearly_data if y[0] <= first_date] + daily_data
+
+
 if __name__ == '__main__':
     months = {k: i for i, k in enumerate(calendar.month_abbr) if k}
     mysql_connection = mysql.connect(
@@ -244,6 +257,7 @@ if __name__ == '__main__':
         os.environ['DB_NAME']
     )
 
+    # TODO ensure same order for all lists
     # TODO resolve multiple intervals (Daily, Monthly, Irregularly, ...)
 
     # aud_immediate()
@@ -252,4 +266,5 @@ if __name__ == '__main__':
     # gbp_three_months()
     # cad_immediate()
     # cad_three_months()
-    immediate, three = eur()
+    eur_immediate, eur_three = eur()
+    eur_three_months(eur_three)
