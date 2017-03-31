@@ -273,6 +273,15 @@ def jpy_immediate():
     return result
 
 
+def jpy_three_months():
+    """
+    Return result of FRED data with ID for japanese 3-month interest rates
+
+    :return: List of tuples (date, float)
+    """
+    return fred_data('JPY3MTD156N')
+
+
 if __name__ == '__main__':
     months = {k: i for i, k in enumerate(calendar.month_abbr) if k}
     mysql_connection = mysql.connect(
@@ -293,4 +302,5 @@ if __name__ == '__main__':
     # cad_three_months()
     # eur_immediate, eur_three = eur()
     # eur_three_months(eur_three)
-    jpy_immediate()
+    # jpy_immediate()
+    jpy_three_months()
