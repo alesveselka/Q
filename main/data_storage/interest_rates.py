@@ -1,7 +1,5 @@
 #!/usr/bin/python
 
-# Australia Cash Rate (http://www.rba.gov.au/statistics/cash-rate/)
-# Euro LIBOR (http://www.global-rates.com/interest-rates/libor/european-euro/2017.aspx)
 # Japanese Yen
 #       (http://www.stat-search.boj.or.jp/ssi/mtshtml/ir01_d_1_en.html)
 #       (http://www.stat-search.boj.or.jp/ssi/cgi-bin/famecgi2?cgi=$ap181g3f_en)
@@ -248,6 +246,33 @@ def eur_three_months(yearly_data):
     return [y for y in yearly_data if y[0] <= first_date] + daily_data
 
 
+def jpy_immediate():
+    """
+    Fetch and parse Bank of Japan page with interest rates.
+    Table example:
+    +-----------+------------------------------------------------+---------------------------------------------------+
+    | Date      | The Basic Discount Rate and Basic Loan Rate    | Call Rate, Uncollateralized Overnight/Average     |
+    +-----------+------------------------------------------------+---------------------------------------------------+
+    | 2017/02   | 0.3                                            | -0.038                                            |
+    | 2017/03   | 0.3                                            | ND                                                |
+    +-----------+------------------------------------------------+---------------------------------------------------+
+
+    :return:    List of tuples (date, float)
+    """
+    soup = page_soup('http://www.stat-search.boj.or.jp/ssi/html/nme_R020MM.5269.20170331235215.02.html')
+    rows = soup.select('.tbl > table > tr')
+    rates = [r.select('td') for r in rows]
+    result = []
+
+    for r in rates[1:]:
+        tds = [td.text for td in r]
+        if 'ND' not in tds[2]:
+            data_date = dt.date(*map(int, tds[0].split('/') + [1]))
+            result.append((data_date, float(tds[2])))
+
+    return result
+
+
 if __name__ == '__main__':
     months = {k: i for i, k in enumerate(calendar.month_abbr) if k}
     mysql_connection = mysql.connect(
@@ -266,5 +291,6 @@ if __name__ == '__main__':
     # gbp_three_months()
     # cad_immediate()
     # cad_three_months()
-    eur_immediate, eur_three = eur()
-    eur_three_months(eur_three)
+    # eur_immediate, eur_three = eur()
+    # eur_three_months(eur_three)
+    jpy_immediate()
