@@ -94,21 +94,60 @@ def gbp_immediate():
 
 
 def gbp_three_months():
-    # TODO also use Futures?
+    """
+    Fetch and transform data from FRED API
+    Example of returned JSON value is:
+    {
+        "realtime_start": "2017-03-31",
+        "realtime_end": "2017-03-31",
+        "observation_start": "1600-01-01",
+        "observation_end": "9999-12-31",
+        "units": "lin",
+        "output_type": 1,
+        "file_type": "json",
+        "order_by": "observation_date",
+        "sort_order": "asc",
+        "count": 8146,
+        "offset": 0,
+        "limit": 100000,
+        "observations": [
+            {
+                "realtime_start": "2017-03-31",
+                "realtime_end": "2017-03-31",
+                "date": "1986-01-02",
+                "value": "11.87500"
+            },
+            {
+                "realtime_start": "2017-03-31",
+                "realtime_end": "2017-03-31",
+                "date": "1986-01-03",
+                "value": "11.87500"
+            }
+        ]}
 
+    :return: List of tuples (date, float)
+    """
     api_url = 'https://api.stlouisfed.org/fred/series/observations'
-    # params = 'series_id=%s&api_key=%s&observation_start=%s&observation_end=%s&file_type=json' % (
-    #     'TB3MS',
-    #     os.environ['FRED_API_KEY'],
-    #     '1776-07-04',
-    #     '9999-12-31'
-    # )
-    params = 'series_id=%s&api_key=%s&file_type=json' % ('TB3MS', os.environ['FRED_API_KEY'])
+    params = 'series_id=%s&api_key=%s&file_type=json' % ('GBP3MTD156N', os.environ['FRED_API_KEY'])
     response = requests.get('%s?%s' % (api_url, params))
     data = json.loads(response.text)
-    print len(data['observations'])
-    for o in data['observations'][-10:]:
-        print o
+    now = dt.datetime.now().date()
+    result = []
+    last_date = now
+    rate = 0
+
+    for o in data['observations']:
+        rate = float(o['value']) if o['value'] != '.' else rate
+        last_date = dt.date(*map(int, o['date'].split('-')))
+        result.append((last_date, rate))
+
+    if now > last_date:
+        cursor = mysql_connection.cursor()
+        cursor.execute("SELECT price_date, settle_price FROM `continuous_spliced` WHERE code = 'LSS'")
+        result += [(d[0], float(100-d[1])) for d in cursor.fetchall() if d[0] > last_date]
+
+    for r in result:
+        print r
 
 
 if __name__ == '__main__':
