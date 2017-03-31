@@ -151,7 +151,7 @@ def gbp_three_months():
     """
     result = fred_data('GBP3MTD156N')
     now = dt.datetime.now().date()
-    last_date = now
+    last_date = result[-1][0]
 
     if now > last_date:
         cursor = mysql_connection.cursor()
@@ -170,6 +170,25 @@ def cad_immediate():
     return fred_data('INTGSTCAM193N')
 
 
+def cad_three_months():
+    """
+    Return FRED data of GBP LIBOR,
+    conditionally combined with values calculated from Futures data
+
+    :return: List of tuples (date, float)
+    """
+    result = fred_data('IR3TIB01CAM156N')
+    now = dt.datetime.now().date()
+    last_date = result[-1][0]
+
+    if now > last_date:
+        cursor = mysql_connection.cursor()
+        cursor.execute("SELECT price_date, settle_price FROM `continuous_spliced` WHERE code = 'BAX'")
+        result += [(d[0], float(100-d[1])) for d in cursor.fetchall() if d[0] > last_date]
+
+    return result
+
+
 if __name__ == '__main__':
     months = {k: i for i, k in enumerate(calendar.month_abbr) if k}
     mysql_connection = mysql.connect(
@@ -184,5 +203,6 @@ if __name__ == '__main__':
     # aud_immediate()
     # aud_three_months(mysql_connection)
     # gbp_immediate()
-    gbp_three_months()
+    # gbp_three_months()
     # cad_immediate()
+    cad_three_months()
