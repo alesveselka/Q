@@ -78,6 +78,32 @@ def fred_data(series_id):
     return result
 
 
+def futures_yield(futures_code):
+    """
+    Calculates and returns interest rates calculated from Futures inverted yield
+
+    :param futures_code:    String, Futures symbol code
+    :return:                List of tuples (date, float)
+    """
+    cursor = mysql_connection.cursor()
+    cursor.execute("SELECT price_date, settle_price FROM `continuous_spliced` WHERE code = '%s'" % futures_code)
+    return [(d[0], float(100-d[1])) for d in cursor.fetchall()]
+
+
+def combine_fred_and_futures(fred_series_id, futures_code):
+    """
+    Fetches FRED data and conditionally append data calculated from Futures data
+
+    :param fred_series_id:  String, ID of the FRED series
+    :param futures_code:    String, Futures symbol code
+    :return:                List of tuples (date, float)
+    """
+    data = fred_data(fred_series_id)
+    now = dt.datetime.now().date()
+    last_date = data[-1][0]
+    return data + [y for y in futures_yield(futures_code) if y[0] > last_date] if now > last_date else data
+
+
 def aud_immediate():
     """
     Fetches and parses cash-rate page of Reserve Bank of Australia
@@ -106,15 +132,11 @@ def aud_immediate():
 
 def aud_three_months():
     """
-    Calculates rates from Futures data (inverted yield: 100 - interest date)
+    Return futures yield data for 'YIR' symbol
 
-    :return:            List of tuples (date, float)
+    :return:    List of tuples (date, float)
     """
-    cursor = mysql_connection.cursor()
-    cursor.execute("SELECT price_date, settle_price FROM `continuous_spliced` WHERE code = 'YIR'")
-    data = cursor.fetchall()
-
-    return [(d[0], float(100-d[1])) for d in data]
+    return futures_yield('YIR')
 
 
 def gbp_immediate():
@@ -144,21 +166,11 @@ def gbp_immediate():
 
 def gbp_three_months():
     """
-    Return FRED data of GBP LIBOR,
-    conditionally combined with values calculated from Futures data
+    Return GBP data combination
 
     :return: List of tuples (date, float)
     """
-    result = fred_data('GBP3MTD156N')
-    now = dt.datetime.now().date()
-    last_date = result[-1][0]
-
-    if now > last_date:
-        cursor = mysql_connection.cursor()
-        cursor.execute("SELECT price_date, settle_price FROM `continuous_spliced` WHERE code = 'LSS'")
-        result += [(d[0], float(100-d[1])) for d in cursor.fetchall() if d[0] > last_date]
-
-    return result
+    return combine_fred_and_futures('GBP3MTD156N', 'LSS')
 
 
 def cad_immediate():
@@ -172,21 +184,11 @@ def cad_immediate():
 
 def cad_three_months():
     """
-    Return FRED data of GBP LIBOR,
-    conditionally combined with values calculated from Futures data
+    Return CAD data combination
 
     :return: List of tuples (date, float)
     """
-    result = fred_data('IR3TIB01CAM156N')
-    now = dt.datetime.now().date()
-    last_date = result[-1][0]
-
-    if now > last_date:
-        cursor = mysql_connection.cursor()
-        cursor.execute("SELECT price_date, settle_price FROM `continuous_spliced` WHERE code = 'BAX'")
-        result += [(d[0], float(100-d[1])) for d in cursor.fetchall() if d[0] > last_date]
-
-    return result
+    return combine_fred_and_futures('IR3TIB01CAM156N', 'BAX')
 
 
 if __name__ == '__main__':
@@ -201,7 +203,7 @@ if __name__ == '__main__':
     # TODO resolve multiple intervals (Daily, Monthly, Irregularly, ...)
 
     # aud_immediate()
-    # aud_three_months(mysql_connection)
+    # aud_three_months()
     # gbp_immediate()
     # gbp_three_months()
     # cad_immediate()
