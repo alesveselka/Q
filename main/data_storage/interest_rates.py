@@ -29,6 +29,55 @@ def page(url):
     return bs4.BeautifulSoup(response.text, "html.parser")
 
 
+def fred_data(series_id):
+    """
+    Fetch and transform data from FRED API
+    Example of returned JSON value is:
+    {
+        "realtime_start": "2017-03-31",
+        "realtime_end": "2017-03-31",
+        "observation_start": "1600-01-01",
+        "observation_end": "9999-12-31",
+        "units": "lin",
+        "output_type": 1,
+        "file_type": "json",
+        "order_by": "observation_date",
+        "sort_order": "asc",
+        "count": 8146,
+        "offset": 0,
+        "limit": 100000,
+        "observations": [
+            {
+                "realtime_start": "2017-03-31",
+                "realtime_end": "2017-03-31",
+                "date": "1986-01-02",
+                "value": "11.87500"
+            },
+            {
+                "realtime_start": "2017-03-31",
+                "realtime_end": "2017-03-31",
+                "date": "1986-01-03",
+                "value": "11.87500"
+            }
+        ]}
+
+    :return: List of tuples (date, float)
+    """
+    api_url = 'https://api.stlouisfed.org/fred/series/observations'
+    params = 'series_id=%s&api_key=%s&file_type=json' % (series_id, os.environ['FRED_API_KEY'])
+    response = requests.get('%s?%s' % (api_url, params))
+    data = json.loads(response.text)
+    result = []
+    rate = 0
+
+    for o in data['observations']:
+        rate = float(o['value']) if o['value'] != '.' else rate
+        last_date = dt.date(*map(int, o['date'].split('-')))
+        result.append((last_date, rate))
+
+    return result
+
+
 def aud_immediate():
     """
     Fetches and parses cash-rate page of Reserve Bank of Australia
@@ -95,75 +144,30 @@ def gbp_immediate():
 
 def gbp_three_months():
     """
-    Fetch and transform data from FRED API
-    Example of returned JSON value is:
-    {
-        "realtime_start": "2017-03-31",
-        "realtime_end": "2017-03-31",
-        "observation_start": "1600-01-01",
-        "observation_end": "9999-12-31",
-        "units": "lin",
-        "output_type": 1,
-        "file_type": "json",
-        "order_by": "observation_date",
-        "sort_order": "asc",
-        "count": 8146,
-        "offset": 0,
-        "limit": 100000,
-        "observations": [
-            {
-                "realtime_start": "2017-03-31",
-                "realtime_end": "2017-03-31",
-                "date": "1986-01-02",
-                "value": "11.87500"
-            },
-            {
-                "realtime_start": "2017-03-31",
-                "realtime_end": "2017-03-31",
-                "date": "1986-01-03",
-                "value": "11.87500"
-            }
-        ]}
+    Return FRED data of GBP LIBOR,
+    conditionally combined with values calculated from Futures data
 
     :return: List of tuples (date, float)
     """
-    api_url = 'https://api.stlouisfed.org/fred/series/observations'
-    params = 'series_id=%s&api_key=%s&file_type=json' % ('GBP3MTD156N', os.environ['FRED_API_KEY'])
-    response = requests.get('%s?%s' % (api_url, params))
-    data = json.loads(response.text)
+    result = fred_data('GBP3MTD156N')
     now = dt.datetime.now().date()
-    result = []
     last_date = now
-    rate = 0
-
-    for o in data['observations']:
-        rate = float(o['value']) if o['value'] != '.' else rate
-        last_date = dt.date(*map(int, o['date'].split('-')))
-        result.append((last_date, rate))
 
     if now > last_date:
         cursor = mysql_connection.cursor()
         cursor.execute("SELECT price_date, settle_price FROM `continuous_spliced` WHERE code = 'LSS'")
         result += [(d[0], float(100-d[1])) for d in cursor.fetchall() if d[0] > last_date]
 
-    for r in result:
-        print r
+    return result
 
 
 def cad_immediate():
-    api_url = 'https://api.stlouisfed.org/fred/series/observations'
-    params = 'series_id=%s&api_key=%s&file_type=json' % ('INTGSTCAM193N', os.environ['FRED_API_KEY'])
-    response = requests.get('%s?%s' % (api_url, params))
-    data = json.loads(response.text)
-    result = []
-    rate = 0
+    """
+    Return result of FRED data with ID for canadian interest rates
 
-    for o in data['observations'][:150]:
-        rate = float(o['value']) if o['value'] != '.' else rate
-        last_date = dt.date(*map(int, o['date'].split('-')))
-        result.append((last_date, rate))
-
-    return result
+    :return: List of tuples (date, float)
+    """
+    return fred_data('INTGSTCAM193N')
 
 
 if __name__ == '__main__':
@@ -180,5 +184,5 @@ if __name__ == '__main__':
     # aud_immediate()
     # aud_three_months(mysql_connection)
     # gbp_immediate()
-    # gbp_three_months()
-    cad_immediate()
+    gbp_three_months()
+    # cad_immediate()
