@@ -16,9 +16,10 @@ import calendar
 import requests
 import bs4
 import MySQLdb as mysql
+from collections import defaultdict
 
 
-def page(url):
+def page_soup(url):
     """
     Fetch url and returns parsed 'soup'
 
@@ -116,7 +117,7 @@ def aud_immediate():
 
     :return:        List of tuples (date, float)
     """
-    soup = page('http://www.rba.gov.au/statistics/cash-rate/')
+    soup = page_soup('http://www.rba.gov.au/statistics/cash-rate/')
     rows = soup.select('#datatable > tbody > tr')
     rates = [[r.select('th')[0].text, r.select('td')[-1].text] for r in rows]
     result = []
@@ -151,7 +152,7 @@ def gbp_immediate():
 
     :return:    List of tuples (date, float)
     """
-    soup = page('http://www.bankofengland.co.uk/boeapps/iadb/Repo.asp?Travel=NIxRPx')
+    soup = page_soup('http://www.bankofengland.co.uk/boeapps/iadb/Repo.asp?Travel=NIxRPx')
     rows = soup.select('#editorial > table > tr')
     rates = [r.select('td') for r in rows]
     result = []
@@ -191,6 +192,45 @@ def cad_three_months():
     return combine_fred_and_futures('IR3TIB01CAM156N', 'BAX')
 
 
+def eur():
+    """
+    Download, parse and construct lists of short-term and mid-term interest rates
+    from range of pages across the years
+
+    :return:    Two lists of tuples (date, float)
+    """
+    url = 'http://www.global-rates.com/interest-rates/libor/european-euro/%s.aspx'
+    months = {m.lower(): i for i, m in enumerate(calendar.month_name) if m}
+    rates = defaultdict(list)
+    shorts = []
+
+    for year in range(1989, 2018):
+        soup = page_soup(url % year)
+        rows = soup.select('.tabledata1, .tabledata2')
+        shorts_monthly = []
+        shorts_yearly = []
+
+        for r in rows:
+            tds = [td.text for td in r.select('td')]
+            name = 'Y_' + tds[0].split(' - ')[1].replace(' ', '_') if 'LIBOR' in tds[0] else 'M_' + re.sub('\W', '', tds[0])
+            date = dt.date(year, 1, 1) if name[0] == 'Y' else dt.date(year, months[name.split('_')[1]], 1)
+            if tds[1] != '-':
+                value = float(re.sub('\D[% ]', '', tds[1]))
+                rates[name].append((date, value))
+
+                if name.startswith('M_'):
+                    shorts_monthly.append((date, value))
+                elif any(name == i for i in ['Y_1_week', 'Y_2_weeks', 'Y_1_month']):
+                    shorts_yearly.append((date, value))
+
+        if len(shorts_monthly):
+            shorts += shorts_monthly
+        else:
+            shorts += [shorts_yearly[0]] if len(shorts_yearly) else []
+
+    return sorted(shorts), rates['Y_3_months']
+
+
 if __name__ == '__main__':
     months = {k: i for i, k in enumerate(calendar.month_abbr) if k}
     mysql_connection = mysql.connect(
@@ -207,4 +247,5 @@ if __name__ == '__main__':
     # gbp_immediate()
     # gbp_three_months()
     # cad_immediate()
-    cad_three_months()
+    # cad_three_months()
+    immediate, three = eur()
