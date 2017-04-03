@@ -319,6 +319,15 @@ def usd_immediate():
     return result
 
 
+def usd_three_months():
+    """
+    Return result of FRED data with ID for US 3-month interest rates (Treasury Bill, Weekly, ending Friday)
+
+    :return: List of tuples (date, float)
+    """
+    return fred_data('WTB3MS')
+
+
 if __name__ == '__main__':
     months = {k: i for i, k in enumerate(calendar.month_abbr) if k}
     mysql_connection = mysql.connect(
@@ -344,4 +353,5 @@ if __name__ == '__main__':
     # jpy_three_months()
     # chf_immediate()
     # chf_three_months()
-    usd_immediate()
+    # usd_immediate()
+    usd_three_months()
