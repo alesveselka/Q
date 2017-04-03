@@ -6,6 +6,7 @@ import csv
 import sys
 import datetime as dt
 import MySQLdb as mysql
+from collections import defaultdict
 
 norgate_dir_template = './data/norgate/%s.csv'
 mysql_connection = mysql.connect(
@@ -433,6 +434,42 @@ def populate_currency(schema):
     map(lambda c: insert_values(q, values(c)), matching_codes)
 
 
+def populate_investment_universe(schema):
+    cursor = mysql_connection.cursor()
+    cursor.execute("SELECT code, id FROM `market`")
+    codes = dict(cursor.fetchall())
+    lines = csv_lines('./data/%s.csv' % schema)
+    columns = {
+        'market_name': 0,
+        'market_code': 1,
+        'first_contract_date': 2,
+        'first_data_date': 3,
+        'currency': 4,
+        'group': 5,
+        'name': 6
+    }
+
+    def add(d, l):
+        if len(l[columns.get('market_code')]) and len(l[columns.get('first_data_date')]):
+            d[l[columns.get('name')]].append(str(codes[l[columns.get('market_code')]]))
+        return d
+
+    def dates(d, l, column):
+        if len(l[columns.get(column)]):
+            date_items = '{2}-{0}-{1}'.format(*l[columns.get(column)].split('/'))
+            d[l[columns.get('name')]].append(dt.date(*map(int, date_items.split('-'))))
+        return d
+
+    universes = reduce(add, lines, defaultdict(list))
+    contract_dates = reduce(lambda d, l: dates(d, l, 'first_contract_date'), lines, defaultdict(list))
+    data_dates = reduce(lambda d, l: dates(d, l, 'first_data_date'), lines, defaultdict(list))
+
+    insert_values(
+        query(schema, 'name, contract_start_date, data_start_date, market_ids', "%s, %s, %s, %s"),
+        [[k, max(contract_dates[k]), max(data_dates[k]), ','.join(universes[k])] for k in universes.keys()]
+    )
+
+
 if __name__ == '__main__':
     if len(sys.argv) == 2 and len(sys.argv[1]):
         schema = sys.argv[1]
@@ -449,7 +486,8 @@ if __name__ == '__main__':
             ('spot', populate_spot),
             ('currencies', populate_currencies),
             ('currency_pairs', populate_currency_pairs),
-            ('currency', populate_currency)
+            ('currency', populate_currency),
+            ('investment_universe', populate_investment_universe)
         ]
 
         if schema == 'all':
