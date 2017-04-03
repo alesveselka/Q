@@ -1,8 +1,5 @@
 #!/usr/bin/python
 
-# Japanese Yen
-#       (http://www.stat-search.boj.or.jp/ssi/mtshtml/ir01_d_1_en.html)
-#       (http://www.stat-search.boj.or.jp/ssi/cgi-bin/famecgi2?cgi=$ap181g3f_en)
 # Swiss Franc (https://data.snb.ch/en/topics/ziredev#!/cube/zimoma?fromDate=1972-02&toDate=2017-02&dimSel=D0(SARON,1TGT,1M,3M0))
 
 import datetime as dt
@@ -282,6 +279,25 @@ def jpy_three_months():
     return fred_data('JPY3MTD156N')
 
 
+def chf_immediate():
+    """
+    Parse and return CSV table with CHF interest rates
+    Table example:
+    +-----------+-----------------------------------------------+-----------+
+    | Date      | SARON     | Call money rate (Tomorrow next)   | 3-month   |
+    +-----------+-----------------------------------------------+-----------+
+    | 2017-02   | -0.729    | -0.950                            | -0.726    |
+    +-----------+-----------------------------------------------+-----------+
+
+    :return:    List of tuples (date, float)
+    """
+    reader = csv.reader(open('./data/CHF_interest_rates.csv'), delimiter=',', quotechar='"')
+    rows = [row for row in reader if re.match('^[a-zA-Z0-9]', row[0])][1:]
+    result = [(dt.date(*map(int, r[0].split('-') + [1])), r[1] if r[1] else r[2]) for r in rows]
+
+    return result
+
+
 if __name__ == '__main__':
     months = {k: i for i, k in enumerate(calendar.month_abbr) if k}
     mysql_connection = mysql.connect(
@@ -303,4 +319,5 @@ if __name__ == '__main__':
     # eur_immediate, eur_three = eur()
     # eur_three_months(eur_three)
     # jpy_immediate()
-    jpy_three_months()
+    # jpy_three_months()
+    chf_immediate()
