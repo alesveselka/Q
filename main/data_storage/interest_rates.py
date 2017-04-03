@@ -320,6 +320,23 @@ def usd_three_months():
     return fred_data('WTB3MS')
 
 
+def queries():
+    three_months_columns = ['currency_id', 'price_date', 'three_months_rate', 'created_date', 'last_updated_date']
+    immediate_columns = three_months_columns[:2] + ['immediate_rate'] + three_months_columns[2:]
+
+    immediate_sql = """
+        INSERT INTO interest_rate (%s)
+        VALUES (%s)
+    """ % (', '.join(immediate_columns), ('%s, ' * len(immediate_columns))[:-2])
+    three_months_sql = """
+        INSERT INTO interest_rate (%s)
+        VALUES (%s)
+        ON DUPLICATE KEY UPDATE three_months_rate=VALUES(three_months_rate)
+    """ % (', '.join(three_months_columns), ('%s, ' * len(three_months_columns))[:-2])
+
+    return immediate_sql, three_months_sql
+
+
 def insert_rates():
     """
     Iterate through dictionary of major currencies and insert data into DB with data from respective functions
@@ -340,19 +357,7 @@ def insert_rates():
         'CHF': (chf_immediate(), chf_three_months()),
         'USD': (usd_immediate(), usd_three_months())
     }
-
-    three_months_columns = ['currency_id', 'price_date', 'three_months_rate', 'created_date', 'last_updated_date']
-    immediate_columns = three_months_columns[:2] + ['immediate_rate'] + three_months_columns[2:]
-    immediate_sql = """
-        INSERT INTO interest_rate (%s)
-        VALUES (%s)
-    """ % (', '.join(immediate_columns), ('%s, ' * len(immediate_columns))[:-2])
-    three_months_sql = """
-        INSERT INTO interest_rate (%s)
-        VALUES (%s)
-        ON DUPLICATE KEY UPDATE three_months_rate=VALUES(three_months_rate)
-    """ % (', '.join(three_months_columns), ('%s, ' * len(three_months_columns))[:-2])
-
+    immediate_sql, three_months_sql = queries()
     now = dt.datetime.now()
 
     for c in major_currencies.items():
