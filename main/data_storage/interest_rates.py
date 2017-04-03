@@ -298,6 +298,15 @@ def chf_immediate():
     return result
 
 
+def chf_three_months():
+    """
+    Return CHF data combination
+
+    :return: List of tuples (date, float)
+    """
+    return combine_fred_and_futures('CHF3MTD156N', 'LES')
+
+
 if __name__ == '__main__':
     months = {k: i for i, k in enumerate(calendar.month_abbr) if k}
     mysql_connection = mysql.connect(
@@ -309,6 +318,7 @@ if __name__ == '__main__':
 
     # TODO ensure same order for all lists
     # TODO resolve multiple intervals (Daily, Monthly, Irregularly, ...)
+    # TODO for intervals > daily, make sure the data is unified - beginning of month VS end of month ...
 
     # aud_immediate()
     # aud_three_months()
@@ -320,4 +330,5 @@ if __name__ == '__main__':
     # eur_three_months(eur_three)
     # jpy_immediate()
     # jpy_three_months()
-    chf_immediate()
+    # chf_immediate()
+    chf_three_months()
