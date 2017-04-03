@@ -120,8 +120,7 @@ def aud_immediate():
         rate = [r for r in re.sub(r'[a-zA-Z\s]', ',', r[1]).split(',') if r]
         result.append((date, float(rate[0]) if len(rate) == 1 else sum(map(float, rate)) / len(rate)))
 
-    # TODO reverse?
-    return result
+    return list(reversed(result))
 
 
 def aud_three_months():
@@ -155,7 +154,7 @@ def gbp_immediate():
         date = dt.date(*map(lambda x: int(x) if re.match('^[0-9]', x) else months[x], reversed(data_date.split(' '))))
         result.append((date, float(r[1].text)))
 
-    return result
+    return list(reversed(result))
 
 
 def gbp_three_months():
@@ -254,16 +253,9 @@ def jpy_immediate():
 
     :return:    List of tuples (date, float)
     """
-    soup = page_soup('http://www.stat-search.boj.or.jp/ssi/html/nme_R020MM.5269.20170331235215.02.html')
-    rows = soup.select('.tbl > table > tr')
-    rates = [r.select('td') for r in rows]
-    result = []
-
-    for r in rates[1:]:
-        tds = [td.text for td in r]
-        if 'ND' not in tds[2]:
-            data_date = dt.date(*map(int, tds[0].split('/') + [1]))
-            result.append((data_date, float(tds[2])))
+    reader = csv.reader(open('./data/JPY_interest_rates.csv'), delimiter=',', quotechar='"')
+    rows = [row for row in reader if re.match('^[a-zA-Z0-9\-]', row[2])][1:]
+    result = [(dt.date(*map(int, r[0].split('/') + [1])), float(r[2])) for r in rows]
 
     return result
 
@@ -328,6 +320,51 @@ def usd_three_months():
     return fred_data('WTB3MS')
 
 
+def insert_rates():
+    """
+    Iterate through dictionary of major currencies and insert data into DB with data from respective functions
+    """
+    cursor = mysql_connection.cursor()
+    cursor.execute("""
+        SELECT c.code, c.id
+        FROM `currencies` as c INNER JOIN `group` as g ON c.group_id = g.id
+        WHERE g.name = 'Majors'
+    """)
+    currencies = dict(cursor.fetchall())
+    major_currencies = {
+        'AUD': (aud_immediate(), aud_three_months()),
+        'GBP': (gbp_immediate(), gbp_three_months()),
+        'CAD': (cad_immediate(), cad_three_months()),
+        'EUR': eur(),
+        'JPY': (jpy_immediate(), jpy_three_months()),
+        'CHF': (chf_immediate(), chf_three_months()),
+        'USD': (usd_immediate(), usd_three_months())
+    }
+
+    three_months_columns = ['currency_id', 'price_date', 'three_months_rate', 'created_date', 'last_updated_date']
+    immediate_columns = three_months_columns[:2] + ['immediate_rate'] + three_months_columns[2:]
+    immediate_sql = """
+        INSERT INTO interest_rate (%s)
+        VALUES (%s)
+    """ % (', '.join(immediate_columns), ('%s, ' * len(immediate_columns))[:-2])
+    three_months_sql = """
+        INSERT INTO interest_rate (%s)
+        VALUES (%s)
+        ON DUPLICATE KEY UPDATE three_months_rate=VALUES(three_months_rate)
+    """ % (', '.join(three_months_columns), ('%s, ' * len(three_months_columns))[:-2])
+
+    now = dt.datetime.now()
+
+    for c in major_currencies.items():
+        with mysql_connection:
+            cursor = mysql_connection.cursor()
+            cursor.executemany(immediate_sql, [(currencies[c[0]], d[0], d[1], None, now, now) for d in c[1][0]])
+
+        with mysql_connection:
+            cursor = mysql_connection.cursor()
+            cursor.executemany(three_months_sql, [(currencies[c[0]], d[0], d[1], now, now) for d in c[1][1]])
+
+
 if __name__ == '__main__':
     months = {k: i for i, k in enumerate(calendar.month_abbr) if k}
     mysql_connection = mysql.connect(
@@ -337,21 +374,7 @@ if __name__ == '__main__':
         os.environ['DB_NAME']
     )
 
-    # TODO ensure same order for all lists
-    # TODO resolve multiple intervals (Daily, Monthly, Irregularly, ...)
+    # TODO pass in the URLs and respective rows to avoid hard-coded values
     # TODO for intervals > daily, make sure the data is unified - beginning of month VS end of month ...
 
-    # aud_immediate()
-    # aud_three_months()
-    # gbp_immediate()
-    # gbp_three_months()
-    # cad_immediate()
-    # cad_three_months()
-    # eur_immediate, eur_three = eur()
-    # eur_three_months(eur_three)
-    # jpy_immediate()
-    # jpy_three_months()
-    # chf_immediate()
-    # chf_three_months()
-    # usd_immediate()
-    usd_three_months()
+    insert_rates()
