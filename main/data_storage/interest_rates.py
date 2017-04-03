@@ -1,7 +1,5 @@
 #!/usr/bin/python
 
-# Swiss Franc (https://data.snb.ch/en/topics/ziredev#!/cube/zimoma?fromDate=1972-02&toDate=2017-02&dimSel=D0(SARON,1TGT,1M,3M0))
-
 import datetime as dt
 import os
 import re
@@ -307,6 +305,20 @@ def chf_three_months():
     return combine_fred_and_futures('CHF3MTD156N', 'LES')
 
 
+def usd_immediate():
+    """
+    Read and parse CSV file with Fed's Fund effective rate
+    (Could also be loaded from DB)
+
+    :return:    List of tuples (date, float)
+    """
+    reader = csv.reader(open('./resources/Norgate/data/Futures/Cash/Text/$FFYE.csv'), delimiter=',', quotechar='"')
+    rows = [row for row in reader if re.match('^[a-zA-Z0-9]', row[0])]
+    result = [(dt.date(int(r[0][:4]), int(r[0][4:6]), int(r[0][6:])), r[4]) for r in rows]
+
+    return result
+
+
 if __name__ == '__main__':
     months = {k: i for i, k in enumerate(calendar.month_abbr) if k}
     mysql_connection = mysql.connect(
@@ -331,4 +343,5 @@ if __name__ == '__main__':
     # jpy_immediate()
     # jpy_three_months()
     # chf_immediate()
-    chf_three_months()
+    # chf_three_months()
+    usd_immediate()
