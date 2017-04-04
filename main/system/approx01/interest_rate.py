@@ -10,6 +10,14 @@ class InterestRate(object):
         self.__currency_code = currency_code
         self.__data = []
 
+    def code(self):
+        """
+        Return currency symbol
+
+        :return:    String - symbol of the currency
+        """
+        return self.__currency_code
+
     def load_data(self, connection):
         """
         Load data from DB

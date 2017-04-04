@@ -39,10 +39,10 @@ def main(universe_name):
         Risk(risk_position_sizing),
         account,  # TODO access from broker?
         portfolio,  # TODO access from broker?
-        Broker(account, portfolio, commission, investment_universe)
+        Broker(account, portfolio, commission, investment_universe, rates)
     )
     map(lambda r: r.load_data(connection), rates)
-    # timer.start()  # TODO start after data is loaded
+    timer.start()  # TODO start after data is loaded
 
 if __name__ == '__main__':
     if len(sys.argv) == 2 and len(sys.argv[1]):

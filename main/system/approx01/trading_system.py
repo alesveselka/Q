@@ -39,8 +39,8 @@ class TradingSystem(EventDispatcher):
         # start_date = data[1]
         start_date = datetime.date(2016, 1, 1)
         now = datetime.datetime.now()
-        today = datetime.date(now.year, now.month, now.day)
-        # today = datetime.date(2016, 10, 1)
+        # today = datetime.date(now.year, now.month, now.day)
+        today = datetime.date(2016, 10, 20)
 
         print '_on_market_data:', len(markets), start_date, today
 
@@ -185,10 +185,8 @@ class TradingSystem(EventDispatcher):
                     # TODO sync via events
                     self.__broker.mark_to_market(date)
                     self.__broker.translate_fx_balances(date, previous_date)  # TODO write tests!!!
+                    self.__broker.charge_interest(date, previous_date)
 
-                    # TODO apply interest
-
-                    # TODO interests
                     # TODO Fx hedge
                     # TODO cash management (3Mo IR?)
 

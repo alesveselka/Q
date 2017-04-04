@@ -63,6 +63,14 @@ class Account(object):
         margin = reduce(lambda t, k: t + self.base_value(self.__margin_loan_balances.get(k), k), self.__margin_loan_balances.keys(), 0)
         return balance - margin
 
+    def margin_loan_currencies(self):
+        """
+        Return list of currencies the account have margin loans
+
+        :return:    List of strings, each representing currency symbol
+        """
+        return self.__margin_loan_balances.keys()
+
     def margin_loan_balance(self, currency, date=None):
         """
         Return margin loan balance for currency Fx passed in
