@@ -72,7 +72,7 @@ class Broker(object):
 
             self.__account.add_transaction(transaction2)
 
-            print transaction2, float(self.__account.equity()), float(self.__account.available_funds())
+            # print transaction2, float(self.__account.equity()), float(self.__account.available_funds())
 
             self.__portfolio.remove_position(position)
         else:
@@ -90,7 +90,7 @@ class Broker(object):
 
                 self.__account.add_transaction(transaction1)
 
-                print transaction1, float(self.__account.equity()), float(self.__account.available_funds())
+                # print transaction1, float(self.__account.equity()), float(self.__account.available_funds())
 
                 transaction2 = Transaction(
                     TransactionType.COMMISSION,
@@ -136,7 +136,7 @@ class Broker(object):
 
             print transaction, float(self.__account.equity()), float(self.__account.available_funds())
 
-    def translate_fx_balances(self, date, previous_day):
+    def translate_fx_balances(self, date, previous_date):
         base_currency = self.__account.base_currency()
         for currency in [c for c in self.__account.fx_balance_currencies() if c != base_currency]:
             pair = self.__investment_universe.currency_pair('%s%s' % (base_currency, currency))
@@ -144,7 +144,7 @@ class Broker(object):
             rate = pair[0].data(end_date=date)[-1][4] if len(pair) else Decimal(1)
             prior_rate = pair[0].data(end_date=date)[-2][4] if len(pair) else rate
             rate_difference = rate - prior_rate
-            balance = self.__account.fx_balance(currency, previous_day)
+            balance = self.__account.fx_balance(currency, previous_date)
             translation = balance * rate_difference
 
             if balance:
@@ -180,7 +180,7 @@ class Broker(object):
                 )
                 self.__account.add_transaction(debit_transaction)
 
-                print debit_transaction, float(self.__account.equity()), float(self.__account.available_funds())
+                # print debit_transaction, float(self.__account.equity()), float(self.__account.available_funds())
 
                 credit_transaction = Transaction(
                     TransactionType.MARGIN_LOAN,
@@ -192,27 +192,24 @@ class Broker(object):
                 )
                 self.__account.add_transaction(credit_transaction)
 
-                print credit_transaction, float(self.__account.equity()), float(self.__account.available_funds())
+                # print credit_transaction, float(self.__account.equity()), float(self.__account.available_funds())
 
     def charge_interest(self, date, previous_date):
         """
-        Charge interest on margin loan balances
+        Charge interest on the account's margin loan balances
 
         :param date:            Date of the charge
         :param previous_date:   Date of interest calculation (previous date for overnight margins)
         """
-        # charge interest on debit margin balances
-        # pay interest on credit balances
-        # TODO add/subtract spread to the BM (benchmark interest)
         days = 365
         base_currency = self.__account.base_currency()
         for currency in [c for c in self.__account.margin_loan_currencies() if c != base_currency]:
             spread = Decimal(2.0)
-            benchmark_interest = [r for r in self.__interest_rates if r.code() == currency][0]
-            rate = (benchmark_interest.immediate_rate(previous_date) + spread) / 100
             balance = self.__account.margin_loan_balance(currency, previous_date)
 
             if balance:
+                benchmark_interest = [r for r in self.__interest_rates if r.code() == currency][0]
+                rate = (benchmark_interest.immediate_rate(previous_date) + spread) / 100
                 amount = balance * rate / days
 
                 transaction = Transaction(
@@ -222,6 +219,37 @@ class Broker(object):
                     amount,
                     currency,
                     'Charge %.2f(%s) interest on %.2f margin' % (amount, currency, balance)
+                )
+                self.__account.add_transaction(transaction)
+
+                print transaction, float(self.__account.equity()), float(self.__account.available_funds())
+
+    def pay_interest(self, date, previous_date):
+        """
+        Pay interest to the account's cash balances
+
+        :param date:            Date of the charge
+        :param previous_date:   Date of interest calculation (previous date for overnight margins)
+        """
+        days = 365
+        for currency in [c for c in self.__account.fx_balance_currencies()]:
+            spread = Decimal(0.5)
+            # TODO pass in in config
+            minimums = {'AUD': 14000, 'CAD': 14000, 'CHF': 100000, 'EUR': 100000, 'GBP': 8000, 'JPY': 11000000, 'USD': 10000}
+            balance = self.__account.fx_balance(currency, previous_date)
+
+            if balance - minimums[currency] > 0:
+                benchmark_interest = [r for r in self.__interest_rates if r.code() == currency][0]
+                rate = (benchmark_interest.immediate_rate(previous_date) - spread) / 100
+                amount = (balance - minimums[currency]) * rate / days
+
+                transaction = Transaction(
+                    TransactionType.INTEREST,
+                    AccountAction.CREDIT if amount > 0 else AccountAction.DEBIT,
+                    date,
+                    abs(amount),
+                    currency,
+                    'Pay %.2f(%s) interest (@ %.4f) on %.2f(%s) balance' % (amount, currency, rate, balance - minimums[currency], currency)
                 )
                 self.__account.add_transaction(transaction)
 

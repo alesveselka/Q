@@ -186,9 +186,11 @@ class TradingSystem(EventDispatcher):
                     self.__broker.mark_to_market(date)
                     self.__broker.translate_fx_balances(date, previous_date)  # TODO write tests!!!
                     self.__broker.charge_interest(date, previous_date)
+                    self.__broker.pay_interest(date, previous_date)
 
                     # TODO Fx hedge
                     # TODO cash management (3Mo IR?)
+                    # TODO implement recent negative interest charged on specific currencies
 
         total = 0.0
         commissions = 0.0
