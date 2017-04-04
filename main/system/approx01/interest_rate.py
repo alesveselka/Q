@@ -1,25 +1,59 @@
 #!/usr/bin/python
 
+import datetime as dt
+
 
 class InterestRate(object):
 
     def __init__(self, currency_id, currency_code):
         self.__currency_id = currency_id
         self.__currency_code = currency_code
-        self.__data = None
+        self.__data = []
 
     def load_data(self, connection):
+        """
+        Load data from DB
+
+        :param connection:  MySQLdb connection
+        """
         cursor = connection.cursor()
         sql = """
             SELECT price_date, immediate_rate, three_months_rate
             FROM interest_rate
-            WHERE currency_id = '%s';
+            WHERE currency_id = '%s'
+            ORDER BY price_date ASC;
         """
 
         cursor.execute(sql % self.__currency_id)
         self.__data = cursor.fetchall()
 
-        print self.__currency_code, len(self.__data), self.__data[-1]
+    def data(self, start_date=dt.date(1900, 1, 1), end_date=dt.date(9999, 12, 31)):
+        """
+        Return list of data in the range specified by starting and ending dates passed in
+
+        :param start_date:  Date, start fo the data range
+        :param end_date:    Date, end of the data range
+        :return:            List of data
+        """
+        return [d for d in self.__data if start_date <= d[0] <= end_date]
+
+    def immediate_rate(self, date):
+        """
+        Find and returns immediate rate effective on the date passed in
+
+        :param date:    Date of the rate
+        :return:        Immediate Rate effective on the date
+        """
+        return [d[1] for d in self.__data if d[0] <= date and d[1] is not None][-1]
+
+    def three_month_rate(self, date):
+        """
+        Find and returns three-month rate effective on the date passed in
+
+        :param date:    Date of the rate
+        :return:        Three-Month Rate effective on the date
+        """
+        return [d[2] for d in self.__data if d[0] <= date and d[2] is not None][-1]
 
     def __str__(self):
         return '%s, %s' % (self.__currency_code, self.__currency_id)
