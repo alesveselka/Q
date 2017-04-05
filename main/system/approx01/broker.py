@@ -5,7 +5,6 @@ from enum import OrderType
 from enum import OrderResultType
 from enum import TransactionType
 from enum import AccountAction
-from enum import Currency
 from transaction import Transaction
 from position import Position
 from order_result import OrderResult
@@ -15,11 +14,11 @@ from decimal import Decimal
 
 class Broker(object):
 
-    def __init__(self, account, portfolio, commission, investment_universe, interest_rates):
+    def __init__(self, account, portfolio, commission, currency_pairs, interest_rates):
         self.__account = account
         self.__portfolio = portfolio
         self.__commission = commission
-        self.__investment_universe = investment_universe
+        self.__currency_pairs = currency_pairs
         self.__interest_rates = interest_rates
         self.__orders = []
 
@@ -139,7 +138,8 @@ class Broker(object):
     def translate_fx_balances(self, date, previous_date):
         base_currency = self.__account.base_currency()
         for currency in [c for c in self.__account.fx_balance_currencies() if c != base_currency]:
-            pair = self.__investment_universe.currency_pair('%s%s' % (base_currency, currency))
+            code = '%s%s' % (base_currency, currency)
+            pair = [cp for cp in self.__currency_pairs if cp.code() == code]
             # TODO remove hard-coded values
             rate = pair[0].data(end_date=date)[-1][4] if len(pair) else Decimal(1)
             prior_rate = pair[0].data(end_date=date)[-2][4] if len(pair) else rate
@@ -222,7 +222,7 @@ class Broker(object):
                 )
                 self.__account.add_transaction(transaction)
 
-                print transaction, float(self.__account.equity()), float(self.__account.available_funds())
+                # print transaction, float(self.__account.equity()), float(self.__account.available_funds())
 
     def pay_interest(self, date, previous_date):
         """
@@ -253,4 +253,4 @@ class Broker(object):
                 )
                 self.__account.add_transaction(transaction)
 
-                print transaction, float(self.__account.equity()), float(self.__account.available_funds())
+                # print transaction, float(self.__account.equity()), float(self.__account.available_funds())

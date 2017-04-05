@@ -18,6 +18,11 @@ class DataSeries(EventDispatcher):
         self.__interest_rates = None
 
     def futures(self):
+        """
+        Load futures data if not already loaded
+
+        :return:    list of Market objects
+        """
         if self.__futures is None:
             cursor = self.__connection.cursor()
             market_query = """
@@ -43,6 +48,11 @@ class DataSeries(EventDispatcher):
         return self.__futures
 
     def currency_pairs(self):
+        """
+        Load currency_pair data if not already loaded
+
+        :return:    list of CurrencyPair objects
+        """
         if self.__currency_pairs is None:
             cursor = self.__connection.cursor()
             cursor.execute("""
@@ -51,11 +61,16 @@ class DataSeries(EventDispatcher):
                 WHERE g.name = 'Primary';
             """)
             start_data_date = self.__investment_universe.start_data_date()
-            self.__currency_pairs = [CurrencyPair(self.__connection, start_data_date, *c) for c in cursor.fetchall()]
+            self.__currency_pairs = [CurrencyPair(start_data_date, *c) for c in cursor.fetchall()]
 
         return self.__currency_pairs
 
     def interest_rates(self):
+        """
+        Load interest_rate data if not already loaded
+
+        :return: list of InterestDate objects
+        """
         if self.__interest_rates is None:
             cursor = self.__connection.cursor()
             cursor.execute("""
