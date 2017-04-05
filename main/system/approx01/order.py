@@ -32,3 +32,14 @@ class Order(object):
 
     def market_volume(self):
         return self.__market_volume
+
+    def __str__(self):
+        return 'Order: %d x %s in %s on %s, %.4f, atr: %.4f, vol: %.4f' % (
+            self.__quantity,
+            self.__type,
+            self.__market.code(),
+            str(self.__date),
+            self.__price,
+            self.__market_atr,
+            self.__market_volume
+        )
