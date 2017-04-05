@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 import datetime as dt
+from decimal import Decimal
 
 
 class InterestRate(object):
@@ -52,7 +53,8 @@ class InterestRate(object):
         :param date:    Date of the rate
         :return:        Immediate Rate effective on the date
         """
-        return [d[1] for d in self.__data if d[0] <= date and d[1] is not None][-1]
+        rate = [d[1] for d in self.__data if d[0] <= date and d[1] is not None]
+        return rate[-1] if len(rate) else self.three_month_rate(date)
 
     def three_month_rate(self, date):
         """
@@ -61,7 +63,8 @@ class InterestRate(object):
         :param date:    Date of the rate
         :return:        Three-Month Rate effective on the date
         """
-        return [d[2] for d in self.__data if d[0] <= date and d[2] is not None][-1]
+        rate = [d[2] for d in self.__data if d[0] <= date and d[2] is not None]
+        return rate[-1] if len(rate) else Decimal(1)
 
     def __str__(self):
         return '%s, %s' % (self.__currency_code, self.__currency_id)
