@@ -8,14 +8,12 @@ from decimal import Decimal
 
 class Account(object):
 
-    def __init__(self, initial_balance, base_currency, investment_universe):
-        # self.__balance = initial_balance  # Update MTM, Cash, Bonds on new market data
+    def __init__(self, initial_balance, base_currency, currency_pairs):
         self.__base_currency = base_currency
-        self.__investment_universe = investment_universe  # TODO don't need it - just currency pairs
+        self.__currency_pairs = currency_pairs
 
-        # self.__securities = [CZK, USD, ...]  # Cash, Commissions, Interest on Credit
-        self.__fx_balances = defaultdict(Decimal)  # MTM in Fx until transferred, Interest on Debit (from Margin Loans)
-        self.__margin_loan_balances = defaultdict(Decimal)  # Margins
+        self.__fx_balances = defaultdict(Decimal)
+        self.__margin_loan_balances = defaultdict(Decimal)
         self.__transactions = []
 
         self.__fx_balances[base_currency] = initial_balance
@@ -36,7 +34,8 @@ class Account(object):
         :param currency:    Quote currency in the pair
         :return:            Converted amount in the account-base-currency
         """
-        pair = self.__investment_universe.currency_pair('%s%s' % (self.__base_currency, currency))
+        code = '%s%s' % (self.__base_currency, currency)
+        pair = [cp for cp in self.__currency_pairs if cp.code() == code]
         # TODO use specific date, not just last day in data!
         # TODO remove hard-coded values
         rate = pair[0].data()[-1][4] if len(pair) else Decimal(1)
@@ -129,6 +128,7 @@ class Account(object):
 
         :param transaction:     Transaction object to be added
         """
+        # TODO persist
         self.__transactions.append(transaction)
 
         {AccountAction.CREDIT: self.__credit, AccountAction.DEBIT: self.__debit}[transaction.account_action()](
