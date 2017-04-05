@@ -2,8 +2,9 @@
 
 
 class EventType:
-    MARKET_DATA = 'MARKET_DATA'
-    HEARTBEAT = 'HEARTBEAT'
+    MARKET_OPEN = 'MARKET_OPEN'
+    MARKET_CLOSE = 'MARKET_CLOSE'
+    EOD_DATA = 'EOD_DATA'
 
 
 class Study:

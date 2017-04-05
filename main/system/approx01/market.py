@@ -1,17 +1,16 @@
 #!/usr/bin/python
 
 import time
+import datetime as dt
 from math import ceil
 from math import floor
 from study import *
 from enum import Study
 
 
-class Market(object):
+class Market(object):  # TODO rename to Future?
 
     def __init__(self,
-                 connection,
-                 start_contract_date,
                  start_data_date,
                  market_id,
                  name,
@@ -24,8 +23,6 @@ class Market(object):
                  point_value,
                  margin):
 
-        self.__connection = connection
-        self.__start_contract_date = start_contract_date
         self.__start_data_date = start_data_date
         self.__id = market_id
         self.__name = name
@@ -41,10 +38,8 @@ class Market(object):
         self.__data = []
         self.__studies = {}
 
-    def __back_adjusted_data(self):
-        # TODO 'query' object?
-        # TODO move to 'investment_universe'? Do I need the Class?
-        cursor = self.__connection.cursor()
+    def load_data(self, connection):
+        cursor = connection.cursor()
         code = ''.join([self.__code, '2']) if 'C' in self.__data_codes else self.__code
         sql = """
             SELECT code, price_date, open_price, high_price, low_price, settle_price, volume
@@ -60,14 +55,6 @@ class Market(object):
         # TODO update more realistically
         self.__margin_multiple = (self.__margin if self.__margin else Decimal(0.1)) / (self.__data[-1][5] * self.__point_value)
 
-    def update_studies(self):
-        self.__back_adjusted_data()
-
-        # self.slippage(
-        #     SMA([(d[1], d[6]) for d in self.__data], 50)[-1][1],
-        #     ATR([(d[1], d[3], d[4], d[5]) for d in self.__data], 50)[-1][1]
-        # )
-
     def code(self):
         return self.__code
 
@@ -77,8 +64,7 @@ class Market(object):
     def point_value(self):
         return self.__point_value
 
-    # TODO specify default values as in CurrencyPair
-    def data(self, start_date, end_date):
+    def data(self, start_date=dt.date(1900, 1, 1), end_date=dt.date(9999, 12, 31)):
         """
         Filter and return data that fall in between dates passed in
 

@@ -5,6 +5,7 @@ from enum import OrderType
 from enum import OrderResultType
 from enum import TransactionType
 from enum import AccountAction
+from enum import EventType
 from transaction import Transaction
 from position import Position
 from order_result import OrderResult
@@ -14,7 +15,8 @@ from decimal import Decimal
 
 class Broker(object):
 
-    def __init__(self, account, portfolio, commission, currency_pairs, interest_rates):
+    def __init__(self, timer, account, portfolio, commission, currency_pairs, interest_rates):
+        self.__timer = timer
         self.__account = account
         self.__portfolio = portfolio
         self.__commission = commission
@@ -22,13 +24,38 @@ class Broker(object):
         self.__interest_rates = interest_rates
         self.__orders = []
 
+    def subscribe(self):
+        self.__timer.on(EventType.EOD_DATA, self.__on_eod_data)
+        self.__timer.on(EventType.MARKET_OPEN, self.__on_market_open)
+        self.__timer.on(EventType.MARKET_CLOSE, self.__on_market_close)
+
+    def __on_eod_data(self, date, previous_date):
+        pass
+
+    def __on_market_open(self, date, previous_date):
+        pass
+
+    def __on_market_close(self, date, previous_date):
+        print '__on_market_close', date, previous_date
+
+        # TODO also check if there is market data for this date, same as in trading systems (AND set previous date accordingly? - different than market date)
+        # TODO do I need to do all these if there is no position open?
+        self.mark_to_market(date)
+        self.translate_fx_balances(date, previous_date)  # TODO write tests!!!
+        self.charge_interest(date, previous_date)
+        self.pay_interest(date, previous_date)
+
+        # TODO Fx hedge
+        # TODO cash management (3Mo IR?)
+        # TODO implement recent negative interest charged on specific currencies
+
     def transfer(self, order, margin):
         market = order.market()
         slippage = Decimal(market.slippage(order.market_volume(), order.market_atr()))
         commission = self.__commission * order.quantity()
         price = (order.price() + slippage) if (order.type() == OrderType.BTO or order.type() == OrderType.BTC) else (order.price() - slippage)  # TODO pass in slippage separe?
         positions_in_market = self.__portfolio.positions_in_market(market)
-
+        print 'new order: ', order, ', already open positions: ', positions_in_market
         if len(positions_in_market):
             # -to-close transactions TODO do I need this check? The orders already know this!
 
@@ -76,6 +103,7 @@ class Broker(object):
             self.__portfolio.remove_position(position)
         else:
             # -to-open transactions
+            print 'Enough funds? ', self.__account.available_funds(), self.__account.base_value(margin + commission, market.currency())
             if self.__account.available_funds() > self.__account.base_value(margin + commission, market.currency()):
 
                 transaction1 = Transaction(
@@ -89,7 +117,7 @@ class Broker(object):
 
                 self.__account.add_transaction(transaction1)
 
-                # print transaction1, float(self.__account.equity()), float(self.__account.available_funds())
+                print transaction1, float(self.__account.equity()), float(self.__account.available_funds())
 
                 transaction2 = Transaction(
                     TransactionType.COMMISSION,
@@ -120,7 +148,7 @@ class Broker(object):
     def mark_to_market(self, date):
         for p in self.__portfolio.positions():
             market = p.market()
-            price = market.data(date, date)[-1][5]
+            price = market.data(end_date=date)[-1][5]
             mtm = p.mark_to_market(date, price) * Decimal(p.quantity()) * p.market().point_value()
             transaction = Transaction(
                 TransactionType.MTM_TRANSACTION if p.date() == date else TransactionType.MTM_POSITION,
@@ -140,14 +168,15 @@ class Broker(object):
         for currency in [c for c in self.__account.fx_balance_currencies() if c != base_currency]:
             code = '%s%s' % (base_currency, currency)
             pair = [cp for cp in self.__currency_pairs if cp.code() == code]
+            pair_data = pair[0].data(end_date=date)
             # TODO remove hard-coded values
-            rate = pair[0].data(end_date=date)[-1][4] if len(pair) else Decimal(1)
-            prior_rate = pair[0].data(end_date=date)[-2][4] if len(pair) else rate
+            rate = pair_data[-1][4] if len(pair_data) else Decimal(1)
+            prior_rate = pair_data[-2][4] if len(pair_data) else rate
             rate_difference = rate - prior_rate
             balance = self.__account.fx_balance(currency, previous_date)
             translation = balance * rate_difference
 
-            if balance:
+            if abs(translation):
                 transaction = Transaction(
                     TransactionType.FX_BALANCE_TRANSLATION,
                     AccountAction.CREDIT if translation > 0 else AccountAction.DEBIT,

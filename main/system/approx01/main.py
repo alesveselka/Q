@@ -16,7 +16,7 @@ from decimal import Decimal
 
 
 def main(universe_name):
-    timer = Timer(0.0)
+    timer = Timer()
     risk_position_sizing = Decimal(0.002)
     commission = 10.0  # TODO convert to base-currency
 
@@ -24,20 +24,27 @@ def main(universe_name):
     investment_universe.load_data()
 
     data_series = DataSeries(investment_universe, connection)
+    futures = data_series.futures()
     currency_pairs = data_series.currency_pairs()
     interest_rates = data_series.interest_rates()
     account = Account(Decimal(1e6), Currency.EUR, currency_pairs)
     portfolio = Portfolio()
+    broker = Broker(timer, account, portfolio, commission, currency_pairs, interest_rates)
     system = TradingSystem(
-        investment_universe,
+        timer,
+        futures,
         Risk(risk_position_sizing),
         account,  # TODO access from broker?
         portfolio,  # TODO access from broker?
-        Broker(account, portfolio, commission, currency_pairs, interest_rates)
+        broker
     )
+    map(lambda f: f.load_data(connection), futures)
     map(lambda cp: cp.load_data(connection), currency_pairs)
     map(lambda r: r.load_data(connection), interest_rates)
-    timer.start()  # TODO start after data is loaded
+
+    system.subscribe()
+    broker.subscribe()
+    timer.start(investment_universe.start_data_date())
 
 if __name__ == '__main__':
     if len(sys.argv) == 2 and len(sys.argv[1]):
