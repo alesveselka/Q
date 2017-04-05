@@ -1,74 +1,58 @@
 #!/usr/bin/python
 
 
-def enum(name, **enums):
-    result = type(name, (), enums)
-    result.items = enums.items()
-    return result
+class EventType:
+    MARKET_DATA = 'MARKET_DATA'
+    HEARTBEAT = 'HEARTBEAT'
 
 
-EventType = enum(
-    'EventType',
-    MARKET_DATA='MARKET_DATA',
-    HEARTBEAT='HEARTBEAT'
-)
+class Study:
+    HHLL = 'HHLL'
+    SMA = 'SMA'
+    EMA = 'EMA'
+    ATR = 'ATR'
 
-Study = enum(
-    'Study',
-    HHLL='HHLL',
-    SMA='SMA',
-    EMA='EMA',
-    ATR='ATR'
-)
 
-Direction = enum(
-    'Direction',
-    LONG='LONG',
-    SHORT='SHORT'
-)
+class Direction:
+    LONG = 'LONG'
+    SHORT = 'SHORT'
 
-SignalType = enum(
-    'SignalType',
-    ENTER='ENTER',
-    EXIT='EXIT'
-)
 
-Currency = enum(
-    'Currency',
-    AUD='AUD',
-    GBP='GBP',
-    CAD='CAD',
-    EUR='EUR',
-    JPY='JPY',
-    CHF='CHF',
-    USD='USD'
-)
+class SignalType:
+    ENTER = 'ENTER'
+    EXIT = 'EXIT'
 
-OrderType = enum(
-    'OrderType',
-    BTO='BTO',
-    BTC='BTC',
-    STO='STO',
-    STC='STC',
-)
 
-OrderResultType = enum(
-    'OrderResultType',
-    FILLED='FILLED'
-)
+class Currency:
+    AUD = 'AUD'
+    GBP = 'GBP'
+    CAD = 'CAD'
+    EUR = 'EUR'
+    JPY = 'JPY'
+    CHF = 'CHF'
+    USD = 'USD'
 
-TransactionType = enum(
-    'TransactionType',
-    MTM_TRANSACTION='MTM Transaction',
-    MTM_POSITION='MTM Position',
-    FX_BALANCE_TRANSLATION='Fx Balance Translation',
-    COMMISSION='Commission',
-    INTEREST='Interest',
-    MARGIN_LOAN='Margin Loan'
-)
 
-AccountAction = enum(
-    'AccountAction',
-    CREDIT='CREDIT',
-    DEBIT='DEBIT'
-)
+class OrderType:
+    BTO = 'BTO'
+    BTC = 'BTC'
+    STO = 'STO'
+    STC = 'STC'
+
+
+class OrderResultType:
+    FILLED = 'FILLED'
+
+
+class TransactionType:
+    MTM_TRANSACTION = 'MTM Transaction'
+    MTM_POSITION = 'MTM Position'
+    FX_BALANCE_TRANSLATION = 'Fx Balance Translation'
+    COMMISSION = 'Commission'
+    INTEREST = 'Interest'
+    MARGIN_LOAN = 'Margin Loan'
+
+
+class AccountAction:
+    CREDIT = 'CREDIT'
+    DEBIT = 'DEBIT'
