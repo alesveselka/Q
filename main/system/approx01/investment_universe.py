@@ -48,4 +48,4 @@ class InvestmentUniverse(object):
         data = cursor.fetchone()
         self.__start_contract_date = data[0]
         self.__start_data_date = data[1]
-        self.__market_ids = data.split(',')
+        self.__market_ids = data[2].split(',')
