@@ -103,6 +103,7 @@ class Broker(object):
             print transaction2, float(self.__account.equity()), float(self.__account.available_funds())
 
             self.__portfolio.remove_position(position)
+            # TODO transfer FX balances?
         else:
             # -to-open transactions
             print 'Enough funds? ', self.__account.available_funds(), self.__account.base_value(margin + commission, market.currency())
@@ -212,7 +213,7 @@ class Broker(object):
                     if price_date == date:  # TODO do not equal => non-trading day (perhaps holidays? (e.g.: 1992-05-25 - Memorial Day))
                         margin = market.margin(market_data[-1][5]) * p.quantity()
                         currency = market.currency()
-                        margin_loans_to_close[currency] -= Decimal(p.margins()[-1][1])
+                        margin_loans_to_close[currency] += Decimal(p.margins()[-1][1])
                         margin_loans_to_open[currency] += Decimal(margin)
                         p.add_margin(date, margin)
 
