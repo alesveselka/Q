@@ -40,12 +40,11 @@ class Broker(object):
 
         # TODO also check if there is market data for this date, same as in trading systems (AND set previous date accordingly? - different than market date)
         # TODO do I need to do all these if there is no position open?
-        # TODO can be all private!
-        self.mark_to_market(date)
-        # self.translate_fx_balances(date, previous_date)  # TODO write tests!!!
-        # self.charge_interest(date, previous_date)
-        # self.pay_interest(date, previous_date)
-        self.update_margin_loans(date)
+        self.__mark_to_market(date)
+        self.__translate_fx_balances(date, previous_date)  # TODO write tests!!!
+        self.__charge_interest(date, previous_date)
+        self.__pay_interest(date, previous_date)
+        self.__update_margin_loans(date)
 
         # TODO Fx hedge
         # TODO cash management (3Mo IR?)
@@ -149,7 +148,7 @@ class Broker(object):
 
         return OrderResult(OrderResultType.FILLED, order.date(), price, commission)
 
-    def mark_to_market(self, date):
+    def __mark_to_market(self, date):
         for p in self.__portfolio.positions():
             market = p.market()
             market_data = market.data(end_date=date)
@@ -171,7 +170,7 @@ class Broker(object):
 
                 print transaction, float(self.__account.equity()), float(self.__account.available_funds())
 
-    def translate_fx_balances(self, date, previous_date):
+    def __translate_fx_balances(self, date, previous_date):
         base_currency = self.__account.base_currency()
         for currency in [c for c in self.__account.fx_balance_currencies() if c != base_currency]:
             code = '%s%s' % (base_currency, currency)
@@ -198,7 +197,7 @@ class Broker(object):
 
                 print transaction, float(self.__account.equity()), float(self.__account.available_funds())
 
-    def update_margin_loans(self, date):
+    def __update_margin_loans(self, date):
         if len(self.__portfolio.positions()):
             margin_loans_to_open = defaultdict(Decimal)
             margin_loans_to_close = defaultdict(Decimal)
@@ -243,7 +242,7 @@ class Broker(object):
 
                 print credit_transaction, float(self.__account.equity()), float(self.__account.available_funds())
 
-    def charge_interest(self, date, previous_date):
+    def __charge_interest(self, date, previous_date):
         """
         Charge interest on the account's margin loan balances
 
@@ -273,7 +272,7 @@ class Broker(object):
 
                 print transaction, float(self.__account.equity()), float(self.__account.available_funds())
 
-    def pay_interest(self, date, previous_date):
+    def __pay_interest(self, date, previous_date):
         """
         Pay interest to the account's cash balances
 
@@ -285,7 +284,7 @@ class Broker(object):
             spread = Decimal(0.5)
             # TODO pass in in config
             minimums = {'AUD': 14000, 'CAD': 14000, 'CHF': 100000, 'EUR': 100000, 'GBP': 8000, 'JPY': 11000000, 'USD': 10000}
-            balance = self.__account.fx_balance(currency, previous_date)
+            balance = self.__account.fx_balance(currency, previous_date)  # TODO minus blocked margins?
 
             if balance - minimums[currency] > 0:
                 benchmark_interest = [r for r in self.__interest_rates if r.code() == currency][0]
