@@ -5,7 +5,7 @@ from enum import Direction
 
 class Position(object):
 
-    def __init__(self, market, direction, date, order_price, price, quantity):
+    def __init__(self, market, direction, date, order_price, price, quantity, margin):
         self.__market = market
         self.__direction = direction
         self.__date = date
@@ -13,6 +13,7 @@ class Position(object):
         self.__price = price
         self.__quantity = quantity
         self.__pnls = []
+        self.__margins = [margin]
 
     def market(self):
         return self.__market
@@ -31,6 +32,12 @@ class Position(object):
 
     def quantity(self):
         return self.__quantity
+
+    def margins(self):
+        return self.__margins
+
+    def add_margin(self, date, margin):
+        self.__margins.append((date, margin))
 
     def mark_to_market(self, date, price):
         """

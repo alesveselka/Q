@@ -93,6 +93,7 @@ class Market(object):  # TODO rename to Future?
         :return:                Number representing slippage in market points
         """
         # TODO remove hard-coded slippage-map (pass in as dependency)
+        # TODO factor in quantity?
         slippage_atr = filter(lambda s: s.get('min') <= average_volume < s.get('max'), [
             {'atr': 2, 'min': 0, 'max': 100},
             {'atr': 1, 'min': 100, 'max': 1000},

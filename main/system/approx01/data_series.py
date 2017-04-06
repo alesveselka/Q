@@ -41,7 +41,7 @@ class DataSeries(EventDispatcher):
             """
             start_data_date = self.__investment_universe.start_data_date()
             self.__futures = []
-            # for market_id in [int(data[2].split(',')[37])]:  # JY = 37@25Y, W = 16@25Y, ES = 74@15Y
+            # for market_id in [int(self.__investment_universe.market_ids()[37])]:  # JY = 37@25Y, W = 16@25Y, ES = 74@15Y
             for market_id in self.__investment_universe.market_ids():
                 cursor.execute(market_query % market_id)
                 self.__futures.append(Market(start_data_date, market_id, *cursor.fetchone()))

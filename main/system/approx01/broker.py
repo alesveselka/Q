@@ -40,10 +40,12 @@ class Broker(object):
 
         # TODO also check if there is market data for this date, same as in trading systems (AND set previous date accordingly? - different than market date)
         # TODO do I need to do all these if there is no position open?
+        # TODO can be all private!
         self.mark_to_market(date)
-        self.translate_fx_balances(date, previous_date)  # TODO write tests!!!
-        self.charge_interest(date, previous_date)
-        self.pay_interest(date, previous_date)
+        # self.translate_fx_balances(date, previous_date)  # TODO write tests!!!
+        # self.charge_interest(date, previous_date)
+        # self.pay_interest(date, previous_date)
+        self.update_margin_loans(date)
 
         # TODO Fx hedge
         # TODO cash management (3Mo IR?)
@@ -93,12 +95,12 @@ class Broker(object):
                 order.date(),
                 margin,
                 market.currency(),
-                'Close %.2f(%s) margin loan' % (margin, market.currency())
+                'Close %.2f(%s) margin loan (REMOVE)' % (margin, market.currency())
             )
 
             self.__account.add_transaction(transaction2)
 
-            # print transaction2, float(self.__account.equity()), float(self.__account.available_funds())
+            print transaction2, float(self.__account.equity()), float(self.__account.available_funds())
 
             self.__portfolio.remove_position(position)
         else:
@@ -112,7 +114,7 @@ class Broker(object):
                     order.date(),
                     margin,
                     market.currency(),
-                    'Take %.2f(%s) margin loan' % (margin, market.currency())
+                    'Take %.2f(%s) margin loan (ADD)' % (margin, market.currency())
                 )
 
                 self.__account.add_transaction(transaction1)
@@ -139,7 +141,8 @@ class Broker(object):
                     order.date(),
                     order.price(),
                     price,
-                    order.quantity())
+                    order.quantity(),
+                    (order.date(), margin))
 
                 self.__portfolio.add_position(position)
 
@@ -148,20 +151,24 @@ class Broker(object):
     def mark_to_market(self, date):
         for p in self.__portfolio.positions():
             market = p.market()
-            price = market.data(end_date=date)[-1][5]
-            mtm = p.mark_to_market(date, price) * Decimal(p.quantity()) * p.market().point_value()
-            transaction = Transaction(
-                TransactionType.MTM_TRANSACTION if p.date() == date else TransactionType.MTM_POSITION,
-                AccountAction.CREDIT if mtm > 0 else AccountAction.DEBIT,
-                date,
-                abs(mtm),
-                market.currency(),
-                'MTM %.2f(%s) at %.2f' % (float(mtm), market.currency(), price)
-            )
+            market_data = market.data(end_date=date)
+            price_date = market_data[-1][1]
 
-            self.__account.add_transaction(transaction)
+            if price_date == date:  # TODO do not equal => non-trading day (perhaps holidays? (e.g.: 1992-05-25 - Memorial Day))
+                price = market_data[-1][5]
+                mtm = p.mark_to_market(date, price) * Decimal(p.quantity()) * p.market().point_value()
+                transaction = Transaction(
+                    TransactionType.MTM_TRANSACTION if p.date() == date else TransactionType.MTM_POSITION,
+                    AccountAction.CREDIT if mtm > 0 else AccountAction.DEBIT,
+                    date,
+                    abs(mtm),
+                    market.currency(),
+                    'MTM %.2f(%s) at %.4f' % (float(mtm), market.currency(), price)
+                )
 
-            print transaction, float(self.__account.equity()), float(self.__account.available_funds())
+                self.__account.add_transaction(transaction)
+
+                print transaction, float(self.__account.equity()), float(self.__account.available_funds())
 
     def translate_fx_balances(self, date, previous_date):
         base_currency = self.__account.base_currency()
@@ -190,38 +197,50 @@ class Broker(object):
 
                 print transaction, float(self.__account.equity()), float(self.__account.available_funds())
 
-    def update_margin_loans(self, date, price):
+    def update_margin_loans(self, date):
         if len(self.__portfolio.positions()):
-            margin_loans = defaultdict(Decimal)
+            margin_loans_to_open = defaultdict(Decimal)
+            margin_loans_to_close = defaultdict(Decimal)
 
             for p in self.__portfolio.positions():
-                market = p.market()
-                margin_loans[market.currency()] += Decimal(market.margin(price))
+                if date > p.date():
+                    market = p.market()
+                    market_data = market.data(end_date=date)  # TODO pass in from elsewhere? Multiple query of same thing?
+                    price_date = market_data[-1][1]
 
-            for currency in margin_loans.keys():
+                    # TODO duplicate - same condition in MTM
+                    if price_date == date:  # TODO do not equal => non-trading day (perhaps holidays? (e.g.: 1992-05-25 - Memorial Day))
+                        margin = market.margin(market_data[-1][5]) * p.quantity()
+                        currency = market.currency()
+                        margin_loans_to_close[currency] -= Decimal(p.margins()[-1][1])
+                        margin_loans_to_open[currency] += Decimal(margin)
+                        p.add_margin(date, margin)
+
+            for currency in margin_loans_to_close.keys():
                 debit_transaction = Transaction(
                     TransactionType.MARGIN_LOAN,
                     AccountAction.DEBIT,
                     date,
-                    self.__account.margin_loan_balance(currency),
+                    margin_loans_to_close[currency],
                     currency,
-                    'Close %.2f(%s) margin loan' % (self.__account.margin_loan_balance(currency), currency)
+                    'Close %.2f(%s) margin loan (UPDATE)' % (float(margin_loans_to_close[currency]), currency)
                 )
                 self.__account.add_transaction(debit_transaction)
 
-                # print debit_transaction, float(self.__account.equity()), float(self.__account.available_funds())
+                print debit_transaction, float(self.__account.equity()), float(self.__account.available_funds())
 
+            for currency in margin_loans_to_open.keys():
                 credit_transaction = Transaction(
                     TransactionType.MARGIN_LOAN,
                     AccountAction.CREDIT,
                     date,
-                    margin_loans[currency],
+                    margin_loans_to_open[currency],
                     currency,
-                    'Take %.2f(%s) margin loan' % (float(margin_loans[currency]), currency)
+                    'Take %.2f(%s) margin loan (UPDATE)' % (float(margin_loans_to_open[currency]), currency)
                 )
                 self.__account.add_transaction(credit_transaction)
 
-                # print credit_transaction, float(self.__account.equity()), float(self.__account.available_funds())
+                print credit_transaction, float(self.__account.equity()), float(self.__account.available_funds())
 
     def charge_interest(self, date, previous_date):
         """
@@ -251,7 +270,7 @@ class Broker(object):
                 )
                 self.__account.add_transaction(transaction)
 
-                # print transaction, float(self.__account.equity()), float(self.__account.available_funds())
+                print transaction, float(self.__account.equity()), float(self.__account.available_funds())
 
     def pay_interest(self, date, previous_date):
         """
@@ -282,4 +301,4 @@ class Broker(object):
                 )
                 self.__account.add_transaction(transaction)
 
-                # print transaction, float(self.__account.equity()), float(self.__account.available_funds())
+                print transaction, float(self.__account.equity()), float(self.__account.available_funds())

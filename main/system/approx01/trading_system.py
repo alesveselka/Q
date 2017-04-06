@@ -67,8 +67,6 @@ class TradingSystem(EventDispatcher):  # TODO do I need inherit from ED?
                 close_signals = [s for s in self.__signals if s.type() == SignalType.EXIT]
                 market_positions = [p for p in self.__portfolio.positions() if p.market().code() == m.code()]
 
-                self.__broker.update_margin_loans(date, previous_last_price)  # TODO sync via events
-
                 """
                 Close Positions
                 """
@@ -88,7 +86,7 @@ class TradingSystem(EventDispatcher):  # TODO do I need inherit from ED?
                             atr_short_lookup[-1][1],
                             volume_lookup[-1][1]
                         )
-                        result = self.__broker.transfer(order, m.margin(previous_last_price))
+                        result = self.__broker.transfer(order, m.margin(previous_last_price) * position.quantity())
 
                         # TODO move to broker?
                         trades.append(Trade(
@@ -112,11 +110,11 @@ class TradingSystem(EventDispatcher):  # TODO do I need inherit from ED?
                 if signal in open_signals and not len(market_positions):
                     # for signal in open_signals:
                     # TODO move this calculation to Risk and remove 'account' dependency
-                    quantity = (self.__risk.position_sizing() * self.__account.equity()) / \
-                               Decimal(atr_lookup[-1][1] * self.__account.base_value(m.point_value(), m.currency()))
+                    quantity = floor((self.__risk.position_sizing() * self.__account.equity()) / \
+                               Decimal(atr_lookup[-1][1] * self.__account.base_value(m.point_value(), m.currency())))
 
                     # TODO if 'quantity < 1.0' I can't afford it
-                    if floor(quantity):
+                    if quantity:
                         # TODO move to its own 'operation' object?
                         order = Order(m, {
                             Direction.LONG: OrderType.BTO,
@@ -124,12 +122,12 @@ class TradingSystem(EventDispatcher):  # TODO do I need inherit from ED?
                         }.get(signal.direction()),
                                       date,
                                       open_price,
-                                      floor(quantity),
+                                      quantity,
                                       atr_short_lookup[-1][1],
                                       volume_lookup[-1][1]
                                       )
                         print order
-                        result = self.__broker.transfer(order, m.margin(previous_last_price))
+                        result = self.__broker.transfer(order, m.margin(previous_last_price) * quantity)
 
                         # print 'Open ', position, result.price()
                     else:
@@ -173,10 +171,7 @@ class TradingSystem(EventDispatcher):  # TODO do I need inherit from ED?
                 hhll_lookup = [s for s in hhll_short if s[0] <= date]
                 atr_lookup = [s for s in atr if s[0] <= date]
                 last_price = market_data[-1][5]
-                previous_last_price = market_data[-2][5]
                 market_positions = [p for p in self.__portfolio.positions() if p.market().code() == m.code()]
-
-                self.__broker.update_margin_loans(date, previous_last_price)  # TODO sync via events
 
                 """
                 Close Signals
