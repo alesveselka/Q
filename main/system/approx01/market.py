@@ -33,7 +33,7 @@ class Market(object):  # TODO rename to Future?
         self.__group = group
         self.__tick_value = tick_value
         self.__point_value = point_value
-        self.__margin = margin
+        self.__margin = margin if margin else Decimal(0.1)
         self.__margin_multiple = 0.0
         self.__data = []
         self.__studies = {}
@@ -65,8 +65,9 @@ class Market(object):  # TODO rename to Future?
         self.__data = cursor.fetchall()
 
         # TODO update more realistically
-        self.__margin_multiple = 0.05
-        # self.__margin_multiple = (self.__margin if self.__margin else Decimal(0.1)) / (self.__data[-1][5] * self.__point_value)
+        self.__margin_multiple = (self.__margin / (self.__data[-1][5] * self.__point_value)) \
+            if len(self.__data) \
+            else Decimal(0.1)
 
         return True
 
