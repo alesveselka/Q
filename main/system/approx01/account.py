@@ -36,9 +36,10 @@ class Account(object):
         """
         code = '%s%s' % (self.__base_currency, currency)
         pair = [cp for cp in self.__currency_pairs if cp.code() == code]
+        pair_data = pair[0].data() if len(pair) else []
         # TODO use specific date, not just last day in data!
         # TODO remove hard-coded values
-        rate = pair[0].data()[-1][4] if len(pair) else Decimal(1)
+        rate = pair_data.data()[-1][4] if len(pair_data) else Decimal(1)
         return Decimal(amount) / rate
 
     def equity(self):

@@ -1,11 +1,8 @@
 #!/usr/bin/python
 
-import time
 import datetime as dt
 from math import ceil
-from math import floor
 from study import *
-from enum import Study
 
 
 class Market(object):  # TODO rename to Future?
