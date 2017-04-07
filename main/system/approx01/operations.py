@@ -32,8 +32,8 @@ class Initialize:
         commission = 10.0  # TODO convert to base-currency
 
         now = dt.datetime.now()
-        end_date = dt.date(now.year, now.month, now.day)
-        # end_date = dt.date(1993, 1, 1)
+        # end_date = dt.date(now.year, now.month, now.day)
+        end_date = dt.date(1993, 1, 1)
         timer = Timer()
 
         investment_universe = InvestmentUniverse(investment_universe_name, connection)

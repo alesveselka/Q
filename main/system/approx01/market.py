@@ -65,7 +65,8 @@ class Market(object):  # TODO rename to Future?
         self.__data = cursor.fetchall()
 
         # TODO update more realistically
-        self.__margin_multiple = (self.__margin if self.__margin else Decimal(0.1)) / (self.__data[-1][5] * self.__point_value)
+        self.__margin_multiple = 0.05
+        # self.__margin_multiple = (self.__margin if self.__margin else Decimal(0.1)) / (self.__data[-1][5] * self.__point_value)
 
         return True
 
@@ -135,8 +136,9 @@ class Market(object):  # TODO rename to Future?
 
         :param study_parameters:    List of dictionaries with parameters for each study to calculate
         """
-        for params in study_parameters:
-            self.__studies[params['name']] = params['study'](
-                [tuple(map(lambda c: d[c], params['columns'])) for d in self.__data],
-                params['window']
-            )
+        if len(self.__data):
+            for params in study_parameters:
+                self.__studies[params['name']] = params['study'](
+                    [tuple(map(lambda c: d[c], params['columns'])) for d in self.__data],
+                    params['window']
+                )
