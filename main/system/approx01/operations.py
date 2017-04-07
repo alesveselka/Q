@@ -77,23 +77,27 @@ class Initialize:
         """
         message = 'Loading Futures data ...'
         length = float(len(futures))
-        map(lambda i: self.__log(message, i[0] / length) and i[1].load_data(connection), enumerate(futures))
-        self.__log(message, 1, True)
+        map(lambda i: self.__log(message, i[1].code(), i[0], length) and i[1].load_data(connection),
+            enumerate(futures))
+        self.__log(message, complete=True)
 
         message = 'Calculating Futures studies ...'
         params = self.__study_parameters()
-        map(lambda i: self.__log(message, i[0] / length) and i[1].calculate_studies(params), enumerate(futures))
-        self.__log(message, 1, True)
+        map(lambda i: self.__log(message, i[1].code(), i[0], length) and i[1].calculate_studies(params),
+            enumerate(futures))
+        self.__log(message, complete=True)
 
-        message = 'Calculating currency pairs data ...'
+        message = 'Loading currency pairs data ...'
         length = float(len(currency_pairs))
-        map(lambda i: self.__log(message, i[0] / length) and i[1].load_data(connection), enumerate(currency_pairs))
-        self.__log(message, 1, True)
+        map(lambda i: self.__log(message, i[1].code(), i[0], length) and i[1].load_data(connection),
+            enumerate(currency_pairs))
+        self.__log(message, complete=True)
 
         message = 'Loading interest rates data ...'
         length = float(len(interest_rates))
-        map(lambda i: self.__log(message, i[0] / length) and i[1].load_data(connection), enumerate(interest_rates))
-        self.__log(message, 1, True)
+        map(lambda i: self.__log(message, i[1].code(), i[0], length) and i[1].load_data(connection),
+            enumerate(interest_rates))
+        self.__log(message, complete=True)
 
     def __study_parameters(self):
         """
@@ -136,7 +140,7 @@ class Initialize:
             ]}
         ]
 
-    def __log(self, message, percent, new_line=False):
+    def __log(self, message, code='', index=0, length=0.0, complete=False):
         """
         Print message and percentage progress to console
 
@@ -145,7 +149,10 @@ class Initialize:
         :param new_line:    Flag indicating if new line should be printed as well
         :return:            boolean
         """
-        sys.stdout.write('%s [%.2f %%]\r' % (message, percent * 100))
-        sys.stdout.write('\r\n') if new_line else sys.stdout.write('')
+        sys.stdout.write('%s\r' % (' ' * 80))
+        if complete:
+            sys.stdout.write('%s complete\r\n' % message)
+        else:
+            sys.stdout.write('%s %s (%d of %d) [%d %%]\r' % (message, code, index, length, index / length * 100))
         sys.stdout.flush()
         return True
