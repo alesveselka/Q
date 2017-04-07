@@ -38,7 +38,13 @@ class Market(object):  # TODO rename to Future?
         self.__data = []
         self.__studies = {}
 
-    def load_data(self, connection):
+    def load_data(self, connection, end_date):
+        """
+        Load market's data
+
+        :param connection:  MySQLdb connection instance
+        :param end_date:    Last date to fetch data to
+        """
         cursor = connection.cursor()
         code = ''.join([self.__code, '2']) if 'C' in self.__data_codes else self.__code
         sql = """
@@ -46,10 +52,16 @@ class Market(object):  # TODO rename to Future?
             FROM continuous_back_adjusted
             WHERE market_id = '%s'
             AND code = '%s'
-            AND DATE(price_date) >= '%s';
+            AND DATE(price_date) >= '%s'
+            AND DATE(price_date) <= '%s';
         """
 
-        cursor.execute(sql % (self.__id, code, self.__start_data_date.strftime('%Y-%m-%d')))
+        cursor.execute(sql % (
+            self.__id,
+            code,
+            self.__start_data_date.strftime('%Y-%m-%d'),
+            end_date.strftime('%Y-%m-%d')
+        ))
         self.__data = cursor.fetchall()
 
         # TODO update more realistically

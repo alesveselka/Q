@@ -31,19 +31,25 @@ class CurrencyPair(object):
         """
         return [d for d in self.__data if start_date <= d[0] <= end_date]
 
-    def load_data(self, connection):
+    def load_data(self, connection, end_date):
         """
         Load pair's data
 
         :param connection:  MySQLdb connection instance
+        :param end_date:    Last date to fetch data to
         """
         cursor = connection.cursor()
         sql = """
             SELECT price_date, open_price, high_price, low_price, last_price
             FROM currency
             WHERE currency_pair_id = '%s'
-            AND DATE(price_date) >= '%s';
+            AND DATE(price_date) >= '%s'
+            AND DATE(price_date) <= '%s';
         """
 
-        cursor.execute(sql % (self.__currency_pair_id, self.__start_data_date.strftime('%Y-%m-%d')))
+        cursor.execute(sql % (
+            self.__currency_pair_id,
+            self.__start_data_date.strftime('%Y-%m-%d'),
+            end_date.strftime('%Y-%m-%d')
+        ))
         self.__data = cursor.fetchall()

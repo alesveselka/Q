@@ -79,6 +79,7 @@ class DataSeries(EventDispatcher):
                 FROM `currencies` as c INNER JOIN `group` as g ON c.group_id = g.id
                 WHERE g.name = 'Majors'
             """)
-            self.__interest_rates = [InterestRate(*r) for r in cursor.fetchall()]
+            start_data_date = self.__investment_universe.start_data_date()
+            self.__interest_rates = [InterestRate(start_data_date, *r) for r in cursor.fetchall()]
 
         return self.__interest_rates

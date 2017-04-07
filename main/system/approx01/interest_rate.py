@@ -6,7 +6,8 @@ from decimal import Decimal
 
 class InterestRate(object):
 
-    def __init__(self, currency_id, currency_code):
+    def __init__(self, start_data_date, currency_id, currency_code):
+        self.__start_data_date = start_data_date
         self.__currency_id = currency_id
         self.__currency_code = currency_code
         self.__data = []
@@ -19,21 +20,28 @@ class InterestRate(object):
         """
         return self.__currency_code
 
-    def load_data(self, connection):
+    def load_data(self, connection, end_date):
         """
         Load data from DB
 
         :param connection:  MySQLdb connection
+        :param end_date:    Last date to fetch data to
         """
         cursor = connection.cursor()
         sql = """
             SELECT price_date, immediate_rate, three_months_rate
             FROM interest_rate
             WHERE currency_id = '%s'
+            AND DATE(price_date) >= '%s'
+            AND DATE(price_date) <= '%s'
             ORDER BY price_date ASC;
         """
 
-        cursor.execute(sql % self.__currency_id)
+        cursor.execute(sql % (
+            self.__currency_id,
+            self.__start_data_date.strftime('%Y-%m-%d'),
+            end_date.strftime('%Y-%m-%d')
+        ))
         self.__data = cursor.fetchall()
 
     def data(self, start_date=dt.date(1900, 1, 1), end_date=dt.date(9999, 12, 31)):
