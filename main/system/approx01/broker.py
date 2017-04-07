@@ -103,6 +103,7 @@ class Broker(object):
 
             self.__portfolio.remove_position(position)
             # TODO transfer FX balances?
+            print 'Position removed', self.__account.to_fx_balance_string()
         else:
             # -to-open transactions
             print 'Enough funds? ', self.__account.available_funds(), self.__account.base_value(margin + commission, market.currency())
@@ -254,6 +255,7 @@ class Broker(object):
         for currency in [c for c in self.__account.margin_loan_currencies() if c != base_currency]:
             spread = Decimal(2.0)
             balance = self.__account.margin_loan_balance(currency, previous_date)
+            # TODO also charge interest on negative Fx balances!
 
             if balance:
                 benchmark_interest = [r for r in self.__interest_rates if r.code() == currency][0]
@@ -284,7 +286,9 @@ class Broker(object):
             spread = Decimal(0.5)
             # TODO pass in in config
             minimums = {'AUD': 14000, 'CAD': 14000, 'CHF': 100000, 'EUR': 100000, 'GBP': 8000, 'JPY': 11000000, 'USD': 10000}
-            balance = self.__account.fx_balance(currency, previous_date)  # TODO minus blocked margins?
+            # TODO at least minus negative FX balances! AND debit interest on short Fx balances!
+            # TODO minus blocked margins?
+            balance = self.__account.fx_balance(currency, previous_date)
 
             if balance - minimums[currency] > 0:
                 benchmark_interest = [r for r in self.__interest_rates if r.code() == currency][0]

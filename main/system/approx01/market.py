@@ -55,6 +55,8 @@ class Market(object):  # TODO rename to Future?
         # TODO update more realistically
         self.__margin_multiple = (self.__margin if self.__margin else Decimal(0.1)) / (self.__data[-1][5] * self.__point_value)
 
+        return True
+
     def code(self):
         return self.__code
 
@@ -105,23 +107,24 @@ class Market(object):  # TODO rename to Future?
         slippage_value = Decimal(slippage_atr) * atr * self.__point_value
         return (Decimal(ceil(slippage_value / self.__tick_value)) * self.__tick_value) / self.__point_value
 
-    def study(self, study_name, data, window):
-        name = '_'.join([study_name, str(window)])
-        # TODO refactor 'ifs'
-        # TODO remove hard-coded windows
-        # TODO the studies don't have to be here - there is no dependency on local vars ...
-        if name not in self.__studies:
-            if study_name == Study.HHLL:
-                # self.__studies[name] = HHLL([(d[1], d[5]) for d in data], window)
-                return HHLL([(d[1], d[5]) for d in data], window)
-            elif study_name == Study.SMA:
-                # self.__studies[name] = SMA([(d[1], d[5]) for d in data], window)
-                return SMA([(d[1], d[5]) for d in data], window)
-            elif study_name == Study.EMA:
-                # self.__studies[name] = EMA([(d[1], d[5]) for d in data], window)
-                return EMA([(d[1], d[5]) for d in data], window)
-            elif study_name == Study.ATR:
-                # self.__studies[name] = ATR([(d[1], d[3], d[4], d[5]) for d in data], window)
-                return ATR([(d[1], d[3], d[4], d[5]) for d in data], window)
+    def study(self, study_name, date):
+        """
+        Return data of the study to the date passed in
 
-        # return self.__studies[name]
+        :param study_name:  Name of the study which data to return
+        :param date:        last date of data required
+        :return:            List of tuples - records of study specified
+        """
+        return [s for s in self.__studies[study_name] if s[0] <= date]
+
+    def calculate_studies(self, study_parameters):
+        """
+        Calculates and saves studies based on parameters passed in
+
+        :param study_parameters:    List of dictionaries with parameters for each study to calculate
+        """
+        for params in study_parameters:
+            self.__studies[params['name']] = params['study'](
+                [tuple(map(lambda c: d[c], params['columns'])) for d in self.__data],
+                params['window']
+            )

@@ -16,7 +16,7 @@ class Timer(EventDispatcher):
         # start_data_date = dt.date(2017, 3, 20)
         now = dt.datetime.now()
         today = dt.date(now.year, now.month, now.day)
-        # today = dt.date(2017, 4, 5)
+        # today = dt.date(1992, 7, 1)
         previous_day = start_data_date
 
         for i in xrange(0, (today - start_data_date).days + 1):

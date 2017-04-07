@@ -9,16 +9,59 @@ from portfolio import Portfolio
 from account import Account
 from broker import Broker
 from enum import Currency
+from enum import Study
+from enum import Table
+from study import ATR, SMA, HHLL
 from investment_universe import InvestmentUniverse
 from trading_system import TradingSystem
 from data_series import DataSeries
 from decimal import Decimal
 
 
+def study_parameters():
+    short_window = 50
+    long_window = 100
+    return [
+        {'name': Study.ATR_LONG, 'study': ATR, 'window': long_window, 'columns': [
+            Table.Futures.PRICE_DATE,
+            Table.Futures.HIGH_PRICE,
+            Table.Futures.LOW_PRICE,
+            Table.Futures.SETTLE_PRICE
+        ]},
+        {'name': Study.ATR_SHORT, 'study': ATR, 'window': short_window, 'columns': [
+            Table.Futures.PRICE_DATE,
+            Table.Futures.HIGH_PRICE,
+            Table.Futures.LOW_PRICE,
+            Table.Futures.SETTLE_PRICE
+        ]},
+        {'name': Study.VOL_SHORT, 'study': SMA, 'window': short_window, 'columns': [
+            Table.Futures.PRICE_DATE,
+            Table.Futures.VOLUME
+        ]},
+        {'name': Study.SMA_LONG, 'study': SMA, 'window': long_window, 'columns': [
+            Table.Futures.PRICE_DATE,
+            Table.Futures.SETTLE_PRICE
+        ]},
+        {'name': Study.SMA_SHORT, 'study': SMA, 'window': short_window, 'columns': [
+            Table.Futures.PRICE_DATE,
+            Table.Futures.SETTLE_PRICE
+        ]},
+        {'name': Study.HHLL_LONG, 'study': HHLL, 'window': long_window, 'columns': [
+            Table.Futures.PRICE_DATE,
+            Table.Futures.SETTLE_PRICE
+        ]},
+        {'name': Study.HHLL_SHORT, 'study': HHLL, 'window': short_window, 'columns': [
+            Table.Futures.PRICE_DATE,
+            Table.Futures.SETTLE_PRICE
+        ]}
+    ]
+
+
 def main(universe_name):
     timer = Timer()
     risk_position_sizing = Decimal(0.002)
     commission = 10.0  # TODO convert to base-currency
+    params = study_parameters()
 
     investment_universe = InvestmentUniverse(universe_name, connection)
     investment_universe.load_data()
@@ -38,7 +81,8 @@ def main(universe_name):
         portfolio,  # TODO access from broker?
         broker
     )
-    map(lambda f: f.load_data(connection), futures)
+
+    map(lambda f: f.load_data(connection) and f.calculate_studies(params), futures)
     map(lambda cp: cp.load_data(connection), currency_pairs)
     map(lambda r: r.load_data(connection), interest_rates)
 

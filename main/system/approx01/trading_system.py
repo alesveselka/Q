@@ -10,7 +10,6 @@ from enum import OrderType
 from strategy_signal import Signal
 from order import Order
 from trade import Trade
-from study import SMA
 from event_dispatcher import EventDispatcher
 
 
@@ -34,9 +33,6 @@ class TradingSystem(EventDispatcher):  # TODO do I need inherit from ED?
 
     def __on_market_open(self, date, previous_date):
         print '__on_market_open', date, previous_date, len(self.__signals)
-        # TODO pass in the configuration of parameters
-        short_window = 50
-        long_window = 100
 
         trades = []
 
@@ -45,22 +41,15 @@ class TradingSystem(EventDispatcher):  # TODO do I need inherit from ED?
             market_data = m.data(end_date=date)
 
             if market_data[-1][1] == date:
-                previous_date = market_data[-2][1]  # not used actually
 
                 print date, m.code(), len(market_data)
-
-                # TODO don't need Market to create them
-                # TODO pre-calculate them during backtest?
-                atr = m.study(Study.ATR, market_data, long_window)
-                atr_short = m.study(Study.ATR, market_data, short_window)
-                volume_sma = SMA([(d[1], d[6]) for d in market_data], short_window)
 
                 """
                 Studies
                 """
-                atr_lookup = [s for s in atr if market_data[-2][1] <= s[0] <= date]
-                atr_short_lookup = [s for s in atr_short if market_data[-2][1] <= s[0] <= date]
-                volume_lookup = [s for s in volume_sma if market_data[-2][1] <= s[0] <= date]
+                atr_lookup = m.study(Study.ATR_LONG, date)
+                atr_short_lookup = m.study(Study.ATR_SHORT, date)
+                volume_lookup = m.study(Study.VOL_SHORT, date)
                 open_price = market_data[-1][2]
                 previous_last_price = market_data[-2][5]
                 open_signals = [s for s in self.__signals if s.type() == SignalType.ENTER]
@@ -70,9 +59,7 @@ class TradingSystem(EventDispatcher):  # TODO do I need inherit from ED?
                 """
                 Close Positions
                 """
-                # if len(close_signals) and len(market_positions):
                 if signal in close_signals and len(market_positions):
-                    # for signal in close_signals:
                     for position in market_positions:
                         # print 'Close ', Position(position.market(), position.direction(), date, open_price, position.quantity())
 
@@ -151,25 +138,17 @@ class TradingSystem(EventDispatcher):  # TODO do I need inherit from ED?
 
             # TODO replace hard-coded data
             if len(market_data) >= long_window + 1 and market_data[-1][1] == date:  # querying '-2' index, because I need one more record
-                previous_date = market_data[-2][1]  # not used actually
 
                 print date, m.code(), len(market_data)
-
-                # TODO don't need Market to create them
-                # TODO pre-calculate them during backtest?
-                sma_long = m.study(Study.SMA, market_data, long_window)
-                sma_short = m.study(Study.SMA, market_data, short_window)
-                hhll_long = m.study(Study.HHLL, market_data, long_window)
-                hhll_short = m.study(Study.HHLL, market_data, short_window)
-                atr = m.study(Study.ATR, market_data, long_window)
 
                 """
                 Studies
                 """
-                sma_long_lookup = [s for s in sma_long if s[0] <= date]
-                sma_short_lookup = [s for s in sma_short if s[0] <= date]
-                hhll_lookup = [s for s in hhll_short if s[0] <= date]
-                atr_lookup = [s for s in atr if s[0] <= date]
+                sma_long_lookup = m.study(Study.SMA_LONG, date)
+                sma_short_lookup = m.study(Study.SMA_SHORT, date)
+                hhll_long_lookup = m.study(Study.HHLL_LONG, date)
+                hhll_short_lookup = m.study(Study.HHLL_SHORT, date)
+                atr_lookup = m.study(Study.ATR_LONG, date)
                 last_price = market_data[-1][5]
                 market_positions = [p for p in self.__portfolio.positions() if p.market().code() == m.code()]
 
@@ -178,13 +157,13 @@ class TradingSystem(EventDispatcher):  # TODO do I need inherit from ED?
                 """
                 if len(market_positions):
                     for position in market_positions:
-                        hl = [h for h in hhll_long if h[0] == date]
+                        hl = hhll_long_lookup[-1]
                         if position.direction() == Direction.LONG:
-                            stop_loss = hl[0][1] - 3 * atr_lookup[-1][1]
+                            stop_loss = hl[1] - 3 * atr_lookup[-1][1]
                             if last_price <= stop_loss:
                                 self.__signals.append(Signal(m, SignalType.EXIT, Direction.SHORT, date, last_price))
                         elif position.direction() == Direction.SHORT:
-                            stop_loss = hl[0][2] + 3 * atr_lookup[-1][1]
+                            stop_loss = hl[2] + 3 * atr_lookup[-1][1]
                             if last_price >= stop_loss:
                                 self.__signals.append(Signal(m, SignalType.EXIT, Direction.LONG, date, last_price))
 
@@ -192,12 +171,12 @@ class TradingSystem(EventDispatcher):  # TODO do I need inherit from ED?
                 Open Signals
                 """
                 if sma_short_lookup[-2][1] > sma_long_lookup[-2][1]:
-                    if last_price > hhll_lookup[-2][1]:
+                    if last_price > hhll_short_lookup[-2][1]:
                         # TODO 'code' is not the actual instrument code, but general market code
                         self.__signals.append(Signal(m, SignalType.ENTER, Direction.LONG, date, last_price))
 
                 elif sma_short_lookup[-2][1] < sma_long_lookup[-2][1]:
-                    if last_price < hhll_lookup[-2][2]:
+                    if last_price < hhll_short_lookup[-2][2]:
                         # TODO 'code' is not the actual instrument code, but general market code
                         self.__signals.append(Signal(m, SignalType.ENTER, Direction.SHORT, date, last_price))
 
