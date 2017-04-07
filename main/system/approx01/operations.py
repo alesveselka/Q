@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 import os
+import sys
 import MySQLdb as mysql
 from timer import Timer
 from risk import Risk
@@ -26,10 +27,10 @@ class Initialize:
             os.environ['DB_PASS'],
             os.environ['DB_NAME']
         )
-        timer = Timer()
         risk_position_sizing = Decimal(0.002)
         commission = 10.0  # TODO convert to base-currency
-        params = self.__study_parameters()
+
+        timer = Timer()
 
         investment_universe = InvestmentUniverse(investment_universe_name, connection)
         investment_universe.load_data()
@@ -41,7 +42,7 @@ class Initialize:
         account = Account(Decimal(1e6), Currency.EUR, currency_pairs)
         portfolio = Portfolio()
         broker = Broker(timer, account, portfolio, commission, currency_pairs, interest_rates)
-        system = TradingSystem(
+        trading_system = TradingSystem(
             timer,
             futures,
             Risk(risk_position_sizing),
@@ -50,15 +51,54 @@ class Initialize:
             broker
         )
 
-        map(lambda f: f.load_data(connection) and f.calculate_studies(params), futures)
-        map(lambda cp: cp.load_data(connection), currency_pairs)
-        map(lambda r: r.load_data(connection), interest_rates)
+        self.__load_and_calculate_data(connection, futures, currency_pairs, interest_rates)
+        self.__start(timer, trading_system, broker, investment_universe.start_data_date())
 
-        system.subscribe()
+    def __start(self, timer, trading_system, broker, start_date):
+        """
+        Start the system
+
+        :param trading_system:  TradingSystem instance
+        :param broker:          Broker instance
+        :param start_date:      The date from when start the timer
+        """
+        trading_system.subscribe()
         broker.subscribe()
-        timer.start(investment_universe.start_data_date())
+        timer.start(start_date)
+
+    def __load_and_calculate_data(self, connection, futures, currency_pairs, interest_rates):
+        """
+        Load data and calculate studies
+
+        :param connection:      MySQLdb connection instance
+        :param futures:         List of futures Market objects
+        :param currency_pairs:  List of CurrencyPair instances
+        :param interest_rates:  List of InterestRate instances
+        """
+        message = 'Loading Futures data ...'
+        length = float(len(futures))
+        map(lambda i: self.__log(message, i[0] / length) and i[1].load_data(connection), enumerate(futures))
+        self.__log(message, 1, True)
+
+        message = 'Calculating Futures studies ...'
+        params = self.__study_parameters()
+        map(lambda i: self.__log(message, i[0] / length) and i[1].calculate_studies(params), enumerate(futures))
+        self.__log(message, 1, True)
+
+        message = 'Calculating currency pairs data ...'
+        length = float(len(currency_pairs))
+        map(lambda i: self.__log(message, i[0] / length) and i[1].load_data(connection), enumerate(currency_pairs))
+        self.__log(message, 1, True)
+
+        message = 'Loading interest rates data ...'
+        length = float(len(interest_rates))
+        map(lambda i: self.__log(message, i[0] / length) and i[1].load_data(connection), enumerate(interest_rates))
+        self.__log(message, 1, True)
 
     def __study_parameters(self):
+        """
+        :return:    List of dictionaries with parameters for study calculations
+        """
         short_window = 50
         long_window = 100
         return [
@@ -95,3 +135,17 @@ class Initialize:
                 Table.Futures.SETTLE_PRICE
             ]}
         ]
+
+    def __log(self, message, percent, new_line=False):
+        """
+        Print message and percentage progress to console
+
+        :param message:     Message to print
+        :param percent:     Percentage progress to print
+        :param new_line:    Flag indicating if new line should be printed as well
+        :return:            boolean
+        """
+        sys.stdout.write('%s [%.2f %%]\r' % (message, percent * 100))
+        sys.stdout.write('\r\n') if new_line else sys.stdout.write('')
+        sys.stdout.flush()
+        return True
