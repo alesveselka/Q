@@ -55,6 +55,7 @@ class TransactionType:
     COMMISSION = 'Commission'
     INTEREST = 'Interest'
     MARGIN_LOAN = 'Margin Loan'
+    FUND_TRANSFER = 'Fund Transfer'
 
 
 class AccountAction:
@@ -71,3 +72,4 @@ class Table:
         LOW_PRICE = 4
         SETTLE_PRICE = 5
         VOLUME = 6
+        # TEST = Column('test_column', 3, int)
