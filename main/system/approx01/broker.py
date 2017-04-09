@@ -46,6 +46,9 @@ class Broker(object):
         self.__pay_interest(date, previous_date)
         self.__update_margin_loans(date)
 
+        if not self.__portfolio.positions():
+            self.__sweep_fx_funds(date)
+
         print 'FX Balances', self.__account.to_fx_balance_string()
 
         # TODO Fx hedge
@@ -105,11 +108,9 @@ class Broker(object):
 
             self.__portfolio.remove_position(position)
 
-            print 'Position removed, before sweep', self.__account.to_fx_balance_string(), position.pnl()
-            # TODO after interest ar charged and paid?
-            self.__sweep_fx_funds(order.date())
+            # self.__sweep_fx_funds(order.date())
 
-            print 'After sweep', self.__account.to_fx_balance_string()
+            print 'Position closed ', self.__account.to_fx_balance_string()
         else:
             # -to-open transactions
             print 'Enough funds? ', self.__account.available_funds(), self.__account.base_value(margin + commission, market.currency())
@@ -159,33 +160,35 @@ class Broker(object):
         base_currency = self.__account.base_currency()
         for currency in [c for c in self.__account.fx_balance_currencies() if c != base_currency]:
             balance = self.__account.fx_balance(currency)
-            amount = self.__account.base_value(balance, currency)
-            action = AccountAction.DEBIT if balance > 0 else AccountAction.CREDIT
 
-            transaction = Transaction(
-                TransactionType.FUND_TRANSFER,
-                action,
-                date,
-                abs(balance),
-                currency,
-                'Transfer funds, %s of %.2f %s from %s balance' % (action, float(abs(balance)), currency, currency)
-            )
-            self.__account.add_transaction(transaction)
+            if abs(balance):
+                amount = self.__account.base_value(balance, currency)
+                action = AccountAction.DEBIT if balance > 0 else AccountAction.CREDIT
 
-            print transaction, float(self.__account.equity()), float(self.__account.available_funds())
+                transaction = Transaction(
+                    TransactionType.FUND_TRANSFER,
+                    action,
+                    date,
+                    abs(balance),
+                    currency,
+                    'Transfer funds, %s of %.2f %s from %s balance' % (action, float(abs(balance)), currency, currency)
+                )
+                self.__account.add_transaction(transaction)
 
-            action = AccountAction.CREDIT if action == AccountAction.DEBIT else AccountAction.DEBIT
-            transaction = Transaction(
-                TransactionType.FUND_TRANSFER,
-                action,
-                date,
-                abs(amount),
-                base_currency,
-                'Transfer funds, %s of %.2f %s to %s balance' % (action, float(abs(amount)), base_currency, base_currency)
-            )
-            self.__account.add_transaction(transaction)
+                print transaction, float(self.__account.equity()), float(self.__account.available_funds())
 
-            print transaction, float(self.__account.equity()), float(self.__account.available_funds())
+                action = AccountAction.CREDIT if action == AccountAction.DEBIT else AccountAction.DEBIT
+                transaction = Transaction(
+                    TransactionType.FUND_TRANSFER,
+                    action,
+                    date,
+                    abs(amount),
+                    base_currency,
+                    'Transfer funds, %s of %.2f %s to %s balance' % (action, float(abs(amount)), base_currency, base_currency)
+                )
+                self.__account.add_transaction(transaction)
+
+                print transaction, float(self.__account.equity()), float(self.__account.available_funds())
 
     def __mark_to_market(self, date):
         for p in self.__portfolio.positions():
@@ -218,10 +221,11 @@ class Broker(object):
             # TODO remove hard-coded values
             rate = pair_data[-1][4] if len(pair_data) else Decimal(1)
             # prior_rate = pair_data[-2][4] if len(pair_data) else rate
-            prior_rate = Decimal(.9)
-            rate_difference = rate - prior_rate  # TODO does CREDIT vs DEBIT has effect on rate diff. calculation?
+            prior_rate = Decimal(1.1)
             balance = self.__account.fx_balance(currency, previous_date)
-            translation = balance * rate_difference
+            base_value = balance / rate
+            prior_base_value = balance / prior_rate
+            translation = base_value - prior_base_value
 
             if abs(translation):
                 transaction = Transaction(
