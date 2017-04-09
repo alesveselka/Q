@@ -26,23 +26,25 @@ class Broker(object):
         self.__orders = []
 
     def subscribe(self):
-        self.__timer.on(EventType.EOD_DATA, self.__on_eod_data)
-        self.__timer.on(EventType.MARKET_OPEN, self.__on_market_open)
+        """
+        Subscribe to listen timer's events
+        """
         self.__timer.on(EventType.MARKET_CLOSE, self.__on_market_close)
 
-    def __on_eod_data(self, date, previous_date):
-        pass
-
-    def __on_market_open(self, date, previous_date):
-        pass
-
     def __on_market_close(self, date, previous_date):
-        print '__on_market_close', date, previous_date
+        """
+        Market Close event handler
+
+        :param date:            date for the market open
+        :param previous_date:   previous market date
+        """
+        print EventType.MARKET_CLOSE, date, previous_date
 
         # TODO also check if there is market data for this date, same as in trading systems (AND set previous date accordingly? - different than market date)
         # TODO do I need to do all these if there is no position open?
+
         self.__mark_to_market(date)
-        self.__translate_fx_balances(date, previous_date)  # TODO write tests!!!
+        self.__translate_fx_balances(date, previous_date)
         self.__charge_interest(date, previous_date)
         self.__pay_interest(date, previous_date)
         self.__update_margin_loans(date)
@@ -182,7 +184,7 @@ class Broker(object):
                     date,
                     abs(balance),
                     currency,
-                    'Transfer funds, %s of %.2f %s from %s balance' % (action, float(abs(balance)), currency, currency)
+                    'Transfer funds, %s of %.4f %s from %s balance' % (action, float(abs(balance)), currency, currency)
                 )
                 self.__account.add_transaction(transaction)
 
@@ -195,7 +197,7 @@ class Broker(object):
                     date,
                     abs(amount),
                     base_currency,
-                    'Transfer funds, %s of %.2f %s to %s balance' % (action, float(abs(amount)), base_currency, base_currency)
+                    'Transfer funds, %s of %.4f %s to %s balance' % (action, float(abs(amount)), base_currency, base_currency)
                 )
                 self.__account.add_transaction(transaction)
 
@@ -204,11 +206,9 @@ class Broker(object):
     def __mark_to_market(self, date):
         for p in self.__portfolio.positions():
             market = p.market()
-            market_data = market.data(end_date=date)
-            price_date = market_data[-1][1]
 
-            if price_date == date:  # TODO do not equal => non-trading day (perhaps holidays? (e.g.: 1992-05-25 - Memorial Day))
-                price = market_data[-1][5]
+            if market.has_data(date):
+                price = market.data(end_date=date)[-1][5]
                 mtm = p.mark_to_market(date, price) * Decimal(p.quantity()) * p.market().point_value()
                 transaction = Transaction(
                     TransactionType.MTM_TRANSACTION if p.date() == date else TransactionType.MTM_POSITION,
@@ -231,8 +231,8 @@ class Broker(object):
             pair_data = pair[0].data(end_date=date)
             # TODO remove hard-coded values
             rate = pair_data[-1][4] if len(pair_data) else Decimal(1)
-            # prior_rate = pair_data[-2][4] if len(pair_data) else rate
-            prior_rate = Decimal(1.1)
+            prior_rate = pair_data[-2][4] if len(pair_data) > 1 else rate
+            # prior_rate = Decimal(1.1)
             balance = self.__account.fx_balance(currency, previous_date)
             base_value = balance / rate
             prior_base_value = balance / prior_rate
@@ -245,7 +245,7 @@ class Broker(object):
                     date,
                     abs(translation),
                     base_currency,
-                    'FX Translation %.2f(%s) of %.2f(%s), prior: %.2f, current: %.2f' % (float(translation), base_currency, balance, currency, prior_rate, rate)
+                    'FX Translation %.2f(%s) of %.2f(%s), prior: %.4f, current: %.4f' % (float(translation), base_currency, balance, currency, prior_rate, rate)
                 )
 
                 self.__account.add_transaction(transaction)
@@ -260,12 +260,9 @@ class Broker(object):
             for p in self.__portfolio.positions():
                 if date > p.date():
                     market = p.market()
-                    market_data = market.data(end_date=date)  # TODO pass in from elsewhere? Multiple query of same thing?
-                    price_date = market_data[-1][1]
 
-                    # TODO duplicate - same condition in MTM
-                    if price_date == date:  # TODO do not equal => non-trading day (perhaps holidays? (e.g.: 1992-05-25 - Memorial Day))
-                        margin = market.margin(market_data[-1][5]) * p.quantity()
+                    if market.has_data(date):
+                        margin = market.margin(market.data(end_date=date)[-1][5]) * p.quantity()
                         currency = market.currency()
                         margin_loans_to_close[currency] += Decimal(p.margins()[-1][1])
                         margin_loans_to_open[currency] += Decimal(margin)

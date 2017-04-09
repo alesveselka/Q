@@ -28,8 +28,8 @@ class TradingSystem(EventDispatcher):  # TODO do I need inherit from ED?
         """
         Subscribe to listen timer's events
         """
-        self.__timer.on(EventType.EOD_DATA, self.__on_eod_data)
         self.__timer.on(EventType.MARKET_OPEN, self.__on_market_open)
+        self.__timer.on(EventType.EOD_DATA, self.__on_eod_data)
 
     def __on_market_open(self, date, previous_date):
         """
@@ -38,10 +38,11 @@ class TradingSystem(EventDispatcher):  # TODO do I need inherit from ED?
         :param date:            date for the market open
         :param previous_date:   previous market date
         """
-        print EventType.MARKET_OPEN, date, previous_date, len(self.__signals)
+        print EventType.MARKET_OPEN, date, previous_date
 
         self.__transfer_orders(self.__generate_orders(date))
 
+        # TODO what if signals will be deleted on holiday and next day no orders created?
         del self.__signals[:]
 
     def __on_eod_data(self, date, previous_date):
@@ -72,7 +73,7 @@ class TradingSystem(EventDispatcher):  # TODO do I need inherit from ED?
             market_data = market.data(end_date=date)
 
             # TODO replace hard-coded data
-            if len(market_data) >= long_window + 1 and market_data[-1][1] == date:
+            if len(market_data) >= long_window + 1 and market.has_data(date):
 
                 sma_long = market.study(Study.SMA_LONG, date)[-2][1]
                 sma_short = market.study(Study.SMA_SHORT, date)[-2][1]
@@ -113,10 +114,9 @@ class TradingSystem(EventDispatcher):  # TODO do I need inherit from ED?
 
         for signal in self.__signals:
             market = signal.market()
-            market_data = market.data(end_date=date)
 
-            if market_data[-1][1] == date:  # TODO do not even call if there the date is not trading date
-
+            if market.has_data(date):
+                market_data = market.data(end_date=date)
                 atr_long = market.study(Study.ATR_LONG, date)[-1][1]
                 open_price = market_data[-1][2]
                 open_signals = [s for s in self.__signals if s.type() == SignalType.ENTER]
@@ -148,8 +148,6 @@ class TradingSystem(EventDispatcher):  # TODO do I need inherit from ED?
 
             if order.type() == OrderType.BTC or order.type() == OrderType.STC:
                 self.__trades.append(Trade(positions[0], order, order_result))
-
-        del self.__signals[:]
 
     def __order_type(self, signal_type, signal_direction):
         """

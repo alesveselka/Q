@@ -61,7 +61,7 @@ class Market(object):  # TODO rename to Future?
         ))
         self.__data = cursor.fetchall()
 
-        # TODO update more realistically
+        # TODO update more realistically - include actual ATR?
         self.__margin_multiple = (self.__margin / (self.__data[-1][5] * self.__point_value)) \
             if len(self.__data) \
             else Decimal(0.1)
@@ -86,6 +86,15 @@ class Market(object):  # TODO rename to Future?
         :return:            List of market data records
         """
         return [d for d in self.__data if start_date <= d[1] <= end_date]
+
+    def has_data(self, date):
+        """
+        Check if the market has data for date specified
+
+        :param date:    date to check data for
+        :return:
+        """
+        return self.data(end_date=date)[-1][1] == date
 
     def margin(self, price):
         """
