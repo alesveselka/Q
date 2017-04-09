@@ -33,7 +33,8 @@ class Initialize:
 
         now = dt.datetime.now()
         # end_date = dt.date(now.year, now.month, now.day)
-        end_date = dt.date(1993, 1, 1)
+        # end_date = dt.date(1993, 1, 1)
+        end_date = dt.date(1992, 6, 10)
         timer = Timer()
 
         investment_universe = InvestmentUniverse(investment_universe_name, connection)
@@ -46,14 +47,8 @@ class Initialize:
         account = Account(Decimal(1e6), Currency.EUR, currency_pairs)
         portfolio = Portfolio()
         broker = Broker(timer, account, portfolio, commission, currency_pairs, interest_rates)
-        trading_system = TradingSystem(
-            timer,
-            futures,
-            Risk(risk_position_sizing),
-            account,  # TODO access from broker?
-            portfolio,  # TODO access from broker?
-            broker
-        )
+        risk = Risk(risk_position_sizing, account)
+        trading_system = TradingSystem(timer, futures, risk, portfolio, broker)
 
         self.__load_and_calculate_data(connection, end_date, futures, currency_pairs, interest_rates)
         self.__start(timer, trading_system, broker, investment_universe.start_data_date(), end_date)

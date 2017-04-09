@@ -15,13 +15,12 @@ from event_dispatcher import EventDispatcher
 
 class TradingSystem(EventDispatcher):  # TODO do I need inherit from ED?
 
-    def __init__(self, timer, markets, risk, account, portfolio, broker):
+    def __init__(self, timer, markets, risk, portfolio, broker):
         super(TradingSystem, self).__init__()
 
         self.__timer = timer
         self.__markets = markets
         self.__risk = risk
-        self.__account = account
         self.__portfolio = portfolio
         self.__broker = broker
         self.__signals = []
@@ -88,7 +87,6 @@ class TradingSystem(EventDispatcher):  # TODO do I need inherit from ED?
                             abs(result.price() - open_price),
                             result.commission() * 2
                         ))
-                        # TODO once is position close, convert Fx P/L to base-currency
 
                 """
                 Open Positions
@@ -96,9 +94,7 @@ class TradingSystem(EventDispatcher):  # TODO do I need inherit from ED?
                 # if len(open_signals) and not len(market_positions):
                 if signal in open_signals and not len(market_positions):
                     # for signal in open_signals:
-                    # TODO move this calculation to Risk and remove 'account' dependency
-                    quantity = floor((self.__risk.position_sizing() * self.__account.equity()) / \
-                               Decimal(atr_lookup[-1][1] * self.__account.base_value(m.point_value(), m.currency())))
+                    quantity = self.__risk.position_size(m.point_value(), m.currency(), atr_lookup[-1][1])
 
                     # TODO if 'quantity < 1.0' I can't afford it
                     if quantity:
