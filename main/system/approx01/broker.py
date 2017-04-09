@@ -108,8 +108,6 @@ class Broker(object):
 
             self.__portfolio.remove_position(position)
 
-            # self.__sweep_fx_funds(order.date())
-
             print 'Position closed ', self.__account.to_fx_balance_string()
         else:
             # -to-open transactions
@@ -157,6 +155,12 @@ class Broker(object):
         return OrderResult(OrderResultType.FILLED, order.date(), price, commission)
 
     def __sweep_fx_funds(self, date):
+        """
+        Transfer funds from non-base currency to base-currency balance
+
+        :param date:    date of the transfer
+        :return:
+        """
         base_currency = self.__account.base_currency()
         for currency in [c for c in self.__account.fx_balance_currencies() if c != base_currency]:
             balance = self.__account.fx_balance(currency)
@@ -166,7 +170,7 @@ class Broker(object):
                 action = AccountAction.DEBIT if balance > 0 else AccountAction.CREDIT
 
                 transaction = Transaction(
-                    TransactionType.FUND_TRANSFER,
+                    TransactionType.INTERNAL_FUND_TRANSFER,
                     action,
                     date,
                     abs(balance),
@@ -179,7 +183,7 @@ class Broker(object):
 
                 action = AccountAction.CREDIT if action == AccountAction.DEBIT else AccountAction.DEBIT
                 transaction = Transaction(
-                    TransactionType.FUND_TRANSFER,
+                    TransactionType.INTERNAL_FUND_TRANSFER,
                     action,
                     date,
                     abs(amount),
@@ -298,7 +302,6 @@ class Broker(object):
         for currency in [c for c in self.__account.margin_loan_currencies() if c != base_currency]:
             spread = Decimal(2.0)
             balance = self.__account.margin_loan_balance(currency, previous_date)
-            # TODO also charge interest on negative Fx balances!
 
             if balance:
                 benchmark_interest = [r for r in self.__interest_rates if r.code() == currency][0]
@@ -317,6 +320,27 @@ class Broker(object):
 
                 print transaction, float(self.__account.equity()), float(self.__account.available_funds())
 
+        for currency in [c for c in self.__account.fx_balance_currencies() if c != base_currency]:
+            spread = Decimal(2.0)
+            balance = self.__account.fx_balance(currency, previous_date)
+
+            if balance < 0:
+                benchmark_interest = [r for r in self.__interest_rates if r.code() == currency][0]
+                rate = (benchmark_interest.immediate_rate(previous_date) + spread) / 100
+                amount = balance * rate / days
+
+                transaction = Transaction(
+                    TransactionType.INTEREST,
+                    AccountAction.DEBIT,
+                    date,
+                    abs(amount),
+                    currency,
+                    'Charge %.2f(%s) interest on %.2f %s balance' % (abs(amount), currency, balance, currency)
+                )
+                self.__account.add_transaction(transaction)
+
+                print transaction, float(self.__account.equity()), float(self.__account.available_funds())
+
     def __pay_interest(self, date, previous_date):
         """
         Pay interest to the account's cash balances
@@ -329,8 +353,6 @@ class Broker(object):
             spread = Decimal(0.5)
             # TODO pass in in config
             minimums = {'AUD': 14000, 'CAD': 14000, 'CHF': 100000, 'EUR': 100000, 'GBP': 8000, 'JPY': 11000000, 'USD': 10000}
-            # TODO at least minus negative FX balances! AND debit interest on short Fx balances!
-            # TODO minus blocked margins?
             balance = self.__account.fx_balance(currency, previous_date)
 
             if balance - minimums[currency] > 0:

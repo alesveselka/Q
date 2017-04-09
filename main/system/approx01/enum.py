@@ -55,7 +55,7 @@ class TransactionType:
     COMMISSION = 'Commission'
     INTEREST = 'Interest'
     MARGIN_LOAN = 'Margin Loan'
-    FUND_TRANSFER = 'Fund Transfer'
+    INTERNAL_FUND_TRANSFER = 'Fund Transfer (Internal)'
 
 
 class AccountAction:
