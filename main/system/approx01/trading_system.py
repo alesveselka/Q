@@ -1,7 +1,5 @@
 #!/usr/bin/python
 
-from math import floor
-from decimal import Decimal
 from enum import Study
 from enum import EventType
 from enum import Direction
@@ -27,140 +25,131 @@ class TradingSystem(EventDispatcher):  # TODO do I need inherit from ED?
         self.__trades = []
 
     def subscribe(self):
+        """
+        Subscribe to listen timer's events
+        """
         self.__timer.on(EventType.EOD_DATA, self.__on_eod_data)
         self.__timer.on(EventType.MARKET_OPEN, self.__on_market_open)
-        self.__timer.on(EventType.MARKET_CLOSE, self.__on_market_close)
 
     def __on_market_open(self, date, previous_date):
+        """
+        Market Open event handler
+
+        :param date:            date for the market open
+        :param previous_date:   previous market date
+        """
         print EventType.MARKET_OPEN, date, previous_date, len(self.__signals)
 
-        for signal in self.__signals:
-            m = signal.market()
-            market_data = m.data(end_date=date)
-
-            if market_data[-1][1] == date:  # TODO do not even call if there the date is not trading date
-
-                """
-                Studies
-                """
-                atr_long = m.study(Study.ATR_LONG, date)[-1][1]
-                atr_short = m.study(Study.ATR_SHORT, date)[-1][1]
-                volume_short = m.study(Study.VOL_SHORT, date)[-1][1]
-                open_price = market_data[-1][2]
-                previous_last_price = market_data[-2][5]
-                open_signals = [s for s in self.__signals if s.type() == SignalType.ENTER]
-                close_signals = [s for s in self.__signals if s.type() == SignalType.EXIT]
-                market_positions = [p for p in self.__portfolio.positions() if p.market().code() == m.code()]
-
-                """
-                Close Positions
-                """
-                if signal in close_signals and len(market_positions):
-                    for position in market_positions:
-                        order_result = self.__broker.transfer(Order(
-                                m,
-                                self.__order_type(signal.type(), signal.direction()),
-                                date,
-                                open_price,
-                                position.quantity(),
-                                atr_short,
-                                volume_short
-                            ), m.margin(previous_last_price) * position.quantity())
-
-                        # TODO move to broker?
-                        self.__trades.append(Trade(
-                            position.market(),
-                            position.direction(),
-                            position.quantity(),
-                            position.date(),
-                            position.price(),
-                            abs(position.order_price() - position.price()),
-                            date,
-                            order_result.price(),
-                            abs(order_result.price() - open_price),
-                            order_result.commission() * 2
-                        ))
-
-                """
-                Open Positions
-                """
-                # if len(open_signals) and not len(market_positions):
-                if signal in open_signals and not len(market_positions):
-                    # for signal in open_signals:
-                    quantity = self.__risk.position_size(m.point_value(), m.currency(), atr_long)
-
-                    # TODO if 'quantity < 1.0' I can't afford it
-                    if quantity:
-                        order_result = self.__broker.transfer(Order(
-                            m,
-                            self.__order_type(signal.type(), signal.direction()),
-                            date,
-                            open_price,
-                            quantity,
-                            atr_short,
-                            volume_short
-                        ), m.margin(previous_last_price) * quantity)
-
-                    else:
-                        print 'Too low of quantity! Can\'t afford it.', quantity
+        self.__transfer_orders(self.__generate_orders(date))
 
         del self.__signals[:]
 
-    def __on_market_close(self, date, previous_date):
-        pass
-
     def __on_eod_data(self, date, previous_date):
+        """
+        End-of-Day event handler
+
+        :param date:            date for the market open
+        :param previous_date:   previous market date
+        """
+        print EventType.EOD_DATA, date, previous_date
+
+        self.__generate_signals(date, previous_date)
+
+    def __generate_signals(self, date, previous_date):
+        """
+        Generate trading signals
+
+        :param date:            date for the market open
+        :param previous_date:   previous market date
+        """
         print EventType.EOD_DATA, date, previous_date
 
         # TODO pass in the configuration of parameters
         short_window = 50
         long_window = 100
 
-        # TODO Parallel?!
-        for m in self.__markets:
-            market_data = m.data(end_date=date)
+        for market in self.__markets:
+            market_data = market.data(end_date=date)
 
             # TODO replace hard-coded data
             if len(market_data) >= long_window + 1 and market_data[-1][1] == date:
 
-                """
-                Studies
-                """
-                sma_long = m.study(Study.SMA_LONG, date)[-2][1]
-                sma_short = m.study(Study.SMA_SHORT, date)[-2][1]
-                hhll_long = m.study(Study.HHLL_LONG, date)
-                hhll_short = m.study(Study.HHLL_SHORT, date)
-                atr_long = m.study(Study.ATR_LONG, date)[-1][1]
+                sma_long = market.study(Study.SMA_LONG, date)[-2][1]
+                sma_short = market.study(Study.SMA_SHORT, date)[-2][1]
+                hhll_long = market.study(Study.HHLL_LONG, date)
+                hhll_short = market.study(Study.HHLL_SHORT, date)
+                atr_long = market.study(Study.ATR_LONG, date)[-1][1]
                 last_price = market_data[-1][5]
-                market_positions = [p for p in self.__portfolio.positions() if p.market().code() == m.code()]
+                market_positions = self.__portfolio.positions_in_market(market)
 
-                """
-                Close Signals
-                """
+                # TODO pass in rules
                 if len(market_positions):
                     for position in market_positions:
-                        print 'position: ', position
                         if position.direction() == Direction.LONG:
                             stop_loss = hhll_long[-1][1] - 3 * atr_long
                             if last_price <= stop_loss:
-                                self.__signals.append(Signal(m, SignalType.EXIT, Direction.SHORT, date, last_price))
+                                self.__signals.append(Signal(market, SignalType.EXIT, Direction.SHORT, date, last_price))
                         elif position.direction() == Direction.SHORT:
                             stop_loss = hhll_long[-1][2] + 3 * atr_long
                             if last_price >= stop_loss:
-                                self.__signals.append(Signal(m, SignalType.EXIT, Direction.LONG, date, last_price))
+                                self.__signals.append(Signal(market, SignalType.EXIT, Direction.LONG, date, last_price))
 
-                """
-                Open Signals
-                """
+                # TODO pass-in rules
                 if sma_short > sma_long:
                     if last_price > hhll_short[-2][1]:
-                        # TODO 'code' is not the actual instrument code, but general market code
-                        self.__signals.append(Signal(m, SignalType.ENTER, Direction.LONG, date, last_price))
+                        self.__signals.append(Signal(market, SignalType.ENTER, Direction.LONG, date, last_price))
 
                 elif sma_short < sma_long:
                     if last_price < hhll_short[-2][2]:
-                        # TODO 'code' is not the actual instrument code, but general market code
-                        self.__signals.append(Signal(m, SignalType.ENTER, Direction.SHORT, date, last_price))
+                        self.__signals.append(Signal(market, SignalType.ENTER, Direction.SHORT, date, last_price))
+
+    def __generate_orders(self, date):
+        """
+        Generate Orders from Signals
+
+        :param date:    date for the market open
+        """
+        orders = []
+
+        for signal in self.__signals:
+            market = signal.market()
+            market_data = market.data(end_date=date)
+
+            if market_data[-1][1] == date:  # TODO do not even call if there the date is not trading date
+
+                atr_long = market.study(Study.ATR_LONG, date)[-1][1]
+                open_price = market_data[-1][2]
+                open_signals = [s for s in self.__signals if s.type() == SignalType.ENTER]
+                close_signals = [s for s in self.__signals if s.type() == SignalType.EXIT]
+                positions = self.__portfolio.positions_in_market(market)
+                order_type = self.__order_type(signal.type(), signal.direction())
+
+                if signal in close_signals and len(positions):
+                    for position in positions:
+                        orders.append(Order(market, order_type, date, open_price, position.quantity()))
+
+                if signal in open_signals and not len(positions):
+                    quantity = self.__risk.position_size(market.point_value(), market.currency(), atr_long)
+                    if quantity:
+                        orders.append(Order(market, order_type, date, open_price, quantity))
+
+        return orders
+
+    def __transfer_orders(self, orders):
+        """
+        Transfer orders to broker
+
+        :param orders:  list of order objects
+        """
+        for order in orders:
+            # TODO temporal binding - identify the position better way
+            positions = self.__portfolio.positions_in_market(order.market())
+            order_result = self.__broker.transfer(order)
+
+            if order.type() == OrderType.BTC or order.type() == OrderType.STC:
+                self.__trades.append(Trade(positions[0], order, order_result))
+
+        del self.__signals[:]
 
     def __order_type(self, signal_type, signal_direction):
         """

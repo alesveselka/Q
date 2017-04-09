@@ -6,17 +6,17 @@ from decimal import Decimal
 
 class Trade(object):
 
-    def __init__(self, market, direction, quantity, enter_date, enter_price, enter_slip, exit_date, exit_price, exit_slip, commissions):
-        self.__market = market
-        self.__direction = direction
-        self.__quantity = quantity
-        self.__enter_date = enter_date
-        self.__enter_price = enter_price
-        self.__enter_slip = enter_slip
-        self.__exit_date = exit_date
-        self.__exit_price = exit_price
-        self.__exit_slip = exit_slip
-        self.__commissions = commissions
+    def __init__(self, position, order, order_result):
+        self.__market = position.market()
+        self.__direction = position.direction()
+        self.__quantity = position.quantity()
+        self.__enter_date = position.date()
+        self.__enter_price = position.price()
+        self.__enter_slip = abs(position.order_price() - position.price())
+        self.__exit_date = order.date()
+        self.__exit_price = order_result.price()
+        self.__exit_slip = abs(order_result.price() - order.price())
+        self.__commissions = order_result.commission() * 2
 
     def market(self):
         return self.__market

@@ -6,6 +6,7 @@ from enum import OrderResultType
 from enum import TransactionType
 from enum import AccountAction
 from enum import EventType
+from enum import Study
 from transaction import Transaction
 from position import Position
 from order_result import OrderResult
@@ -55,10 +56,16 @@ class Broker(object):
         # TODO cash management (3Mo IR?)
         # TODO implement recent negative interest charged on specific currencies
 
-    def transfer(self, order, margin):
+    def transfer(self, order):
         market = order.market()
-        slippage = Decimal(market.slippage(order.market_volume(), order.market_atr()))
+        order_date = order.date()
+        market_data = market.data(end_date=order_date)
+        atr_short = market.study(Study.ATR_SHORT, order_date)[-1][1]
+        volume_short = market.study(Study.VOL_SHORT, order_date)[-1][1]
+        slippage = Decimal(market.slippage(volume_short, atr_short))
         commission = self.__commission * order.quantity()
+        previous_last_price = market_data[-2][5]
+        margin = market.margin(previous_last_price) * order.quantity()
         price = (order.price() + slippage) if (order.type() == OrderType.BTO or order.type() == OrderType.BTC) else (order.price() - slippage)  # TODO pass in slippage separe?
         positions_in_market = self.__portfolio.positions_in_market(market)
         print 'new order: ', order, ', already open positions: ', positions_in_market
