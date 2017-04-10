@@ -23,7 +23,7 @@ class Broker(object):
         self.__commission = commission
         self.__currency_pairs = currency_pairs
         self.__interest_rates = interest_rates
-        self.__orders = []
+        self.__orders = []  # TODO save orders!
 
     def subscribe(self):
         """
@@ -56,9 +56,14 @@ class Broker(object):
 
         # TODO Fx hedge
         # TODO cash management (3Mo IR?)
-        # TODO implement recent negative interest charged on specific currencies
 
     def transfer(self, order):
+        """
+        Create Transactions from Orders and transfer them for execution
+
+        :param order:   an Order instance to transfer
+        :return:        OrderResult instance
+        """
         market = order.market()
         order_date = order.date()
         market_data = market.data(end_date=order_date)
@@ -82,7 +87,8 @@ class Broker(object):
                 order.date(),
                 abs(mtm),
                 market.currency(),
-                'MTM %.2f(%s) at %.2f' % (float(mtm), market.currency(), price)
+                price
+                # 'MTM %.2f(%s) at %.2f' % (float(mtm), market.currency(), price)
             )
 
             self.__account.add_transaction(transaction1)
@@ -95,7 +101,8 @@ class Broker(object):
                 order.date(),
                 commission,
                 market.currency(),  # TODO market's currency is not necessarily commission's currency
-                '%s %d x %s at %.2f' % (order.type(), order.quantity(), market.code(), price)
+                (market, order, price)
+                # '%s %d x %s at %.2f' % (order.type(), order.quantity(), market.code(), price)
             )
 
             self.__account.add_transaction(transaction2)
@@ -107,8 +114,8 @@ class Broker(object):
                 AccountAction.DEBIT,
                 order.date(),
                 margin,
-                market.currency(),
-                'Close %.2f(%s) margin loan (REMOVE)' % (margin, market.currency())
+                market.currency()
+                # 'Close %.2f(%s) margin loan (REMOVE)' % (margin, market.currency())
             )
 
             self.__account.add_transaction(transaction3)
@@ -128,8 +135,8 @@ class Broker(object):
                     AccountAction.CREDIT,
                     order.date(),
                     margin,
-                    market.currency(),
-                    'Take %.2f(%s) margin loan (ADD)' % (margin, market.currency())
+                    market.currency()
+                    # 'Take %.2f(%s) margin loan (ADD)' % (margin, market.currency())
                 )
 
                 self.__account.add_transaction(transaction1)
@@ -142,7 +149,8 @@ class Broker(object):
                     order.date(),
                     commission,
                     market.currency(),  # TODO market's currency is not necessarily commission's currency
-                    '%s %d x %s at %.2f' % (order.type(), order.quantity(), market.code(), price)
+                    (market, order, price)
+                    # '%s %d x %s at %.2f' % (order.type(), order.quantity(), market.code(), price)
                 )
 
                 self.__account.add_transaction(transaction2)
@@ -183,8 +191,8 @@ class Broker(object):
                     action,
                     date,
                     abs(balance),
-                    currency,
-                    'Transfer funds, %s of %.4f %s from %s balance' % (action, float(abs(balance)), currency, currency)
+                    currency
+                    # 'Transfer funds, %s of %.4f %s from %s balance' % (action, float(abs(balance)), currency, currency)
                 )
                 self.__account.add_transaction(transaction)
 
@@ -196,8 +204,8 @@ class Broker(object):
                     action,
                     date,
                     abs(amount),
-                    base_currency,
-                    'Transfer funds, %s of %.4f %s to %s balance' % (action, float(abs(amount)), base_currency, base_currency)
+                    base_currency
+                    # 'Transfer funds, %s of %.4f %s to %s balance' % (action, float(abs(amount)), base_currency, base_currency)
                 )
                 self.__account.add_transaction(transaction)
 
@@ -216,7 +224,8 @@ class Broker(object):
                     date,
                     abs(mtm),
                     market.currency(),
-                    'MTM %.2f(%s) at %.4f' % (float(mtm), market.currency(), price)
+                    price
+                    # 'MTM %.2f(%s) at %.4f' % (float(mtm), market.currency(), price)
                 )
 
                 self.__account.add_transaction(transaction)
@@ -224,6 +233,12 @@ class Broker(object):
                 print transaction, float(self.__account.equity()), float(self.__account.available_funds())
 
     def __translate_fx_balances(self, date, previous_date):
+        """
+        Translate currency changes in non-base Fx balances
+
+        :param date:            date of the translation
+        :param previous_date:   date of previous data
+        """
         base_currency = self.__account.base_currency()
         for currency in [c for c in self.__account.fx_balance_currencies() if c != base_currency]:
             code = '%s%s' % (base_currency, currency)
@@ -241,11 +256,12 @@ class Broker(object):
             if abs(translation):
                 transaction = Transaction(
                     TransactionType.FX_BALANCE_TRANSLATION,
-                    AccountAction.CREDIT if translation > 0 else AccountAction.DEBIT,
+                    AccountAction.CREDIT if translation > 0 else AccountAction.DEBIT,  # TODO auto-determine based on sign?
                     date,
                     abs(translation),
                     base_currency,
-                    'FX Translation %.2f(%s) of %.2f(%s), prior: %.4f, current: %.4f' % (float(translation), base_currency, balance, currency, prior_rate, rate)
+                    (balance, currency, rate, prior_rate)
+                    # 'FX Translation %.2f(%s) of %.2f(%s), prior: %.4f, current: %.4f' % (float(translation), base_currency, balance, currency, prior_rate, rate)
                 )
 
                 self.__account.add_transaction(transaction)
@@ -253,6 +269,11 @@ class Broker(object):
                 print transaction, float(self.__account.equity()), float(self.__account.available_funds())
 
     def __update_margin_loans(self, date):
+        """
+        Update margin loans with data on the date passed in
+
+        :param date:    date of the data to use for margin calculation
+        """
         if len(self.__portfolio.positions()):
             margin_loans_to_open = defaultdict(Decimal)
             margin_loans_to_close = defaultdict(Decimal)
@@ -274,8 +295,8 @@ class Broker(object):
                     AccountAction.DEBIT,
                     date,
                     margin_loans_to_close[currency],
-                    currency,
-                    'Close %.2f(%s) margin loan (UPDATE)' % (float(margin_loans_to_close[currency]), currency)
+                    currency
+                    # 'Close %.2f(%s) margin loan (UPDATE)' % (float(margin_loans_to_close[currency]), currency)
                 )
                 self.__account.add_transaction(debit_transaction)
 
@@ -287,8 +308,8 @@ class Broker(object):
                     AccountAction.CREDIT,
                     date,
                     margin_loans_to_open[currency],
-                    currency,
-                    'Take %.2f(%s) margin loan (UPDATE)' % (float(margin_loans_to_open[currency]), currency)
+                    currency
+                    # 'Take %.2f(%s) margin loan (UPDATE)' % (float(margin_loans_to_open[currency]), currency)
                 )
                 self.__account.add_transaction(credit_transaction)
 
@@ -298,8 +319,8 @@ class Broker(object):
         """
         Charge interest on the account's margin loan balances
 
-        :param date:            Date of the charge
-        :param previous_date:   Date of interest calculation (previous date for overnight margins)
+        :param date:            date of the charge
+        :param previous_date:   date of interest calculation (previous date for overnight margins)
         """
         days = 365
         base_currency = self.__account.base_currency()
@@ -313,12 +334,13 @@ class Broker(object):
                 amount = balance * rate / days
 
                 transaction = Transaction(
-                    TransactionType.INTEREST,
+                    TransactionType.INTEREST_CHARGED,
                     AccountAction.DEBIT,
                     date,
                     amount,
                     currency,
-                    'Charge %.2f(%s) interest on %.2f margin' % (amount, currency, balance)
+                    (balance, benchmark_interest, rate, 'margin')
+                    # 'Charge %.2f(%s) interest on %.2f margin' % (amount, currency, balance)
                 )
                 self.__account.add_transaction(transaction)
 
@@ -334,12 +356,13 @@ class Broker(object):
                 amount = balance * rate / days
 
                 transaction = Transaction(
-                    TransactionType.INTEREST,
+                    TransactionType.INTEREST_CHARGED,
                     AccountAction.DEBIT,
                     date,
                     abs(amount),
                     currency,
-                    'Charge %.2f(%s) interest on %.2f %s balance' % (abs(amount), currency, balance, currency)
+                    (balance, benchmark_interest, rate, 'balance')
+                    # 'Charge %.2f(%s) interest on %.2f %s balance' % (abs(amount), currency, balance, currency)
                 )
                 self.__account.add_transaction(transaction)
 
@@ -365,12 +388,13 @@ class Broker(object):
                 amount = (balance - minimums[currency]) * rate / days
 
                 transaction = Transaction(
-                    TransactionType.INTEREST,
+                    TransactionType.INTEREST_PAID,
                     AccountAction.CREDIT if amount > 0 else AccountAction.DEBIT,
                     date,
                     abs(amount),
                     currency,
-                    'Pay %.2f(%s) interest (@ %.4f) on %.2f(%s) balance' % (amount, currency, rate, balance - minimums[currency], currency)
+                    (balance, minimums[currency], benchmark_interest, rate)
+                    # 'Pay %.2f(%s) interest (@ %.4f) on %.2f(%s) balance' % (amount, currency, rate, balance - minimums[currency], currency)
                 )
                 self.__account.add_transaction(transaction)
 
