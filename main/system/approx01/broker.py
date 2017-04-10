@@ -183,6 +183,7 @@ class Broker(object):
             balance = self.__account.fx_balance(currency)
 
             if abs(balance):
+                # TODO make sure 'debit' is first!
                 amount = self.__account.base_value(balance, currency)
                 action = AccountAction.DEBIT if balance > 0 else AccountAction.CREDIT
 
@@ -246,8 +247,8 @@ class Broker(object):
             pair_data = pair[0].data(end_date=date)
             # TODO remove hard-coded values
             rate = pair_data[-1][4] if len(pair_data) else Decimal(1)
-            prior_rate = pair_data[-2][4] if len(pair_data) > 1 else rate
-            # prior_rate = Decimal(1.1)
+            # prior_rate = pair_data[-2][4] if len(pair_data) > 1 else rate
+            prior_rate = Decimal(1.1)
             balance = self.__account.fx_balance(currency, previous_date)
             base_value = balance / rate
             prior_base_value = balance / prior_rate
@@ -334,7 +335,7 @@ class Broker(object):
                 amount = balance * rate / days
 
                 transaction = Transaction(
-                    TransactionType.INTEREST_CHARGED,
+                    TransactionType.INTEREST,
                     AccountAction.DEBIT,
                     date,
                     amount,
@@ -356,7 +357,7 @@ class Broker(object):
                 amount = balance * rate / days
 
                 transaction = Transaction(
-                    TransactionType.INTEREST_CHARGED,
+                    TransactionType.INTEREST,
                     AccountAction.DEBIT,
                     date,
                     abs(amount),
@@ -388,12 +389,12 @@ class Broker(object):
                 amount = (balance - minimums[currency]) * rate / days
 
                 transaction = Transaction(
-                    TransactionType.INTEREST_PAID,
+                    TransactionType.INTEREST,
                     AccountAction.CREDIT if amount > 0 else AccountAction.DEBIT,
                     date,
                     abs(amount),
                     currency,
-                    (balance, minimums[currency], benchmark_interest, rate)
+                    (balance - minimums[currency], benchmark_interest, rate, 'balance')
                     # 'Pay %.2f(%s) interest (@ %.4f) on %.2f(%s) balance' % (amount, currency, rate, balance - minimums[currency], currency)
                 )
                 self.__account.add_transaction(transaction)

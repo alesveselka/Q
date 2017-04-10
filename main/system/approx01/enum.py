@@ -53,8 +53,7 @@ class TransactionType:
     MTM_POSITION = 'MTM Position'
     FX_BALANCE_TRANSLATION = 'Fx Balance Translation'
     COMMISSION = 'Commission'
-    INTEREST_CHARGED = 'Interest Charged'
-    INTEREST_PAID = 'Interest Paid'
+    INTEREST = 'Interest'
     MARGIN_LOAN = 'Margin Loan'
     INTERNAL_FUND_TRANSFER = 'Fund Transfer (Internal)'
 
