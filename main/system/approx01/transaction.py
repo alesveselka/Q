@@ -56,38 +56,25 @@ class Transaction(object):
                 self.__context_data[2]
             )
         elif self.__type == TransactionType.MARGIN_LOAN:
-            if self.__account_action == AccountAction.CREDIT:
-                return 'Transaction: Take Margin Loan, %s of %.2f(%s).' % (
-                    self.__account_action,
-                    self.__amount,
-                    self.__currency
-                )
-            elif self.__account_action == AccountAction.DEBIT:
-                return 'Transaction: Close Margin Loan, %s of %.2f(%s).' % (
-                    self.__account_action,
-                    self.__amount,
-                    self.__currency
-                )
+            return 'Transaction: %s Margin Loan, %s of %.2f(%s).' % (
+                'Take' if self.__account_action == AccountAction.CREDIT else 'Close',
+                self.__account_action,
+                self.__amount,
+                self.__currency
+            )
             # Margin Loan
             # 'Close %.2f(%s) margin loan (REMOVE)' % (margin, market.currency())
             # 'Take %.2f(%s) margin loan (ADD)' % (margin, market.currency())
             # 'Close %.2f(%s) margin loan (UPDATE)' % (float(margin_loans_to_close[currency]), currency)
             # 'Take %.2f(%s) margin loan (UPDATE)' % (float(margin_loans_to_open[currency]), currency)
         elif self.__type == TransactionType.INTERNAL_FUND_TRANSFER:
-            if self.__account_action == AccountAction.CREDIT:
-                return 'Transaction: Transfer funds, %s of %.4f(%s) to %s balance.' % (
-                    self.__account_action,
-                    self.__amount,
-                    self.__currency,
-                    self.__currency
-                )
-            elif self.__account_action == AccountAction.DEBIT:
-                return 'Transaction: Transfer funds, %s of %.4f(%s) from %s balance.' % (
-                    self.__account_action,
-                    self.__amount,
-                    self.__currency,
-                    self.__currency
-                )
+            return 'Transaction: Transfer funds, %s of %.4f(%s) %s %s balance.' % (
+                self.__account_action,
+                self.__amount,
+                self.__currency,
+                'to' if self.__account_action == AccountAction.CREDIT else 'from',
+                self.__currency
+            )
         elif self.__type == TransactionType.FX_BALANCE_TRANSLATION:
             return 'Transaction: FX Translation, %s of %.2f(%s) on %.2f(%s), rate: %.4f, prior: %.4f.' % (
                 self.__account_action,
