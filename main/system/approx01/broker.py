@@ -183,11 +183,10 @@ class Broker(object):
             balance = self.__account.fx_balance(currency)
 
             if abs(balance):
-                # TODO make sure 'debit' is first!
                 amount = self.__account.base_value(balance, currency)
                 action = AccountAction.DEBIT if balance > 0 else AccountAction.CREDIT
 
-                transaction = Transaction(
+                fx_transaction = Transaction(
                     TransactionType.INTERNAL_FUND_TRANSFER,
                     action,
                     date,
@@ -195,12 +194,9 @@ class Broker(object):
                     currency
                     # 'Transfer funds, %s of %.4f %s from %s balance' % (action, float(abs(balance)), currency, currency)
                 )
-                self.__account.add_transaction(transaction)
-
-                print transaction, float(self.__account.equity()), float(self.__account.available_funds())
 
                 action = AccountAction.CREDIT if action == AccountAction.DEBIT else AccountAction.DEBIT
-                transaction = Transaction(
+                base_transaction = Transaction(
                     TransactionType.INTERNAL_FUND_TRANSFER,
                     action,
                     date,
@@ -208,9 +204,17 @@ class Broker(object):
                     base_currency
                     # 'Transfer funds, %s of %.4f %s to %s balance' % (action, float(abs(amount)), base_currency, base_currency)
                 )
-                self.__account.add_transaction(transaction)
 
-                print transaction, float(self.__account.equity()), float(self.__account.available_funds())
+                if fx_transaction.account_action() == AccountAction.DEBIT:
+                    self.__account.add_transaction(fx_transaction)
+                    print fx_transaction, float(self.__account.equity()), float(self.__account.available_funds())
+                    self.__account.add_transaction(base_transaction)
+                    print base_transaction, float(self.__account.equity()), float(self.__account.available_funds())
+                else:
+                    self.__account.add_transaction(base_transaction)
+                    print base_transaction, float(self.__account.equity()), float(self.__account.available_funds())
+                    self.__account.add_transaction(fx_transaction)
+                    print fx_transaction, float(self.__account.equity()), float(self.__account.available_funds())
 
     def __mark_to_market(self, date):
         for p in self.__portfolio.positions():
