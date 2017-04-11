@@ -11,7 +11,7 @@ class Transaction(object):
         self.__type = transaction_type
         self.__account_action = account_action
         self.__date = date
-        self.__amount = Decimal(amount)  # TODO has it any meaning to convert it here?
+        self.__amount = amount
         self.__currency = currency
         self.__context_data = context_data
 
@@ -30,12 +30,10 @@ class Transaction(object):
     def currency(self):
         return self.__currency
 
-    # def notes(self):
-    #     return self.__notes
-
     def __str__(self):
+        result = 'Transaction: '
         if self.__type == TransactionType.MTM_TRANSACTION or self.__type == TransactionType.MTM_POSITION:
-            return 'Transaction: %s, %s of %.2f(%s) at %.4f.' % (
+            result += '%s, %s of %.2f(%s) at %.4f.' % (
                 self.__type,
                 self.__account_action,
                 self.__amount,
@@ -45,7 +43,7 @@ class Transaction(object):
         elif self.__type == TransactionType.COMMISSION:
             market = self.__context_data[0]
             order = self.__context_data[1]
-            return 'Transaction: %s, %s of %.2f(%s): %s %d x %s at %.2f.' % (
+            result += '%s, %s of %.2f(%s): %s %d x %s at %.2f.' % (
                 self.__type,
                 self.__account_action,
                 self.__amount,
@@ -56,19 +54,15 @@ class Transaction(object):
                 self.__context_data[2]
             )
         elif self.__type == TransactionType.MARGIN_LOAN:
-            return 'Transaction: %s Margin Loan, %s of %.2f(%s).' % (
+            result += '%s Margin Loan, %s of %.2f(%s) (%s).' % (
                 'Take' if self.__account_action == AccountAction.CREDIT else 'Close',
                 self.__account_action,
                 self.__amount,
-                self.__currency
+                self.__currency,
+                self.__context_data
             )
-            # Margin Loan
-            # 'Close %.2f(%s) margin loan (REMOVE)' % (margin, market.currency())
-            # 'Take %.2f(%s) margin loan (ADD)' % (margin, market.currency())
-            # 'Close %.2f(%s) margin loan (UPDATE)' % (float(margin_loans_to_close[currency]), currency)
-            # 'Take %.2f(%s) margin loan (UPDATE)' % (float(margin_loans_to_open[currency]), currency)
         elif self.__type == TransactionType.INTERNAL_FUND_TRANSFER:
-            return 'Transaction: Transfer funds, %s of %.4f(%s) %s %s balance.' % (
+            result += 'Transfer funds, %s of %.4f(%s) %s %s balance.' % (
                 self.__account_action,
                 self.__amount,
                 self.__currency,
@@ -76,7 +70,7 @@ class Transaction(object):
                 self.__currency
             )
         elif self.__type == TransactionType.FX_BALANCE_TRANSLATION:
-            return 'Transaction: FX Translation, %s of %.2f(%s) on %.2f(%s), rate: %.4f, prior: %.4f.' % (
+            result += 'FX Translation, %s of %.2f(%s) on %.2f(%s) balance, rate: %.4f, prior: %.4f.' % (
                 self.__account_action,
                 self.__amount,
                 self.__currency,
@@ -86,7 +80,7 @@ class Transaction(object):
                 self.__context_data[3]
             )
         elif self.__type == TransactionType.INTEREST:
-            return 'Transaction: Interest, %s of %.2f(%s @ %.2f %%) on %.2f(%s) %s.' % (
+            result += 'Interest, %s of %.2f(%s @ %.2f %%) on %.2f(%s) %s.' % (
                 self.__account_action,
                 self.__amount,
                 self.__currency,
@@ -95,3 +89,5 @@ class Transaction(object):
                 self.__currency,
                 self.__context_data[3]
             )
+
+        return result

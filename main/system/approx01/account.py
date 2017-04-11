@@ -39,7 +39,8 @@ class Account(object):
         pair_data = pair[0].data() if len(pair) else []
         # TODO use specific date, not just last day in data!
         # TODO remove hard-coded values
-        rate = pair_data.data()[-1][4] if len(pair_data) else Decimal(1)
+        rate = pair_data[-1][4] if len(pair_data) else Decimal(1)
+        # rate = Decimal(1.1) if currency != 'EUR' else Decimal(1.0)
         return Decimal(amount) / rate
 
     def equity(self):
@@ -49,8 +50,7 @@ class Account(object):
 
         :return:    Number representing actual equity value
         """
-        balance = reduce(lambda t, k: t + self.base_value(self.__fx_balances.get(k), k), self.__fx_balances.keys(), Decimal(0))
-        return balance
+        return reduce(lambda t, k: t + self.base_value(self.__fx_balances.get(k), k), self.__fx_balances.keys(), Decimal(0))
 
     def available_funds(self):
         """
@@ -146,7 +146,7 @@ class Account(object):
         :param currency:    Currency denomination of the amount to be credited
         :param amount:      Amount to be credited
         """
-        balance[currency] += amount
+        balance[currency] += Decimal(amount)
 
     def __debit(self, balance, currency, amount):
         """
@@ -156,7 +156,7 @@ class Account(object):
         :param currency:    Currency denomination of the amount to be debited
         :param amount:      Amount to be debited
         """
-        balance[currency] -= amount
+        balance[currency] -= Decimal(amount)
 
     def __balance_to_date(self, balance, date, predicate):
         """
@@ -172,9 +172,9 @@ class Account(object):
                 if t.date() > date:
                     if predicate(t):
                         if t.account_action() == AccountAction.CREDIT:
-                            balance -= t.amount()
+                            balance -= Decimal(t.amount())
                         elif t.account_action() == AccountAction.DEBIT:
-                            balance += t.amount()
+                            balance += Decimal(t.amount())
                 else:
                     break
 

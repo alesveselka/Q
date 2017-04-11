@@ -88,7 +88,6 @@ class Broker(object):
                 abs(mtm),
                 market.currency(),
                 price
-                # 'MTM %.2f(%s) at %.2f' % (float(mtm), market.currency(), price)
             )
 
             self.__account.add_transaction(transaction1)
@@ -102,7 +101,6 @@ class Broker(object):
                 commission,
                 market.currency(),  # TODO market's currency is not necessarily commission's currency
                 (market, order, price)
-                # '%s %d x %s at %.2f' % (order.type(), order.quantity(), market.code(), price)
             )
 
             self.__account.add_transaction(transaction2)
@@ -114,8 +112,8 @@ class Broker(object):
                 AccountAction.DEBIT,
                 order.date(),
                 margin,
-                market.currency()
-                # 'Close %.2f(%s) margin loan (REMOVE)' % (margin, market.currency())
+                market.currency(),
+                'remove'
             )
 
             self.__account.add_transaction(transaction3)
@@ -135,8 +133,8 @@ class Broker(object):
                     AccountAction.CREDIT,
                     order.date(),
                     margin,
-                    market.currency()
-                    # 'Take %.2f(%s) margin loan (ADD)' % (margin, market.currency())
+                    market.currency(),
+                    'add'
                 )
 
                 self.__account.add_transaction(transaction1)
@@ -150,7 +148,6 @@ class Broker(object):
                     commission,
                     market.currency(),  # TODO market's currency is not necessarily commission's currency
                     (market, order, price)
-                    # '%s %d x %s at %.2f' % (order.type(), order.quantity(), market.code(), price)
                 )
 
                 self.__account.add_transaction(transaction2)
@@ -192,7 +189,6 @@ class Broker(object):
                     date,
                     abs(balance),
                     currency
-                    # 'Transfer funds, %s of %.4f %s from %s balance' % (action, float(abs(balance)), currency, currency)
                 )
 
                 action = AccountAction.CREDIT if action == AccountAction.DEBIT else AccountAction.DEBIT
@@ -202,7 +198,6 @@ class Broker(object):
                     date,
                     abs(amount),
                     base_currency
-                    # 'Transfer funds, %s of %.4f %s to %s balance' % (action, float(abs(amount)), base_currency, base_currency)
                 )
 
                 if fx_transaction.account_action() == AccountAction.DEBIT:
@@ -230,7 +225,6 @@ class Broker(object):
                     abs(mtm),
                     market.currency(),
                     price
-                    # 'MTM %.2f(%s) at %.4f' % (float(mtm), market.currency(), price)
                 )
 
                 self.__account.add_transaction(transaction)
@@ -266,7 +260,6 @@ class Broker(object):
                     abs(translation),
                     base_currency,
                     (balance, currency, rate, prior_rate)
-                    # 'FX Translation %.2f(%s) of %.2f(%s), prior: %.4f, current: %.4f' % (float(translation), base_currency, balance, currency, prior_rate, rate)
                 )
 
                 self.__account.add_transaction(transaction)
@@ -300,8 +293,8 @@ class Broker(object):
                     AccountAction.DEBIT,
                     date,
                     margin_loans_to_close[currency],
-                    currency
-                    # 'Close %.2f(%s) margin loan (UPDATE)' % (float(margin_loans_to_close[currency]), currency)
+                    currency,
+                    'update'
                 )
                 self.__account.add_transaction(debit_transaction)
 
@@ -313,8 +306,8 @@ class Broker(object):
                     AccountAction.CREDIT,
                     date,
                     margin_loans_to_open[currency],
-                    currency
-                    # 'Take %.2f(%s) margin loan (UPDATE)' % (float(margin_loans_to_open[currency]), currency)
+                    currency,
+                    'update'
                 )
                 self.__account.add_transaction(credit_transaction)
 
@@ -345,7 +338,6 @@ class Broker(object):
                     amount,
                     currency,
                     (balance, benchmark_interest, rate, 'margin')
-                    # 'Charge %.2f(%s) interest on %.2f margin' % (amount, currency, balance)
                 )
                 self.__account.add_transaction(transaction)
 
@@ -367,7 +359,6 @@ class Broker(object):
                     abs(amount),
                     currency,
                     (balance, benchmark_interest, rate, 'balance')
-                    # 'Charge %.2f(%s) interest on %.2f %s balance' % (abs(amount), currency, balance, currency)
                 )
                 self.__account.add_transaction(transaction)
 
@@ -399,7 +390,6 @@ class Broker(object):
                     abs(amount),
                     currency,
                     (balance - minimums[currency], benchmark_interest, rate, 'balance')
-                    # 'Pay %.2f(%s) interest (@ %.4f) on %.2f(%s) balance' % (amount, currency, rate, balance - minimums[currency], currency)
                 )
                 self.__account.add_transaction(transaction)
 
