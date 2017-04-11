@@ -26,41 +26,55 @@ class Account(object):
         """
         return self.__base_currency
 
-    def base_value(self, amount, currency):
+    def base_value(self, amount, currency, date):
         """
         Return value converted to account-base-currency
 
         :param amount:      Amount to be converted
         :param currency:    Quote currency in the pair
+        :param date:        date on which to convert the amount
         :return:            Converted amount in the account-base-currency
         """
         code = '%s%s' % (self.__base_currency, currency)
         pair = [cp for cp in self.__currency_pairs if cp.code() == code]
-        pair_data = pair[0].data() if len(pair) else []
-        # TODO use specific date, not just last day in data!
+        pair_data = pair[0].data(end_date=date) if len(pair) else []
         # TODO remove hard-coded values
         rate = pair_data[-1][4] if len(pair_data) else Decimal(1)
         # rate = Decimal(1.1) if currency != 'EUR' else Decimal(1.0)
         return Decimal(amount) / rate
 
-    def equity(self):
+    def equity(self, date):
         """
         Calculate and returns actual equity value
         (Sum of all FX balances)
 
-        :return:    Number representing actual equity value
+        :param date:    date on which return equity value
+        :return:        Number representing actual equity value
         """
-        return reduce(lambda t, k: t + self.base_value(self.__fx_balances.get(k), k), self.__fx_balances.keys(), Decimal(0))
+        return reduce(
+            lambda t, k: t + self.base_value(self.__fx_balances.get(k), k, date),
+            self.__fx_balances.keys(),
+            Decimal(0)
+        )
 
-    def available_funds(self):
+    def available_funds(self, date):
         """
         Calculates and returns funds available for trading
         (Sum of FX balances minus sum of margin loans)
 
-        :return:    Number representing funds available for trading
+        :param date:    date on which return equity value
+        :return:        Number representing funds available for trading
         """
-        balance = reduce(lambda t, k: t + self.base_value(self.__fx_balances.get(k), k), self.__fx_balances.keys(), 0)
-        margin = reduce(lambda t, k: t + self.base_value(self.__margin_loan_balances.get(k), k), self.__margin_loan_balances.keys(), 0)
+        balance = reduce(
+            lambda t, k: t + self.base_value(self.__fx_balances.get(k), k, date),
+            self.__fx_balances.keys(),
+            Decimal(0)
+        )
+        margin = reduce(
+            lambda t, k: t + self.base_value(self.__margin_loan_balances.get(k), k, date),
+            self.__margin_loan_balances.keys(),
+            Decimal(0)
+        )
         return balance - margin
 
     def margin_loan_currencies(self):

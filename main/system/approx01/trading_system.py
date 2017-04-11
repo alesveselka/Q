@@ -129,7 +129,7 @@ class TradingSystem(EventDispatcher):  # TODO do I need inherit from ED?
                         orders.append(Order(market, order_type, date, open_price, position.quantity()))
 
                 if signal in open_signals and not len(positions):
-                    quantity = self.__risk.position_size(market.point_value(), market.currency(), atr_long)
+                    quantity = self.__risk.position_size(market.point_value(), market.currency(), atr_long, date)
                     if quantity:
                         orders.append(Order(market, order_type, date, open_price, quantity))
 

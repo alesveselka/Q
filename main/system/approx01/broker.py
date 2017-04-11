@@ -88,8 +88,18 @@ class Broker(object):
 
             self.__account.add_transaction(transaction1)
 
-            print transaction1, float(self.__account.equity()), float(self.__account.available_funds())
-
+            print transaction1, float(self.__account.equity(order_date)), float(self.__account.available_funds(order_date))
+            print 'Base commission: ', commission
+            if market.currency() != self.__account.base_currency():
+                code = '%s%s' % (self.__account.base_currency(), market.currency())
+                pair = [cp for cp in self.__currency_pairs if cp.code() == code]
+                pair_data = pair[0].data() if len(pair) else []
+                # TODO use specific date, not just last day in data!
+                # TODO remove hard-coded values
+                # rate = pair_data[-1][4] if len(pair_data) else Decimal(1)
+                rate = Decimal(1.1) if market.currency() != 'EUR' else Decimal(1.0)
+                commission = Decimal(commission) / rate
+            print 'Fx commission: ', commission, market.currency(), rate
             transaction2 = Transaction(
                 TransactionType.COMMISSION,
                 order.date(),
@@ -100,7 +110,7 @@ class Broker(object):
 
             self.__account.add_transaction(transaction2)
 
-            print transaction2, float(self.__account.equity()), float(self.__account.available_funds())
+            print transaction2, float(self.__account.equity(order_date)), float(self.__account.available_funds(order_date))
 
             transaction3 = Transaction(
                 TransactionType.MARGIN_LOAN,
@@ -112,15 +122,15 @@ class Broker(object):
 
             self.__account.add_transaction(transaction3)
 
-            print transaction3, float(self.__account.equity()), float(self.__account.available_funds())
+            print transaction3, float(self.__account.equity(order_date)), float(self.__account.available_funds(order_date))
 
             self.__portfolio.remove_position(position)
 
             print 'Position closed ', self.__account.to_fx_balance_string()
         else:
             # -to-open transactions
-            print 'Enough funds? ', self.__account.available_funds(), self.__account.base_value(margin + commission, market.currency())
-            if self.__account.available_funds() > self.__account.base_value(margin + commission, market.currency()):
+            print 'Enough funds? ', self.__account.available_funds(order_date), self.__account.base_value(margin + commission, market.currency(), order_date)
+            if self.__account.available_funds(order_date) > self.__account.base_value(margin + commission, market.currency(), order_date):
 
                 transaction1 = Transaction(
                     TransactionType.MARGIN_LOAN,
@@ -132,7 +142,7 @@ class Broker(object):
 
                 self.__account.add_transaction(transaction1)
 
-                print transaction1, float(self.__account.equity()), float(self.__account.available_funds())
+                print transaction1, float(self.__account.equity(order_date)), float(self.__account.available_funds(order_date))
 
                 transaction2 = Transaction(
                     TransactionType.COMMISSION,
@@ -144,7 +154,7 @@ class Broker(object):
 
                 self.__account.add_transaction(transaction2)
 
-                print transaction2, float(self.__account.equity()), float(self.__account.available_funds())
+                print transaction2, float(self.__account.equity(order_date)), float(self.__account.available_funds(order_date))
 
                 position = Position(market, {
                         OrderType.BTO: Direction.LONG,
@@ -172,7 +182,7 @@ class Broker(object):
             balance = self.__account.fx_balance(currency)
 
             if abs(balance):
-                amount = self.__account.base_value(balance, currency)
+                amount = self.__account.base_value(balance, currency, date)
 
                 fx_transaction = Transaction(
                     TransactionType.INTERNAL_FUND_TRANSFER,
@@ -190,14 +200,14 @@ class Broker(object):
 
                 if fx_transaction.account_action() == AccountAction.DEBIT:
                     self.__account.add_transaction(fx_transaction)
-                    print fx_transaction, float(self.__account.equity()), float(self.__account.available_funds())
+                    print fx_transaction, float(self.__account.equity(date)), float(self.__account.available_funds(date))
                     self.__account.add_transaction(base_transaction)
-                    print base_transaction, float(self.__account.equity()), float(self.__account.available_funds())
+                    print base_transaction, float(self.__account.equity(date)), float(self.__account.available_funds(date))
                 else:
                     self.__account.add_transaction(base_transaction)
-                    print base_transaction, float(self.__account.equity()), float(self.__account.available_funds())
+                    print base_transaction, float(self.__account.equity(date)), float(self.__account.available_funds(date))
                     self.__account.add_transaction(fx_transaction)
-                    print fx_transaction, float(self.__account.equity()), float(self.__account.available_funds())
+                    print fx_transaction, float(self.__account.equity(date)), float(self.__account.available_funds(date))
 
     def __mark_to_market(self, date):
         for p in self.__portfolio.positions():
@@ -216,7 +226,7 @@ class Broker(object):
 
                 self.__account.add_transaction(transaction)
 
-                print transaction, float(self.__account.equity()), float(self.__account.available_funds())
+                print transaction, float(self.__account.equity(date)), float(self.__account.available_funds(date))
 
     def __translate_fx_balances(self, date, previous_date):
         """
@@ -250,7 +260,7 @@ class Broker(object):
 
                 self.__account.add_transaction(transaction)
 
-                print transaction, float(self.__account.equity()), float(self.__account.available_funds())
+                print transaction, float(self.__account.equity(date)), float(self.__account.available_funds(date))
 
     def __update_margin_loans(self, date):
         """
@@ -283,7 +293,7 @@ class Broker(object):
                 )
                 self.__account.add_transaction(debit_transaction)
 
-                print debit_transaction, float(self.__account.equity()), float(self.__account.available_funds())
+                print debit_transaction, float(self.__account.equity(date)), float(self.__account.available_funds(date))
 
             for currency in margin_loans_to_open.keys():
                 credit_transaction = Transaction(
@@ -295,7 +305,7 @@ class Broker(object):
                 )
                 self.__account.add_transaction(credit_transaction)
 
-                print credit_transaction, float(self.__account.equity()), float(self.__account.available_funds())
+                print credit_transaction, float(self.__account.equity(date)), float(self.__account.available_funds(date))
 
     def __charge_interest(self, date, previous_date):
         """
@@ -324,7 +334,7 @@ class Broker(object):
                 )
                 self.__account.add_transaction(transaction)
 
-                print transaction, float(self.__account.equity()), float(self.__account.available_funds())
+                print transaction, float(self.__account.equity(date)), float(self.__account.available_funds(date))
 
         for currency in [c for c in self.__account.fx_balance_currencies() if c != base_currency]:
             spread = Decimal(2.0)
@@ -344,7 +354,7 @@ class Broker(object):
                 )
                 self.__account.add_transaction(transaction)
 
-                print transaction, float(self.__account.equity()), float(self.__account.available_funds())
+                print transaction, float(self.__account.equity(date)), float(self.__account.available_funds(date))
 
     def __pay_interest(self, date, previous_date):
         """
@@ -374,4 +384,4 @@ class Broker(object):
                 )
                 self.__account.add_transaction(transaction)
 
-                print transaction, float(self.__account.equity()), float(self.__account.available_funds())
+                print transaction, float(self.__account.equity(date)), float(self.__account.available_funds(date))
