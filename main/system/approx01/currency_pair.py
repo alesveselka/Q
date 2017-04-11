@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 import datetime as dt
+from decimal import Decimal
 
 
 class CurrencyPair(object):
@@ -30,6 +31,16 @@ class CurrencyPair(object):
         :return:            List of data
         """
         return [d for d in self.__data if start_date <= d[0] <= end_date]
+
+    def rate(self, date=dt.date(9999, 12, 31)):
+        """
+        Find and return rate on date specified
+
+        :param date:    date to return rate on
+        :return:        Number representing the rate on the date
+        """
+        pair_data = self.data(end_date=date)
+        return pair_data[-1][4] if len(pair_data) else Decimal(1)
 
     def load_data(self, connection, end_date):
         """

@@ -35,8 +35,11 @@ class Account(object):
         :param date:        date on which to convert the amount
         :return:            Converted amount in the account-base-currency
         """
-        rate = self.__currency_pair_rate('%s%s' % (self.__base_currency, currency), date)
-        return Decimal(amount) / rate
+        value = amount
+        if currency != self.__base_currency:
+            pairs = [cp for cp in self.__currency_pairs if cp.code() == '%s%s' % (self.__base_currency, currency)]
+            value = Decimal(amount) / pairs[0].rate(date)
+        return value
 
     def fx_value(self, amount, currency, date):
         """
@@ -47,8 +50,11 @@ class Account(object):
         :param date:        date on which to convert the amount
         :return:            Converted amount in the account-base-currency
         """
-        rate = self.__currency_pair_rate('%s%s' % (self.__base_currency, currency), date)
-        return Decimal(amount) * rate
+        value = amount
+        if currency != self.__base_currency:
+            pairs = [cp for cp in self.__currency_pairs if cp.code() == '%s%s' % (self.__base_currency, currency)]
+            value = Decimal(amount) * pairs[0].rate(date)
+        return value
 
     def equity(self, date):
         """
@@ -200,16 +206,3 @@ class Account(object):
                     break
 
         return balance
-
-    def __currency_pair_rate(self, pair_code, date):
-        """
-        Return value converted to account-base-currency
-
-        :param pair_code:   String representing the currency pair
-        :param date:        date of the rate
-        :return:            Number representing the currency pair rate
-        """
-        pair = [cp for cp in self.__currency_pairs if cp.code() == pair_code]
-        pair_data = pair[0].data(end_date=date) if len(pair) else []
-        # TODO remove hard-coded values
-        return pair_data[-1][4] if len(pair_data) else Decimal(1)
