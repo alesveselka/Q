@@ -80,11 +80,10 @@ class Broker(object):
             mtm = position.mark_to_market(order.date(), price) * Decimal(position.quantity()) * market.point_value()
             transaction1 = Transaction(
                 TransactionType.MTM_TRANSACTION,
-                AccountAction.CREDIT if mtm > 0 else AccountAction.DEBIT,
                 order.date(),
-                abs(mtm),
+                mtm,
                 market.currency(),
-                price
+                (market, price)
             )
 
             self.__account.add_transaction(transaction1)
@@ -93,9 +92,8 @@ class Broker(object):
 
             transaction2 = Transaction(
                 TransactionType.COMMISSION,
-                AccountAction.DEBIT,
                 order.date(),
-                commission,
+                -commission,
                 market.currency(),  # TODO market's currency is not necessarily commission's currency
                 (market, order, price)
             )
@@ -106,9 +104,8 @@ class Broker(object):
 
             transaction3 = Transaction(
                 TransactionType.MARGIN_LOAN,
-                AccountAction.DEBIT,
                 order.date(),
-                margin,
+                -margin,
                 market.currency(),
                 'remove'
             )
@@ -127,7 +124,6 @@ class Broker(object):
 
                 transaction1 = Transaction(
                     TransactionType.MARGIN_LOAN,
-                    AccountAction.CREDIT,
                     order.date(),
                     margin,
                     market.currency(),
@@ -140,9 +136,8 @@ class Broker(object):
 
                 transaction2 = Transaction(
                     TransactionType.COMMISSION,
-                    AccountAction.DEBIT,
                     order.date(),
-                    commission,
+                    -commission,
                     market.currency(),  # TODO market's currency is not necessarily commission's currency
                     (market, order, price)
                 )
@@ -178,22 +173,18 @@ class Broker(object):
 
             if abs(balance):
                 amount = self.__account.base_value(balance, currency)
-                action = AccountAction.DEBIT if balance > 0 else AccountAction.CREDIT
 
                 fx_transaction = Transaction(
                     TransactionType.INTERNAL_FUND_TRANSFER,
-                    action,
                     date,
-                    abs(balance),
+                    -balance,
                     currency
                 )
 
-                action = AccountAction.CREDIT if action == AccountAction.DEBIT else AccountAction.DEBIT
                 base_transaction = Transaction(
                     TransactionType.INTERNAL_FUND_TRANSFER,
-                    action,
                     date,
-                    abs(amount),
+                    amount,
                     base_currency
                 )
 
@@ -217,11 +208,10 @@ class Broker(object):
                 mtm = p.mark_to_market(date, price) * Decimal(p.quantity()) * p.market().point_value()
                 transaction = Transaction(
                     TransactionType.MTM_TRANSACTION if p.date() == date else TransactionType.MTM_POSITION,
-                    AccountAction.CREDIT if mtm > 0 else AccountAction.DEBIT,
                     date,
-                    abs(mtm),
+                    mtm,
                     market.currency(),
-                    price
+                    (market, price)
                 )
 
                 self.__account.add_transaction(transaction)
@@ -242,8 +232,8 @@ class Broker(object):
             pair_data = pair[0].data(end_date=date)
             # TODO remove hard-coded values
             rate = pair_data[-1][4] if len(pair_data) else Decimal(1)
-            # prior_rate = pair_data[-2][4] if len(pair_data) > 1 else rate
-            prior_rate = Decimal(1.1)
+            prior_rate = pair_data[-2][4] if len(pair_data) > 1 else rate
+            # prior_rate = Decimal(1.1)
             balance = self.__account.fx_balance(currency, previous_date)
             base_value = balance / rate
             prior_base_value = balance / prior_rate
@@ -252,9 +242,8 @@ class Broker(object):
             if abs(translation):
                 transaction = Transaction(
                     TransactionType.FX_BALANCE_TRANSLATION,
-                    AccountAction.CREDIT if translation > 0 else AccountAction.DEBIT,  # TODO auto-determine based on sign?
                     date,
-                    abs(translation),
+                    translation,
                     base_currency,
                     (balance, currency, rate, prior_rate)
                 )
@@ -287,9 +276,8 @@ class Broker(object):
             for currency in margin_loans_to_close.keys():
                 debit_transaction = Transaction(
                     TransactionType.MARGIN_LOAN,
-                    AccountAction.DEBIT,
                     date,
-                    margin_loans_to_close[currency],
+                    -margin_loans_to_close[currency],
                     currency,
                     'update'
                 )
@@ -300,7 +288,6 @@ class Broker(object):
             for currency in margin_loans_to_open.keys():
                 credit_transaction = Transaction(
                     TransactionType.MARGIN_LOAN,
-                    AccountAction.CREDIT,
                     date,
                     margin_loans_to_open[currency],
                     currency,
@@ -330,9 +317,8 @@ class Broker(object):
 
                 transaction = Transaction(
                     TransactionType.INTEREST,
-                    AccountAction.DEBIT,
                     date,
-                    amount,
+                    -amount,
                     currency,
                     (balance, benchmark_interest, rate, 'margin')
                 )
@@ -351,9 +337,8 @@ class Broker(object):
 
                 transaction = Transaction(
                     TransactionType.INTEREST,
-                    AccountAction.DEBIT,
                     date,
-                    abs(amount),
+                    amount,
                     currency,
                     (balance, benchmark_interest, rate, 'balance')
                 )
@@ -382,9 +367,8 @@ class Broker(object):
 
                 transaction = Transaction(
                     TransactionType.INTEREST,
-                    AccountAction.CREDIT if amount > 0 else AccountAction.DEBIT,
                     date,
-                    abs(amount),
+                    amount,
                     currency,
                     (balance - minimums[currency], benchmark_interest, rate, 'balance')
                 )
