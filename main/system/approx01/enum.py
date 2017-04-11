@@ -5,6 +5,7 @@ class EventType:
     MARKET_OPEN = 'MARKET_OPEN'
     MARKET_CLOSE = 'MARKET_CLOSE'
     EOD_DATA = 'EOD_DATA'
+    COMPLETE = 'COMPLETE'
 
 
 class Study:

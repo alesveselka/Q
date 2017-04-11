@@ -6,7 +6,6 @@ from enum import OrderResultType
 from enum import TransactionType
 from enum import AccountAction
 from enum import EventType
-from enum import Study
 from transaction import Transaction
 from position import Position
 from order_result import OrderResult
@@ -191,20 +190,8 @@ class Broker(object):
 
             if abs(balance):
                 amount = self.__account.base_value(balance, currency, date)
-
-                fx_transaction = Transaction(
-                    TransactionType.INTERNAL_FUND_TRANSFER,
-                    date,
-                    -balance,
-                    currency
-                )
-
-                base_transaction = Transaction(
-                    TransactionType.INTERNAL_FUND_TRANSFER,
-                    date,
-                    amount,
-                    base_currency
-                )
+                fx_transaction = Transaction(TransactionType.INTERNAL_FUND_TRANSFER, date, -balance, currency)
+                base_transaction = Transaction(TransactionType.INTERNAL_FUND_TRANSFER, date, amount, base_currency)
 
                 if fx_transaction.account_action() == AccountAction.DEBIT:
                     self.__account.add_transaction(fx_transaction)
@@ -218,19 +205,19 @@ class Broker(object):
                     print fx_transaction, float(self.__account.equity(date)), float(self.__account.available_funds(date))
 
     def __mark_to_market(self, date):
+        """
+        Mark open positions to market values
+
+        :param date:    date to which mark the positions
+        """
         for p in self.__portfolio.positions():
             market = p.market()
 
             if market.has_data(date):
                 price = market.data(end_date=date)[-1][5]
                 mtm = p.mark_to_market(date, price) * Decimal(p.quantity()) * p.market().point_value()
-                transaction = Transaction(
-                    TransactionType.MTM_TRANSACTION if p.date() == date else TransactionType.MTM_POSITION,
-                    date,
-                    mtm,
-                    market.currency(),
-                    (market, price)
-                )
+                mtm_type = TransactionType.MTM_TRANSACTION if p.date() == date else TransactionType.MTM_POSITION
+                transaction = Transaction(mtm_type, date, mtm, market.currency(), (market, price))
 
                 self.__account.add_transaction(transaction)
 

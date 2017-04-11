@@ -12,6 +12,7 @@ class Timer(EventDispatcher):
 
     def start(self, start_date=dt.date(1990, 1, 1), end_date=dt.date(9999, 12, 31)):
         workdays = range(1, 6)
+        day = start_date
         previous_day = start_date
 
         for i in xrange(0, (end_date - start_date).days + 1):
@@ -22,3 +23,5 @@ class Timer(EventDispatcher):
                 self.dispatch(EventType.MARKET_CLOSE, day, previous_day)  # accounting
                 self.dispatch(EventType.EOD_DATA, day, previous_day)  # calculate studies and signals
                 previous_day = day
+
+        self.dispatch(EventType.COMPLETE, day)
