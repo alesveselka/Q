@@ -3,6 +3,7 @@
 import datetime as dt
 from math import ceil
 from study import *
+from enum import Study
 
 
 class Market(object):  # TODO rename to Future?
@@ -105,18 +106,19 @@ class Market(object):  # TODO rename to Future?
         """
         return ceil(price * self.__point_value * self.__margin_multiple)
 
-    def slippage(self, average_volume, atr):
+    def slippage(self, date):
         """
         Calculates and returns 'slippage' in points
         (At minimum 1 tick)
 
-        :param average_volume:  Average volume for slippage estimation
-        :param atr:             ATR of Settlement price
-        :return:                Number representing slippage in market points
+        :param date:    date on which to calculate the slippage
+        :return:        Number representing slippage in market points
         """
         # TODO remove hard-coded slippage-map (pass in as dependency)
         # TODO factor in quantity?
-        slippage_atr = filter(lambda s: s.get('min') <= average_volume < s.get('max'), [
+        atr = self.study(Study.ATR_SHORT, date)[-1][1]
+        volume = self.study(Study.VOL_SHORT, date)[-1][1]
+        slippage_atr = filter(lambda s: s.get('min') <= volume < s.get('max'), [
             {'atr': 2, 'min': 0, 'max': 100},
             {'atr': 1, 'min': 100, 'max': 1000},
             {'atr': 0.25, 'min': 1000, 'max': 10000},

@@ -66,12 +66,9 @@ class Broker(object):
         """
         market = order.market()
         order_date = order.date()
-        market_data = market.data(end_date=order_date)
-        atr_short = market.study(Study.ATR_SHORT, order_date)[-1][1]
-        volume_short = market.study(Study.VOL_SHORT, order_date)[-1][1]
-        slippage = Decimal(market.slippage(volume_short, atr_short))
+        slippage = Decimal(market.slippage(order_date))
         commission = self.__commission * order.quantity()
-        previous_last_price = market_data[-2][5]
+        previous_last_price = market.data(end_date=order_date)[-2][5]
         margin = market.margin(previous_last_price) * order.quantity()
         price = (order.price() + slippage) if (order.type() == OrderType.BTO or order.type() == OrderType.BTC) else (order.price() - slippage)  # TODO pass in slippage separe?
         positions_in_market = self.__portfolio.positions_in_market(market)
