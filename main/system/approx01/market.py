@@ -104,7 +104,7 @@ class Market(object):  # TODO rename to Future?
         :param price:   Market price for margin calculation
         :return:        Number representing margin in account-base-currency
         """
-        return ceil(price * self.__point_value * self.__margin_multiple)
+        return Decimal(ceil(price * self.__point_value * self.__margin_multiple))
 
     def slippage(self, date):
         """

@@ -29,12 +29,12 @@ class Initialize:
             os.environ['DB_NAME']
         )
         risk_position_sizing = Decimal(0.002)
-        commission = 10.0  # TODO convert to base-currency
+        commission = (10.0, Currency.USD)
 
         now = dt.datetime.now()
         # end_date = dt.date(now.year, now.month, now.day)
-        # end_date = dt.date(1993, 1, 1)
-        end_date = dt.date(1992, 6, 10)
+        # end_date = dt.date(1992, 6, 10)
+        end_date = dt.date(1993, 12, 31)
         timer = Timer()
 
         investment_universe = InvestmentUniverse(investment_universe_name, connection)

@@ -67,9 +67,9 @@ class Broker(object):
         market = order.market()
         order_date = order.date()
         slippage = Decimal(market.slippage(order_date))
-        commission = self.__commission * order.quantity()
+        commissions = self.__commissions(order.quantity(), market.currency(), order_date)
         previous_last_price = market.data(end_date=order_date)[-2][5]
-        margin = market.margin(previous_last_price) * order.quantity()
+        margin = market.margin(previous_last_price) * Decimal(order.quantity())
         price = (order.price() + slippage) if (order.type() == OrderType.BTO or order.type() == OrderType.BTC) else (order.price() - slippage)  # TODO pass in slippage separe?
         positions_in_market = self.__portfolio.positions_in_market(market)
         print 'new order: ', order, ', already open positions: ', positions_in_market
@@ -89,22 +89,12 @@ class Broker(object):
             self.__account.add_transaction(transaction1)
 
             print transaction1, float(self.__account.equity(order_date)), float(self.__account.available_funds(order_date))
-            print 'Base commission: ', commission
-            if market.currency() != self.__account.base_currency():
-                code = '%s%s' % (self.__account.base_currency(), market.currency())
-                pair = [cp for cp in self.__currency_pairs if cp.code() == code]
-                pair_data = pair[0].data() if len(pair) else []
-                # TODO use specific date, not just last day in data!
-                # TODO remove hard-coded values
-                # rate = pair_data[-1][4] if len(pair_data) else Decimal(1)
-                rate = Decimal(1.1) if market.currency() != 'EUR' else Decimal(1.0)
-                commission = Decimal(commission) / rate
-            print 'Fx commission: ', commission, market.currency(), rate
+
             transaction2 = Transaction(
                 TransactionType.COMMISSION,
                 order.date(),
-                -commission,
-                market.currency(),  # TODO market's currency is not necessarily commission's currency
+                -commissions,
+                market.currency(),
                 (market, order, price)
             )
 
@@ -129,8 +119,9 @@ class Broker(object):
             print 'Position closed ', self.__account.to_fx_balance_string()
         else:
             # -to-open transactions
-            print 'Enough funds? ', self.__account.available_funds(order_date), self.__account.base_value(margin + commission, market.currency(), order_date)
-            if self.__account.available_funds(order_date) > self.__account.base_value(margin + commission, market.currency(), order_date):
+            print 'Enough funds? ', self.__account.available_funds(order_date), self.__account.base_value(margin + commissions, market.currency(), order_date)
+
+            if self.__account.available_funds(order_date) > self.__account.base_value(margin + commissions, market.currency(), order_date):
 
                 transaction1 = Transaction(
                     TransactionType.MARGIN_LOAN,
@@ -147,8 +138,8 @@ class Broker(object):
                 transaction2 = Transaction(
                     TransactionType.COMMISSION,
                     order.date(),
-                    -commission,
-                    market.currency(),  # TODO market's currency is not necessarily commission's currency
+                    -commissions,
+                    market.currency(),
                     (market, order, price)
                 )
 
@@ -168,7 +159,24 @@ class Broker(object):
 
                 self.__portfolio.add_position(position)
 
-        return OrderResult(OrderResultType.FILLED, order.date(), price, commission)
+        return OrderResult(OrderResultType.FILLED, order.date(), price, commissions)
+
+    def __commissions(self, quantity, currency, date):
+        """
+        Calculate and return amount of commission
+
+        :param quantity:    Number of contracts
+        :param currency:    Currency denomination of the contract
+        :param date:        Date on which to make the commission calculation
+        :return:            Commission amount
+        """
+        commission_value = self.__commission[0]
+        if currency == self.__account.base_currency():
+            commission_value = commission_value * quantity
+        else:
+            base_commission = self.__account.base_value(commission_value * quantity, currency, date)
+            commission_value = self.__account.fx_value(base_commission, currency, date)
+        return commission_value
 
     def __sweep_fx_funds(self, date):
         """
@@ -277,7 +285,7 @@ class Broker(object):
                     market = p.market()
 
                     if market.has_data(date):
-                        margin = market.margin(market.data(end_date=date)[-1][5]) * p.quantity()
+                        margin = market.margin(market.data(end_date=date)[-1][5]) * Decimal(p.quantity())
                         currency = market.currency()
                         margin_loans_to_close[currency] += Decimal(p.margins()[-1][1])
                         margin_loans_to_open[currency] += Decimal(margin)
