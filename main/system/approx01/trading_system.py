@@ -5,6 +5,7 @@ from enum import EventType
 from enum import Direction
 from enum import SignalType
 from enum import OrderType
+from enum import Table
 from strategy_signal import Signal
 from order import Order
 from trade import Trade
@@ -77,33 +78,35 @@ class TradingSystem(EventDispatcher):  # TODO do I need inherit from ED?
             # TODO replace hard-coded data
             if len(market_data) >= long_window + 1 and market.has_data(date):
 
-                sma_long = market.study(Study.SMA_LONG, date)[-2][1]
-                sma_short = market.study(Study.SMA_SHORT, date)[-2][1]
+                sma_long = market.study(Study.SMA_LONG, date)[-2][Table.Study.VALUE]
+                sma_short = market.study(Study.SMA_SHORT, date)[-2][Table.Study.VALUE]
                 hhll_long = market.study(Study.HHLL_LONG, date)
                 hhll_short = market.study(Study.HHLL_SHORT, date)
-                atr_long = market.study(Study.ATR_LONG, date)[-1][1]
-                last_price = market_data[-1][5]
+                atr_long = market.study(Study.ATR_LONG, date)[-1][Table.Study.VALUE]
+                settle_price = market_data[-1][Table.Market.SETTLE_PRICE]
                 market_position = self.__portfolio.market_position(market)
 
                 # TODO pass in rules
                 if market_position:
                     if market_position.direction() == Direction.LONG:
-                        stop_loss = hhll_long[-1][1] - 3 * atr_long
-                        if last_price <= stop_loss:
-                            self.__signals.append(Signal(market, SignalType.EXIT, Direction.SHORT, date, last_price))
+                        # TODO move SL to Risk object?
+                        stop_loss = hhll_long[-1][Table.Study.VALUE] - 3 * atr_long
+                        if settle_price <= stop_loss:
+                            self.__signals.append(Signal(market, SignalType.EXIT, Direction.SHORT, date, settle_price))
                     elif market_position.direction() == Direction.SHORT:
-                        stop_loss = hhll_long[-1][2] + 3 * atr_long
-                        if last_price >= stop_loss:
-                            self.__signals.append(Signal(market, SignalType.EXIT, Direction.LONG, date, last_price))
+                        # TODO move SL to Risk object?
+                        stop_loss = hhll_long[-1][Table.Study.VALUE_2] + 3 * atr_long
+                        if settle_price >= stop_loss:
+                            self.__signals.append(Signal(market, SignalType.EXIT, Direction.LONG, date, settle_price))
 
                 # TODO pass-in rules
                 if sma_short > sma_long:
-                    if last_price > hhll_short[-2][1]:
-                        self.__signals.append(Signal(market, SignalType.ENTER, Direction.LONG, date, last_price))
+                    if settle_price > hhll_short[-2][Table.Study.VALUE]:
+                        self.__signals.append(Signal(market, SignalType.ENTER, Direction.LONG, date, settle_price))
 
                 elif sma_short < sma_long:
-                    if last_price < hhll_short[-2][2]:
-                        self.__signals.append(Signal(market, SignalType.ENTER, Direction.SHORT, date, last_price))
+                    if settle_price < hhll_short[-2][Table.Study.VALUE_2]:
+                        self.__signals.append(Signal(market, SignalType.ENTER, Direction.SHORT, date, settle_price))
 
     def __generate_orders(self, date):
         """
@@ -118,8 +121,8 @@ class TradingSystem(EventDispatcher):  # TODO do I need inherit from ED?
 
             if market.has_data(date):
                 market_data = market.data(end_date=date)
-                atr_long = market.study(Study.ATR_LONG, date)[-1][1]
-                open_price = market_data[-1][2]
+                atr_long = market.study(Study.ATR_LONG, date)[-1][Table.Study.VALUE]
+                open_price = market_data[-1][Table.Market.OPEN_PRICE]
                 open_signals = [s for s in self.__signals if s.type() == SignalType.ENTER]
                 close_signals = [s for s in self.__signals if s.type() == SignalType.EXIT]
                 market_position = self.__portfolio.market_position(market)
