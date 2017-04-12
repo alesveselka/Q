@@ -4,8 +4,8 @@ from enum import Direction
 from enum import OrderType
 from enum import OrderResultType
 from enum import TransactionType
-from enum import AccountAction
 from enum import EventType
+from enum import Table
 from transaction import Transaction
 from position import Position
 from order_result import OrderResult
@@ -75,7 +75,7 @@ class Broker(object):
         currency = market.currency()
         slippage = Decimal(market.slippage(date))
         commissions = self.__commissions(order.quantity(), market.currency(), date)
-        previous_last_price = market.data(end_date=date)[-2][5]
+        previous_last_price = market.data(end_date=date)[-2][Table.Market.SETTLE_PRICE]
         margin = market.margin(previous_last_price) * Decimal(order.quantity())
         price = (order.price() + slippage) if (order.type() == OrderType.BTO or order.type() == OrderType.BTC) else (order.price() - slippage)  # TODO pass in slippage separe?
 
@@ -147,7 +147,7 @@ class Broker(object):
             market = p.market()
 
             if market.has_data(date):
-                price = market.data(end_date=date)[-1][5]
+                price = market.data(end_date=date)[-1][Table.Market.SETTLE_PRICE]
                 mtm = p.mark_to_market(date, price) * Decimal(p.quantity()) * p.market().point_value()
                 mtm_type = TransactionType.MTM_TRANSACTION if p.date() == date else TransactionType.MTM_POSITION
                 self.__add_transaction(mtm_type, date, mtm, market.currency(), (market, price))
@@ -188,7 +188,7 @@ class Broker(object):
                     market = p.market()
 
                     if market.has_data(date):
-                        margin = market.margin(market.data(end_date=date)[-1][5]) * Decimal(p.quantity())
+                        margin = market.margin(market.data(end_date=date)[-1][Table.Market.SETTLE_PRICE]) * Decimal(p.quantity())
                         currency = market.currency()
                         to_close[currency] += Decimal(p.margins()[-1][1])
                         to_open[currency] += Decimal(margin)
