@@ -56,7 +56,7 @@ class Broker(object):
         self.__pay_interest(date, previous_date)
         self.__update_margin_loans(date)
 
-        if not self.__portfolio.positions():
+        if not self.__portfolio.open_positions():
             self.__sweep_fx_funds(date)
 
         # print 'FX Balances', self.__account.to_fx_balance_string()
@@ -219,7 +219,7 @@ class Broker(object):
 
         :param date:    date to which mark the positions
         """
-        for p in self.__portfolio.positions():
+        for p in self.__portfolio.open_positions():
             market = p.market()
 
             if market.has_data(date):
@@ -268,11 +268,11 @@ class Broker(object):
 
         :param date:    date of the data to use for margin calculation
         """
-        if len(self.__portfolio.positions()):
+        if len(self.__portfolio.open_positions()):
             margin_loans_to_open = defaultdict(Decimal)
             margin_loans_to_close = defaultdict(Decimal)
 
-            for p in self.__portfolio.positions():
+            for p in self.__portfolio.open_positions():
                 if date > p.date():
                     market = p.market()
 
