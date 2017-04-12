@@ -9,14 +9,11 @@ from enum import Table
 from strategy_signal import Signal
 from order import Order
 from trade import Trade
-from event_dispatcher import EventDispatcher
 
 
-class TradingSystem(EventDispatcher):  # TODO do I need inherit from ED?
+class TradingSystem:
 
     def __init__(self, timer, markets, risk, portfolio, broker):
-        super(TradingSystem, self).__init__()
-
         self.__timer = timer
         self.__markets = markets
         self.__risk = risk
