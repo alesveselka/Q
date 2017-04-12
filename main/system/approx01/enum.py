@@ -81,6 +81,11 @@ class Table:
         LOW_PRICE = 3
         LAST_PRICE = 4
 
+    class InterestRate:
+        PRICE_DATE = 0
+        IMMEDIATE_RATE = 1
+        THREE_MONTHS_RATE = 2
+
     class Study:
         DATE = 0
         VALUE = 1

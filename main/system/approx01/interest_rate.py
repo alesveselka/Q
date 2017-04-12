@@ -2,6 +2,8 @@
 
 import datetime as dt
 from decimal import Decimal
+from enum import Table
+from operator import itemgetter
 
 
 class InterestRate(object):
@@ -29,7 +31,7 @@ class InterestRate(object):
         """
         cursor = connection.cursor()
         sql = """
-            SELECT price_date, immediate_rate, three_months_rate
+            SELECT %s
             FROM interest_rate
             WHERE currency_id = '%s'
             AND DATE(price_date) >= '%s'
@@ -38,11 +40,25 @@ class InterestRate(object):
         """
 
         cursor.execute(sql % (
+            self.__column_names(),
             self.__currency_id,
             self.__start_data_date.strftime('%Y-%m-%d'),
             end_date.strftime('%Y-%m-%d')
         ))
         self.__data = cursor.fetchall()
+
+    def __column_names(self):
+        """
+        Construct and return column names sorted by their index in ENUM
+
+        :return:    string
+        """
+        columns = {
+            'price_date': Table.InterestRate.PRICE_DATE,
+            'immediate_rate': Table.InterestRate.IMMEDIATE_RATE,
+            'three_months_rate': Table.InterestRate.THREE_MONTHS_RATE
+        }
+        return ', '.join([i[0] for i in sorted(columns.items(), key=itemgetter(1))])
 
     def data(self, start_date=dt.date(1900, 1, 1), end_date=dt.date(9999, 12, 31)):
         """
@@ -52,7 +68,7 @@ class InterestRate(object):
         :param end_date:    Date, end of the data range
         :return:            List of data
         """
-        return [d for d in self.__data if start_date <= d[0] <= end_date]
+        return [d for d in self.__data if start_date <= d[Table.InterestRate.PRICE_DATE] <= end_date]
 
     def immediate_rate(self, date):
         """
@@ -61,7 +77,8 @@ class InterestRate(object):
         :param date:    Date of the rate
         :return:        Immediate Rate effective on the date
         """
-        rate = [d[1] for d in self.__data if d[0] <= date and d[1] is not None]
+        rate = [d[Table.InterestRate.IMMEDIATE_RATE] for d in self.__data
+                if d[Table.InterestRate.PRICE_DATE] <= date and d[Table.InterestRate.IMMEDIATE_RATE] is not None]
         return rate[-1] if len(rate) else self.three_month_rate(date)
 
     def three_month_rate(self, date):
@@ -71,7 +88,8 @@ class InterestRate(object):
         :param date:    Date of the rate
         :return:        Three-Month Rate effective on the date
         """
-        rate = [d[2] for d in self.__data if d[0] <= date and d[2] is not None]
+        rate = [d[Table.InterestRate.THREE_MONTHS_RATE] for d in self.__data
+                if d[Table.InterestRate.PRICE_DATE] <= date and d[Table.InterestRate.THREE_MONTHS_RATE] is not None]
         return rate[-1] if len(rate) else Decimal(1)
 
     def __str__(self):
