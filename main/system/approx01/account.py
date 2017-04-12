@@ -135,21 +135,25 @@ class Account(object):
             lambda t: t.type() != TransactionType.MARGIN_LOAN and t.currency() == currency
         )
 
-    def to_fx_balance_string(self):
+    def to_fx_balance_string(self, date):
         """
         Return string representation of the Fx balances
 
-        :return:    String representing the account's Fx balances
+        :param date:    Date of the final balance
+        :return:        String representing the account's Fx balances
         """
-        return '{%s}' % ', '.join(['%s: %.2f' % (b[0], float(b[1])) for b in self.__fx_balances.items() if b[1]])
+        return '{%s}' % ', '.join(['%s: %.2f' % (k, float(self.fx_balance(k, date)))
+                                   for k in self.__fx_balances.keys() if self.fx_balance(k, date)])
 
-    def to_margin_loans_string(self):
+    def to_margin_loans_string(self, date):
         """
         Return string representation of the margin loan balances
 
-        :return:    String representing the account's margin loan balances
+        :param date:    Date of the final balance
+        :return:        String representing the account's margin loan balances
         """
-        return '{%s}' % ', '.join(['%s: %.2f' % (b[0], float(b[1])) for b in self.__margin_loan_balances.items() if b[1]])
+        return '{%s}' % ', '.join(['%s: %.2f' % (k, float(self.margin_loan_balance(k, date)))
+                                   for k in self.__margin_loan_balances.keys() if self.margin_loan_balance(k, date)])
 
     def add_transaction(self, transaction):
         """
