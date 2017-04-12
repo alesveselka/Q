@@ -18,7 +18,7 @@ class Timer(EventDispatcher):
         for i in xrange(0, (end_date - start_date).days + 1):
             day = start_date + dt.timedelta(days=i)
             if day.isoweekday() in workdays:
-                print '%s [%s] %s (previous %s) %s' % (('-' * 40), i, day, previous_day, ('-' * 40))
+                # print '%s [%s] %s (previous %s) %s' % (('-' * 40), i, day, previous_day, ('-' * 40))
                 self.dispatch(EventType.MARKET_OPEN, day, previous_day)  # execute orders
                 self.dispatch(EventType.MARKET_CLOSE, day, previous_day)  # accounting
                 self.dispatch(EventType.EOD_DATA, day, previous_day)  # calculate studies and signals

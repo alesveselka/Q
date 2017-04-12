@@ -35,37 +35,39 @@ class Initialize:
         now = dt.datetime.now()
         # end_date = dt.date(now.year, now.month, now.day)
         end_date = dt.date(1992, 6, 10)
-        # end_date = dt.date(1993, 12, 31)
+        # end_date = dt.date(2015, 12, 31)
         timer = Timer()
 
         investment_universe = InvestmentUniverse(investment_universe_name, connection)
         investment_universe.load_data()
+        self.__start_date = investment_universe.start_data_date()
 
         data_series = DataSeries(investment_universe, connection)
         futures = data_series.futures()
         currency_pairs = data_series.currency_pairs()
         interest_rates = data_series.interest_rates()
-        account = Account(Decimal(1e6), Currency.EUR, currency_pairs)
+
+        self.__account = Account(Decimal(1e6), Currency.EUR, currency_pairs)
+
         portfolio = Portfolio()
-        broker = Broker(timer, account, portfolio, commission, currency_pairs, interest_rates)
-        risk = Risk(risk_position_sizing, account)
-        trading_system = TradingSystem(timer, futures, risk, portfolio, broker)
+        risk = Risk(risk_position_sizing, self.__account)
+
+        self.__broker = Broker(timer, self.__account, portfolio, commission, currency_pairs, interest_rates)
+        self.__trading_system = TradingSystem(timer, futures, risk, portfolio, self.__broker)
 
         self.__load_and_calculate_data(connection, end_date, futures, currency_pairs, interest_rates)
-        self.__start(timer, trading_system, broker, investment_universe.start_data_date(), end_date)
+        self.__start(timer, self.__trading_system, end_date)
 
-    def __start(self, timer, trading_system, broker, start_date, end_date):
+    def __start(self, timer, trading_system, end_date):
         """
         Start the system
 
         :param trading_system:  TradingSystem instance
-        :param broker:          Broker instance
-        :param start_date:      The date from when start the timer
         """
         trading_system.subscribe()
-        broker.subscribe()
+        self.__broker.subscribe()
         timer.on(EventType.COMPLETE, self.__on_timer_complete)
-        timer.start(start_date, end_date)
+        timer.start(self.__start_date, end_date)
 
     def __on_timer_complete(self, date):
         """
@@ -73,7 +75,33 @@ class Initialize:
 
         :param date:    date of the complete event
         """
-        print EventType.COMPLETE, date
+        # TODO move printing to Reports object
+        # TODO also print transaction same as in Broker!
+        date = self.__start_date
+        separator = ''.join([('-' * 50), ' %s ', ('-' * 50)])
+        orders = self.__broker.orders()
+        order = None
+        print separator % 'transactions'
+        for t in self.__account.transactions():
+            if t.date() != date:
+                print 'Equity:', float(self.__account.equity(date)), 'Funds:', float(self.__account.available_funds(date)), \
+                    'Balances:', self.__account.to_fx_balance_string(date), 'Margins:', self.__account.to_margin_loans_string(date)
+                date = t.date()
+                print separator % date
+                order = [o for o in orders if o.date() == date]
+                if len(order):
+                    print order[0]
+            print t
+        print 'Equity:', float(self.__account.equity(date)), 'Funds:', float(self.__account.available_funds(date)), \
+            'Balances:', self.__account.to_fx_balance_string(date), 'Margins:', self.__account.to_margin_loans_string(date)
+
+        print separator % 'trades'
+        total = 0
+        for t in self.__trading_system.trades():
+            total += t.result()
+            print t
+
+        print 'Total: ', total
 
     def __load_and_calculate_data(self, connection, end_date, futures, currency_pairs, interest_rates):
         """
