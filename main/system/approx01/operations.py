@@ -31,6 +31,7 @@ class Initialize:
         )
         risk_position_sizing = Decimal(0.002)
         commission = (10.0, Currency.USD)
+        minimums = {'AUD': 14000, 'CAD': 14000, 'CHF': 100000, 'EUR': 100000, 'GBP': 8000, 'JPY': 11000000, 'USD': 10000}
 
         now = dt.datetime.now()
         # end_date = dt.date(now.year, now.month, now.day)
@@ -52,7 +53,7 @@ class Initialize:
         portfolio = Portfolio()
         risk = Risk(risk_position_sizing, self.__account)
 
-        self.__broker = Broker(timer, self.__account, portfolio, commission, currency_pairs, interest_rates)
+        self.__broker = Broker(timer, self.__account, portfolio, commission, currency_pairs, interest_rates, minimums)
         self.__trading_system = TradingSystem(timer, futures, risk, portfolio, self.__broker)
 
         self.__load_and_calculate_data(connection, end_date, futures, currency_pairs, interest_rates)
@@ -76,7 +77,7 @@ class Initialize:
         :param date:    date of the complete event
         """
         # TODO move printing to Reports object
-        # TODO also print transaction same as in Broker!
+        # TODO write into 'buffer' first?
         date = self.__start_date
         separator = ''.join([('-' * 50), ' %s ', ('-' * 50)])
         orders = self.__broker.orders()

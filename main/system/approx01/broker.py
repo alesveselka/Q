@@ -11,17 +11,19 @@ from position import Position
 from order_result import OrderResult
 from collections import defaultdict
 from decimal import Decimal
+import operator as op
 
 
 class Broker(object):
 
-    def __init__(self, timer, account, portfolio, commission, currency_pairs, interest_rates):
+    def __init__(self, timer, account, portfolio, commission, currency_pairs, interest_rates, minimums):
         self.__timer = timer
         self.__account = account
         self.__portfolio = portfolio
         self.__commission = commission
         self.__currency_pairs = currency_pairs
         self.__interest_rates = interest_rates
+        self.__minimums = minimums
         self.__orders = []
 
     def subscribe(self):
@@ -130,15 +132,12 @@ class Broker(object):
 
             if abs(balance):
                 amount = self.__account.base_value(balance, currency, date)
-                fx_transaction = Transaction(TransactionType.INTERNAL_FUND_TRANSFER, date, -balance, currency)
-                base_transaction = Transaction(TransactionType.INTERNAL_FUND_TRANSFER, date, amount, base_currency)
-
-                if fx_transaction.account_action() == AccountAction.DEBIT:
-                    self.__account.add_transaction(fx_transaction)
-                    self.__account.add_transaction(base_transaction)
+                if balance < 0:
+                    self.__add_transaction(TransactionType.INTERNAL_FUND_TRANSFER, date, -balance, currency)
+                    self.__add_transaction(TransactionType.INTERNAL_FUND_TRANSFER, date, amount, base_currency)
                 else:
-                    self.__account.add_transaction(base_transaction)
-                    self.__account.add_transaction(fx_transaction)
+                    self.__add_transaction(TransactionType.INTERNAL_FUND_TRANSFER, date, amount, base_currency)
+                    self.__add_transaction(TransactionType.INTERNAL_FUND_TRANSFER, date, -balance, currency)
 
     def __mark_to_market(self, date):
         """
@@ -210,29 +209,14 @@ class Broker(object):
         :param date:            date of the charge
         :param previous_date:   date of interest calculation (previous date for overnight margins)
         """
-        days = 365
-        base_currency = self.__account.base_currency()
-        for currency in [c for c in self.__account.margin_loan_currencies() if c != base_currency]:
-            spread = Decimal(2.0)
-            balance = self.__account.margin_loan_balance(currency, previous_date)
+        minimums = {m: 0 for m in self.__minimums.keys()}
+        spread = Decimal(2.0)
 
-            if balance:
-                benchmark_interest = [r for r in self.__interest_rates if r.code() == currency][0]
-                rate = (benchmark_interest.immediate_rate(previous_date) + spread) / 100
-                amount = balance * rate / days
-                context = (balance, benchmark_interest, rate, 'margin')
-                self.__add_transaction(TransactionType.INTEREST, date, -amount, currency, context)
+        map(lambda c: self.__interest(c, minimums[c], spread, op.ne, op.add, -1, date, previous_date, 'margin'),
+            [c for c in self.__account.margin_loan_currencies() if c != self.__account.base_currency()])
 
-        for currency in [c for c in self.__account.fx_balance_currencies() if c != base_currency]:
-            spread = Decimal(2.0)
-            balance = self.__account.fx_balance(currency, previous_date)
-
-            if balance < 0:
-                benchmark_interest = [r for r in self.__interest_rates if r.code() == currency][0]
-                rate = (benchmark_interest.immediate_rate(previous_date) + spread) / 100
-                amount = balance * rate / days
-                context = (balance, benchmark_interest, rate, 'balance')
-                self.__add_transaction(TransactionType.INTEREST, date, amount, currency, context)
+        map(lambda c: self.__interest(c, minimums[c], spread, op.lt, op.add, 1, date, previous_date, 'balance'),
+            [c for c in self.__account.fx_balance_currencies() if c != self.__account.base_currency()])
 
     def __pay_interest(self, date, previous_date):
         """
@@ -241,21 +225,37 @@ class Broker(object):
         :param date:            Date of the charge
         :param previous_date:   Date of interest calculation (previous date for overnight margins)
         """
+        spread = Decimal(0.5)
+
+        map(lambda c: self.__interest(c, self.__minimums[c], spread, op.gt, op.sub, 1, date, previous_date, 'balance'),
+            self.__account.fx_balance_currencies())
+
+    def __interest(self, currency, minimum, spread, condition, spread_op, sign, date, previous_date, target):
+        """
+        Calculates interest amount and add respective transaction
+
+        :param currency:        currency symbol of the balance
+        :param minimum:         balance cut-off minimums
+        :param spread:          spread to combine rate with
+        :param condition:       condition to check in order to add transaction
+        :param spread_op:       either add or subtract spread to the rate
+        :param sign:            sign of the interest amount
+        :param date:            date of the transaction
+        :param previous_date:   previous date
+        :param target:          target balance, either margin-loan or fx-balance
+        """
         days = 365
-        for currency in [c for c in self.__account.fx_balance_currencies()]:
-            spread = Decimal(0.5)
-            # TODO pass in in config
-            minimums = {'AUD': 14000, 'CAD': 14000, 'CHF': 100000, 'EUR': 100000, 'GBP': 8000, 'JPY': 11000000, 'USD': 10000}
-            balance = self.__account.fx_balance(currency, previous_date)
+        fn = self.__account.fx_balance if target == 'balance' else self.__account.margin_loan_balance
+        balance = fn(currency, previous_date) - minimum
 
-            if balance - minimums[currency] > 0:
-                benchmark_interest = [r for r in self.__interest_rates if r.code() == currency][0]
-                rate = (benchmark_interest.immediate_rate(previous_date) - spread) / 100
-                amount = (balance - minimums[currency]) * rate / days
-                context = (balance - minimums[currency], benchmark_interest, rate, 'balance')
-                self.__add_transaction(TransactionType.INTEREST, date, amount, currency, context)
+        if condition(balance, 0):
+            benchmark_interest = [r for r in self.__interest_rates if r.code() == currency][0]
+            rate = spread_op(benchmark_interest.immediate_rate(previous_date), spread) / 100
+            amount = balance * rate / days
+            context = (balance, benchmark_interest, rate, target)
+            self.__add_transaction(TransactionType.INTEREST, date, amount * sign, currency, context)
 
-    def __add_transaction(self, transaction_type, date, amount, currency, context_data):
+    def __add_transaction(self, transaction_type, date, amount, currency, context_data=None):
         """
         Helper function that creates and adds an transaction to the account
 
