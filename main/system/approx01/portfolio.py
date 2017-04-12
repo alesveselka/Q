@@ -12,8 +12,9 @@ class Portfolio(object):
     def remove_position(self, position):
         self.__positions.remove(position)
 
-    def positions_in_market(self, market):
-        return [p for p in self.__positions if p.market() == market]
+    def market_position(self, market):
+        positions = [p for p in self.__positions if p.market() == market]
+        return positions[0] if len(positions) == 1 else None
 
     def positions(self):
         return self.__positions

@@ -89,19 +89,18 @@ class TradingSystem(EventDispatcher):  # TODO do I need inherit from ED?
                 hhll_short = market.study(Study.HHLL_SHORT, date)
                 atr_long = market.study(Study.ATR_LONG, date)[-1][1]
                 last_price = market_data[-1][5]
-                market_positions = self.__portfolio.positions_in_market(market)
+                market_position = self.__portfolio.market_position(market)
 
                 # TODO pass in rules
-                if len(market_positions):
-                    for position in market_positions:
-                        if position.direction() == Direction.LONG:
-                            stop_loss = hhll_long[-1][1] - 3 * atr_long
-                            if last_price <= stop_loss:
-                                self.__signals.append(Signal(market, SignalType.EXIT, Direction.SHORT, date, last_price))
-                        elif position.direction() == Direction.SHORT:
-                            stop_loss = hhll_long[-1][2] + 3 * atr_long
-                            if last_price >= stop_loss:
-                                self.__signals.append(Signal(market, SignalType.EXIT, Direction.LONG, date, last_price))
+                if market_position:
+                    if market_position.direction() == Direction.LONG:
+                        stop_loss = hhll_long[-1][1] - 3 * atr_long
+                        if last_price <= stop_loss:
+                            self.__signals.append(Signal(market, SignalType.EXIT, Direction.SHORT, date, last_price))
+                    elif market_position.direction() == Direction.SHORT:
+                        stop_loss = hhll_long[-1][2] + 3 * atr_long
+                        if last_price >= stop_loss:
+                            self.__signals.append(Signal(market, SignalType.EXIT, Direction.LONG, date, last_price))
 
                 # TODO pass-in rules
                 if sma_short > sma_long:
@@ -129,14 +128,13 @@ class TradingSystem(EventDispatcher):  # TODO do I need inherit from ED?
                 open_price = market_data[-1][2]
                 open_signals = [s for s in self.__signals if s.type() == SignalType.ENTER]
                 close_signals = [s for s in self.__signals if s.type() == SignalType.EXIT]
-                positions = self.__portfolio.positions_in_market(market)
+                market_position = self.__portfolio.market_position(market)
                 order_type = self.__order_type(signal.type(), signal.direction())
 
-                if signal in close_signals and len(positions):
-                    for position in positions:
-                        orders.append(Order(market, order_type, date, open_price, position.quantity()))
+                if signal in close_signals and market_position:
+                    orders.append(Order(market, order_type, date, open_price, market_position.quantity()))
 
-                if signal in open_signals and not len(positions):
+                if signal in open_signals and market_position is None:
                     quantity = self.__risk.position_size(market.point_value(), market.currency(), atr_long, date)
                     if quantity:
                         orders.append(Order(market, order_type, date, open_price, quantity))
@@ -151,11 +149,11 @@ class TradingSystem(EventDispatcher):  # TODO do I need inherit from ED?
         """
         for order in orders:
             # TODO temporal binding - identify the position better way
-            positions = self.__portfolio.positions_in_market(order.market())
+            market_position = self.__portfolio.market_position(order.market())
             order_result = self.__broker.transfer(order)
 
             if order.type() == OrderType.BTC or order.type() == OrderType.STC:
-                self.__trades.append(Trade(positions[0], order, order_result))
+                self.__trades.append(Trade(market_position, order, order_result))
 
     def __order_type(self, signal_type, signal_direction):
         """

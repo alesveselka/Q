@@ -78,13 +78,12 @@ class Broker(object):
         previous_last_price = market.data(end_date=order_date)[-2][5]
         margin = market.margin(previous_last_price) * Decimal(order.quantity())
         price = (order.price() + slippage) if (order.type() == OrderType.BTO or order.type() == OrderType.BTC) else (order.price() - slippage)  # TODO pass in slippage separe?
-        positions_in_market = self.__portfolio.positions_in_market(market)
-        # print 'new order: ', order, ', already open positions: ', positions_in_market
-        if len(positions_in_market):
+        market_position = self.__portfolio.market_position(market)
+        # print 'new order: ', order, ', already open positions: ', market_position
+        if market_position:
             # -to-close transactions TODO do I need this check? The orders already know this!
 
-            position = positions_in_market[0]  # TODO what if there is more than one position?
-            mtm = position.mark_to_market(order.date(), price) * Decimal(position.quantity()) * market.point_value()
+            mtm = market_position.mark_to_market(order.date(), price) * Decimal(market_position.quantity()) * market.point_value()
             transaction1 = Transaction(
                 TransactionType.MTM_TRANSACTION,
                 order.date(),
@@ -121,7 +120,7 @@ class Broker(object):
 
             # print transaction3, float(self.__account.equity(order_date)), float(self.__account.available_funds(order_date))
 
-            self.__portfolio.remove_position(position)
+            self.__portfolio.remove_position(market_position)
 
             # print 'Position closed ', self.__account.to_fx_balance_string()
         else:
