@@ -130,7 +130,7 @@ class Broker(object):
 
             if abs(balance):
                 amount = self.__account.base_value(balance, currency, date)
-                if balance < 0:
+                if balance > 0:
                     self.__add_transaction(TransactionType.INTERNAL_FUND_TRANSFER, date, -balance, currency)
                     self.__add_transaction(TransactionType.INTERNAL_FUND_TRANSFER, date, amount, base_currency)
                 else:
