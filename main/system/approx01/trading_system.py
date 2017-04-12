@@ -46,8 +46,6 @@ class TradingSystem(EventDispatcher):  # TODO do I need inherit from ED?
         :param date:            date for the market open
         :param previous_date:   previous market date
         """
-        # print EventType.MARKET_OPEN, date, previous_date
-
         self.__transfer_orders(self.__generate_orders(date))
 
         # TODO what if signals will be deleted on holiday and next day no orders created?
@@ -60,8 +58,6 @@ class TradingSystem(EventDispatcher):  # TODO do I need inherit from ED?
         :param date:            date for the market open
         :param previous_date:   previous market date
         """
-        # print EventType.EOD_DATA, date, previous_date
-
         self.__generate_signals(date, previous_date)
 
     def __generate_signals(self, date, previous_date):
@@ -71,8 +67,6 @@ class TradingSystem(EventDispatcher):  # TODO do I need inherit from ED?
         :param date:            date for the market open
         :param previous_date:   previous market date
         """
-        # print EventType.EOD_DATA, date, previous_date
-
         # TODO pass in the configuration of parameters
         short_window = 50
         long_window = 100

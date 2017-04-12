@@ -47,8 +47,6 @@ class Broker(object):
         :param date:            date for the market open
         :param previous_date:   previous market date
         """
-        # print EventType.MARKET_CLOSE, date, previous_date
-
         # TODO also check if there is market data for this date, same as in trading systems (AND set previous date accordingly? - different than market date)
         # TODO do I need to do all these if there is no position open?
 
