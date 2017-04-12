@@ -26,10 +26,9 @@ class Order(object):
         return self.__quantity
 
     def __str__(self):
-        return 'Order: %d x %s in %s on %s, %.4f' % (
+        return 'Order: %d x %s %s @ %.4f' % (
             self.__quantity,
             self.__type,
             self.__market.code(),
-            str(self.__date),
             self.__price
         )
