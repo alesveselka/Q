@@ -74,6 +74,13 @@ class Table:
         SETTLE_PRICE = 5
         VOLUME = 6
 
+    class CurrencyPair:
+        PRICE_DATE = 0
+        OPEN_PRICE = 1
+        HIGH_PRICE = 2
+        LOW_PRICE = 3
+        LAST_PRICE = 4
+
     class Study:
         DATE = 0
         VALUE = 1

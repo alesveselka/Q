@@ -1,7 +1,9 @@
 #!/usr/bin/python
 
 import datetime as dt
+from enum import Table
 from decimal import Decimal
+from operator import itemgetter
 
 
 class CurrencyPair(object):
@@ -30,7 +32,7 @@ class CurrencyPair(object):
         :param end_date:    Date, end of the data range
         :return:            List of data
         """
-        return [d for d in self.__data if start_date <= d[0] <= end_date]
+        return [d for d in self.__data if start_date <= d[Table.CurrencyPair.PRICE_DATE] <= end_date]
 
     def rate(self, date=dt.date(9999, 12, 31)):
         """
@@ -40,7 +42,7 @@ class CurrencyPair(object):
         :return:        Number representing the rate on the date
         """
         pair_data = self.data(end_date=date)
-        return pair_data[-1][4] if len(pair_data) else Decimal(1)
+        return pair_data[-1][Table.CurrencyPair.LAST_PRICE] if len(pair_data) else Decimal(1)
 
     def load_data(self, connection, end_date):
         """
@@ -51,7 +53,7 @@ class CurrencyPair(object):
         """
         cursor = connection.cursor()
         sql = """
-            SELECT price_date, open_price, high_price, low_price, last_price
+            SELECT %s
             FROM currency
             WHERE currency_pair_id = '%s'
             AND DATE(price_date) >= '%s'
@@ -59,8 +61,24 @@ class CurrencyPair(object):
         """
 
         cursor.execute(sql % (
+            self.__column_names(),
             self.__currency_pair_id,
             self.__start_data_date.strftime('%Y-%m-%d'),
             end_date.strftime('%Y-%m-%d')
         ))
         self.__data = cursor.fetchall()
+
+    def __column_names(self):
+        """
+        Construct and return column names sorted by their index in ENUM
+
+        :return:    string
+        """
+        columns = {
+            'price_date': Table.CurrencyPair.PRICE_DATE,
+            'open_price': Table.CurrencyPair.OPEN_PRICE,
+            'high_price': Table.CurrencyPair.HIGH_PRICE,
+            'low_price': Table.CurrencyPair.LOW_PRICE,
+            'last_price': Table.CurrencyPair.LAST_PRICE
+        }
+        return ', '.join([i[0] for i in sorted(columns.items(), key=itemgetter(1))])
