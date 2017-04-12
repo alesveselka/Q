@@ -1,5 +1,6 @@
 #!/usr/bin/python
 
+import datetime as dt
 from enum import TransactionType
 from enum import AccountAction
 from collections import defaultdict
@@ -65,7 +66,7 @@ class Account(object):
         :return:        Number representing actual equity value
         """
         return reduce(
-            lambda t, k: t + self.base_value(self.__fx_balances.get(k), k, date),
+            lambda t, k: t + self.base_value(self.fx_balance(k, date), k, date),
             self.__fx_balances.keys(),
             Decimal(0)
         )
@@ -79,12 +80,12 @@ class Account(object):
         :return:        Number representing funds available for trading
         """
         balance = reduce(
-            lambda t, k: t + self.base_value(self.__fx_balances.get(k), k, date),
+            lambda t, k: t + self.base_value(self.fx_balance(k, date), k, date),
             self.__fx_balances.keys(),
             Decimal(0)
         )
         margin = reduce(
-            lambda t, k: t + self.base_value(self.__margin_loan_balances.get(k), k, date),
+            lambda t, k: t + self.base_value(self.margin_loan_balance(k, date), k, date),
             self.__margin_loan_balances.keys(),
             Decimal(0)
         )
@@ -164,6 +165,16 @@ class Account(object):
             transaction.currency(),
             transaction.amount()
         )
+
+    def transactions(self, start_date=dt.date(1900, 1, 1), end_date=dt.date(9999, 12, 31)):
+        """
+        Find and return transaction within the dates specified (included)
+
+        :param start_date:  Start date to search from
+        :param end_date:    End date to search until
+        :return:            list of Transaction objects
+        """
+        return [t for t in self.__transactions if start_date <= t.date() <= end_date]
 
     def __credit(self, balance, currency, amount):
         """
