@@ -26,7 +26,8 @@ class Market(object):  # TODO rename to Future?
         self.__start_data_date = start_data_date
         self.__id = market_id
         self.__name = name
-        self.__code = code
+        self.__market_code = code
+        self.__instrument_code = ''.join([code, '2']) if 'C' in data_codes else code
         self.__data_codes = data_codes
         self.__currency = currency
         self.__first_data_date = first_data_date
@@ -46,7 +47,6 @@ class Market(object):  # TODO rename to Future?
         :param end_date:    Last date to fetch data to
         """
         cursor = connection.cursor()
-        code = ''.join([self.__code, '2']) if 'C' in self.__data_codes else self.__code
         sql = """
             SELECT %s
             FROM continuous_back_adjusted
@@ -58,7 +58,7 @@ class Market(object):  # TODO rename to Future?
         cursor.execute(sql % (
             self.__column_names(),
             self.__id,
-            code,
+            self.__instrument_code,
             self.__start_data_date.strftime('%Y-%m-%d'),
             end_date.strftime('%Y-%m-%d')
         ))
@@ -89,7 +89,7 @@ class Market(object):  # TODO rename to Future?
         return ', '.join([i[0] for i in sorted(columns.items(), key=itemgetter(1))])
 
     def code(self):
-        return self.__code
+        return self.__instrument_code
 
     def currency(self):
         return self.__currency
