@@ -65,7 +65,7 @@ class AccountAction:
 
 
 class Table:
-    class Futures:
+    class Market:
         CODE = 0
         PRICE_DATE = 1
         OPEN_PRICE = 2
@@ -73,4 +73,8 @@ class Table:
         LOW_PRICE = 4
         SETTLE_PRICE = 5
         VOLUME = 6
-        # TEST = Column('test_column', 3, int)
+
+    class Study:
+        DATE = 0
+        VALUE = 1
+        VALUE_2 = 2

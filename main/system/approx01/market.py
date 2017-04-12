@@ -4,6 +4,8 @@ import datetime as dt
 from math import ceil
 from study import *
 from enum import Study
+from enum import Table
+from operator import itemgetter
 
 
 class Market(object):  # TODO rename to Future?
@@ -46,15 +48,15 @@ class Market(object):  # TODO rename to Future?
         cursor = connection.cursor()
         code = ''.join([self.__code, '2']) if 'C' in self.__data_codes else self.__code
         sql = """
-            SELECT code, price_date, open_price, high_price, low_price, settle_price, volume
+            SELECT %s
             FROM continuous_back_adjusted
             WHERE market_id = '%s'
             AND code = '%s'
             AND DATE(price_date) >= '%s'
             AND DATE(price_date) <= '%s';
         """
-
         cursor.execute(sql % (
+            self.__column_names(),
             self.__id,
             code,
             self.__start_data_date.strftime('%Y-%m-%d'),
@@ -63,11 +65,28 @@ class Market(object):  # TODO rename to Future?
         self.__data = cursor.fetchall()
 
         # TODO update more realistically - include actual ATR?
-        self.__margin_multiple = (self.__margin / (self.__data[-1][5] * self.__point_value)) \
+        self.__margin_multiple = (self.__margin / (self.__data[-1][Table.Market.SETTLE_PRICE] * self.__point_value)) \
             if len(self.__data) \
             else Decimal(0.1)
 
         return True
+
+    def __column_names(self):
+        """
+        Construct and return column names sorted by their index in ENUM
+
+        :return:    string
+        """
+        columns = {
+            'code': Table.Market.CODE,
+            'price_date': Table.Market.PRICE_DATE,
+            'open_price': Table.Market.OPEN_PRICE,
+            'high_price': Table.Market.HIGH_PRICE,
+            'low_price': Table.Market.LOW_PRICE,
+            'settle_price': Table.Market.SETTLE_PRICE,
+            'volume': Table.Market.VOLUME
+        }
+        return ', '.join([i[0] for i in sorted(columns.items(), key=itemgetter(1))])
 
     def code(self):
         return self.__code
@@ -86,7 +105,7 @@ class Market(object):  # TODO rename to Future?
         :param end_date:    Date of last date of the data range
         :return:            List of market data records
         """
-        return [d for d in self.__data if start_date <= d[1] <= end_date]
+        return [d for d in self.__data if start_date <= d[Table.Market.PRICE_DATE] <= end_date]
 
     def has_data(self, date):
         """
@@ -95,7 +114,7 @@ class Market(object):  # TODO rename to Future?
         :param date:    date to check data for
         :return:
         """
-        return self.data(end_date=date)[-1][1] == date
+        return self.data(end_date=date)[-1][Table.Market.PRICE_DATE] == date
 
     def margin(self, price):
         """
@@ -116,8 +135,8 @@ class Market(object):  # TODO rename to Future?
         """
         # TODO remove hard-coded slippage-map (pass in as dependency)
         # TODO factor in quantity?
-        atr = self.study(Study.ATR_SHORT, date)[-1][1]
-        volume = self.study(Study.VOL_SHORT, date)[-1][1]
+        atr = self.study(Study.ATR_SHORT, date)[-1][Table.Study.VALUE]
+        volume = self.study(Study.VOL_SHORT, date)[-1][Table.Study.VALUE]
         slippage_atr = filter(lambda s: s.get('min') <= volume < s.get('max'), [
             {'atr': 2, 'min': 0, 'max': 100},
             {'atr': 1, 'min': 100, 'max': 1000},
@@ -137,7 +156,7 @@ class Market(object):  # TODO rename to Future?
         :param date:        last date of data required
         :return:            List of tuples - records of study specified
         """
-        return [s for s in self.__studies[study_name] if s[0] <= date]
+        return [s for s in self.__studies[study_name] if s[Table.Study.DATE] <= date]
 
     def calculate_studies(self, study_parameters):
         """
