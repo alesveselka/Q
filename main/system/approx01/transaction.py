@@ -29,6 +29,9 @@ class Transaction(object):
     def currency(self):
         return self.__currency
 
+    def context(self):
+        return self.__context_data
+
     def __str__(self):
         result = 'Transaction: '
         if self.__type == TransactionType.MTM_TRANSACTION or self.__type == TransactionType.MTM_POSITION:
@@ -79,7 +82,7 @@ class Transaction(object):
                 self.__context_data[2],
                 self.__context_data[3]
             )
-        elif self.__type == TransactionType.INTEREST:
+        elif self.__type == TransactionType.MARGIN_INTEREST or self.__type == TransactionType.BALANCE_INTEREST:
             result += 'Interest, %s of %.2f(%s @ %.2f %%) on %.2f(%s) %s.' % (
                 self.__account_action,
                 self.__amount,

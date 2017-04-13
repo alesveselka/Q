@@ -243,6 +243,7 @@ class Broker(object):
         :param target:          target balance, either margin-loan or fx-balance
         """
         days = 365
+        transaction_type = TransactionType.BALANCE_INTEREST if target == 'balance' else TransactionType.MARGIN_INTEREST
         fn = self.__account.fx_balance if target == 'balance' else self.__account.margin_loan_balance
         balance = fn(currency, previous_date) - minimum
 
@@ -251,7 +252,7 @@ class Broker(object):
             rate = spread_op(benchmark_interest.immediate_rate(previous_date), spread) / 100
             amount = balance * rate / days
             context = (balance, benchmark_interest, rate, target)
-            self.__add_transaction(TransactionType.INTEREST, date, amount * sign, currency, context)
+            self.__add_transaction(transaction_type, date, amount * sign, currency, context)
 
     def __add_transaction(self, transaction_type, date, amount, currency, context_data=None):
         """
