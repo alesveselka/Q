@@ -17,6 +17,7 @@ from study import ATR, SMA, HHLL
 from investment_universe import InvestmentUniverse
 from trading_system import TradingSystem
 from data_series import DataSeries
+from report import Report
 from decimal import Decimal
 
 
@@ -29,14 +30,15 @@ class Initialize:
             os.environ['DB_PASS'],
             os.environ['DB_NAME']
         )
+        # TODO load from external config
         risk_position_sizing = Decimal(0.002)
         commission = (10.0, Currency.USD)
         minimums = {'AUD': 14000, 'CAD': 14000, 'CHF': 100000, 'EUR': 100000, 'GBP': 8000, 'JPY': 11000000, 'USD': 10000}
 
         now = dt.datetime.now()
         # end_date = dt.date(now.year, now.month, now.day)
-        end_date = dt.date(1992, 6, 10)
-        # end_date = dt.date(2015, 12, 31)
+        # end_date = dt.date(1992, 6, 10)
+        end_date = dt.date(1995, 12, 31)
         timer = Timer()
 
         investment_universe = InvestmentUniverse(investment_universe_name, connection)
@@ -56,14 +58,16 @@ class Initialize:
         self.__broker = Broker(timer, self.__account, portfolio, commission, currency_pairs, interest_rates, minimums)
         self.__trading_system = TradingSystem(timer, futures, risk, portfolio, self.__broker)
 
-        self.__load_and_calculate_data(connection, end_date, futures, currency_pairs, interest_rates)
+        self.__load_and_calculate_data(connection, futures, currency_pairs, interest_rates, end_date)
         self.__start(timer, self.__trading_system, end_date)
 
     def __start(self, timer, trading_system, end_date):
         """
         Start the system
 
+        :param timer:           Timer instance
         :param trading_system:  TradingSystem instance
+        :param end_date:        date of end of simulation
         """
         trading_system.subscribe()
         self.__broker.subscribe()
@@ -76,35 +80,10 @@ class Initialize:
 
         :param date:    date of the complete event
         """
-        # TODO move printing to Reports object
-        # TODO write into 'buffer' first?
-        date = self.__start_date
-        separator = ''.join([('-' * 50), ' %s ', ('-' * 50)])
-        orders = self.__broker.orders()
-        order = None
-        print separator % 'transactions'
-        for t in self.__account.transactions():
-            if t.date() != date:
-                print 'Equity:', float(self.__account.equity(date)), 'Funds:', float(self.__account.available_funds(date)), \
-                    'Balances:', self.__account.to_fx_balance_string(date), 'Margins:', self.__account.to_margin_loans_string(date)
-                date = t.date()
-                print separator % date
-                order = [o for o in orders if o.date() == date]
-                if len(order):
-                    print order[0]
-            print t
-        print 'Equity:', float(self.__account.equity(date)), 'Funds:', float(self.__account.available_funds(date)), \
-            'Balances:', self.__account.to_fx_balance_string(date), 'Margins:', self.__account.to_margin_loans_string(date)
+        report = Report(self.__account, self.__broker.orders(), self.__trading_system.trades())
+        report.stats(self.__start_date, date)
 
-        print separator % 'trades'
-        total = 0
-        for t in self.__trading_system.trades():
-            total += t.result()
-            print t
-
-        print 'Total: ', total
-
-    def __load_and_calculate_data(self, connection, end_date, futures, currency_pairs, interest_rates):
+    def __load_and_calculate_data(self, connection, futures, currency_pairs, interest_rates, end_date):
         """
         Load data and calculate studies
 
@@ -112,6 +91,7 @@ class Initialize:
         :param futures:         List of futures Market objects
         :param currency_pairs:  List of CurrencyPair instances
         :param interest_rates:  List of InterestRate instances
+        :param end_date:        last date to load data
         """
         message = 'Loading Futures data ...'
         length = float(len(futures))
@@ -145,36 +125,36 @@ class Initialize:
         long_window = 100
         return [
             {'name': Study.ATR_LONG, 'study': ATR, 'window': long_window, 'columns': [
-                Table.Futures.PRICE_DATE,
-                Table.Futures.HIGH_PRICE,
-                Table.Futures.LOW_PRICE,
-                Table.Futures.SETTLE_PRICE
+                Table.Market.PRICE_DATE,
+                Table.Market.HIGH_PRICE,
+                Table.Market.LOW_PRICE,
+                Table.Market.SETTLE_PRICE
             ]},
             {'name': Study.ATR_SHORT, 'study': ATR, 'window': short_window, 'columns': [
-                Table.Futures.PRICE_DATE,
-                Table.Futures.HIGH_PRICE,
-                Table.Futures.LOW_PRICE,
-                Table.Futures.SETTLE_PRICE
+                Table.Market.PRICE_DATE,
+                Table.Market.HIGH_PRICE,
+                Table.Market.LOW_PRICE,
+                Table.Market.SETTLE_PRICE
             ]},
             {'name': Study.VOL_SHORT, 'study': SMA, 'window': short_window, 'columns': [
-                Table.Futures.PRICE_DATE,
-                Table.Futures.VOLUME
+                Table.Market.PRICE_DATE,
+                Table.Market.VOLUME
             ]},
             {'name': Study.SMA_LONG, 'study': SMA, 'window': long_window, 'columns': [
-                Table.Futures.PRICE_DATE,
-                Table.Futures.SETTLE_PRICE
+                Table.Market.PRICE_DATE,
+                Table.Market.SETTLE_PRICE
             ]},
             {'name': Study.SMA_SHORT, 'study': SMA, 'window': short_window, 'columns': [
-                Table.Futures.PRICE_DATE,
-                Table.Futures.SETTLE_PRICE
+                Table.Market.PRICE_DATE,
+                Table.Market.SETTLE_PRICE
             ]},
             {'name': Study.HHLL_LONG, 'study': HHLL, 'window': long_window, 'columns': [
-                Table.Futures.PRICE_DATE,
-                Table.Futures.SETTLE_PRICE
+                Table.Market.PRICE_DATE,
+                Table.Market.SETTLE_PRICE
             ]},
             {'name': Study.HHLL_SHORT, 'study': HHLL, 'window': short_window, 'columns': [
-                Table.Futures.PRICE_DATE,
-                Table.Futures.SETTLE_PRICE
+                Table.Market.PRICE_DATE,
+                Table.Market.SETTLE_PRICE
             ]}
         ]
 
@@ -183,8 +163,9 @@ class Initialize:
         Print message and percentage progress to console
 
         :param message:     Message to print
-        :param percent:     Percentage progress to print
-        :param new_line:    Flag indicating if new line should be printed as well
+        :param index:       Index of the item being processed
+        :param length:      Length of the whole range
+        :param complete:    Flag indicating if the progress is complete
         :return:            boolean
         """
         sys.stdout.write('%s\r' % (' ' * 80))
