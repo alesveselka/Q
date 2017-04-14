@@ -112,17 +112,19 @@ class Report:
             TransactionType.MARGIN_INTEREST,
             TransactionType.BALANCE_INTEREST
         ]
-        widths = defaultdict(float)
         results = self.__partitioned_results(types, start_date, end_date)
         for transaction_type in results.keys():
             for currency in results[transaction_type].keys():
                 result = '{:-,.2f}'.format(results[transaction_type][currency])
-                widths[transaction_type] = len(result)
                 print '%s: %s (%s)' % (transaction_type, result, currency)
 
         prefix = 5
+        rows = 0
         for p in performance_map:
             for transaction_type in [k for k in results.keys() if k in p['types']]:
+                if len(results[transaction_type]) > rows:
+                    rows = len(results[transaction_type])
+
                 for currency in results[transaction_type].keys():
                     p['results'][currency] += results[transaction_type][currency]
 
@@ -132,24 +134,32 @@ class Report:
 
         print '*' * 100
 
-        table = [[] for _ in range(len(performance_map))]
-        for p in performance_map:
+        table = [[[] for _ in range(0, rows+4)] for _ in range(len(performance_map))]
+
+        for i, p in enumerate(performance_map):
             pads = 1
             w = int(p['width']) + pads * 2
-            index = 0
-            table[index].append('-' * w)
-            index += 1
-            table[index].append(p['header'].ljust(w, ' '))
-            index += 1
-            table[index].append('-' * w)
 
-            for i in p['results'].items():
-                index += 1
-                # table[index].append(('%s: %s' % (i[0], '{:-,.2f}'.format(i[1]))).ljust((int(p['results_width']) - prefix), ' '))
-                table[index].append(('%s: %s' % (i[0], '{:-,.2f}'.format(i[1]))).ljust(w, ' '))
+            table[i][0].append('-' * w)
+            table[i][1].append((' ' + p['header']).ljust(w, ' '))
+            table[i][2].append('-' * w)
 
-        for i, row in enumerate(table):
-            print ('+' if i == 0 or i == 2 else '|').join(row)
+            result_items = p['results'].items()
+
+            for row in range(3, rows+3):
+                content = ' ' * w
+                if len(result_items) > row - 3:
+                    item = result_items[row - 3]
+                    content = (' %s: %s' % (item[0], '{:-,.2f}'.format(item[1]))).ljust(w, ' ')
+                table[i][row].append(content)
+
+            table[i][rows+3].append('-' * w)
+
+        for row in range(0, rows + 4):
+            line = ['']
+            for i, column in enumerate(table):
+                line.append(column[row][0])
+            print ('+' if row == 0 or row == 2 or row == (rows + 3) else '|').join(line + [''])
 
     def __partitioned_results(self, types, start_date=dt.date(1900, 1, 1), end_date=dt.date(9999, 12, 31)):
         """
@@ -166,7 +176,15 @@ class Report:
             sign = 1 if t.account_action() == AccountAction.CREDIT else -1
             results[t.type()][t.currency()] += t.amount() * sign
 
-        return results
+        # return results
+        return {
+            'Fx Balance Translation': {'EUR': Decimal(495.7128667436290545274939486)},
+            'Commission': {'USD': Decimal(-1760.0000000000000000000000000)},
+            'Balance Interest': {'USD': Decimal(-28.60076056902745059268604813), 'EUR': Decimal(225088.9819162945147743464073)},
+            'Margin Interest': {'USD': Decimal(-876.4234649315068493150684923)},
+            'MTM Position': {'USD': Decimal(28537.5000000000000000000000000)},
+            'MTM Transaction': {'USD': Decimal(-19381.25000000000000000000000000)}
+        }
 
     def __log(self, day, index=0, length=0.0, complete=False):
         """
