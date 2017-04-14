@@ -26,23 +26,6 @@ class Report:
 
         date = start_date
         separator = ''.join([('-' * 50), ' %s ', ('-' * 50)])
-        # orders = self.__broker.orders()
-        # order = None
-        # buffer = separator % 'transactions' + '\n'
-        # for t in self.__account.transactions():
-        #     if t.date() != date:
-        #         buffer += ''.join(['Equity: ', str(float(self.__account.equity(date))), ', Funds: ', str(float(self.__account.available_funds(date))),
-        #                            ', Balances: ', self.__account.to_fx_balance_string(date), ', Margins: ', self.__account.to_margin_loans_string(date), '\n'])
-        #         date = t.date()
-        #         buffer += separator % date + '\n'
-        #         order = [o for o in orders if o.date() == date]
-        #         if len(order):
-        #             buffer += str(order[0]) + '\n'
-        #     buffer += str(t) + '\n'
-        # buffer += ''.join(['Equity: ', str(float(self.__account.equity(date))), ', Funds: ', str(float(self.__account.available_funds(date))),
-        #                    ', Balances: ', self.__account.to_fx_balance_string(date), ', Margins: ', self.__account.to_margin_loans_string(date), '\n'])
-        #
-        # buffer += separator % 'trades' + '\n'
 
         # TODO pass in to 'breakdown' yearly, monthly or daily (or all?)
         base_currency = self.__account.base_currency()
@@ -74,16 +57,6 @@ class Report:
             market = t.market()
             trade_profits[market.currency()] += t.result() * Decimal(t.quantity()) * market.point_value()
 
-        balance_headers = ['Equity', 'Funds', 'Balances', 'Margins', 'Margin / Equity']
-        performance_map = [
-            {'header': 'Mark-to-Market', 'types': [TransactionType.MTM_POSITION, TransactionType.MTM_TRANSACTION], 'results': defaultdict(Decimal)},
-            {'header': 'Commission', 'types': [TransactionType.COMMISSION], 'results': defaultdict(Decimal)},
-            {'header': 'Fx Translation', 'types': [TransactionType.FX_BALANCE_TRANSLATION], 'results': defaultdict(Decimal)},
-            {'header': 'Interest on Margin', 'types': [TransactionType.MARGIN_INTEREST], 'results': defaultdict(Decimal)},
-            {'header': 'Interest on base Balance', 'types': [TransactionType.BALANCE_INTEREST], 'currency': base_currency, 'results': defaultdict(Decimal)},
-            {'header': 'Interest on non-base Balance', 'types': [TransactionType.BALANCE_INTEREST], 'results': defaultdict(Decimal)}
-        ]
-
         print 'Equity: %s %s, funds: %.2f %s, balances: %s, margins: %s' % (
             # '{:,}'.format(float(self.__account.equity(end_date))).rjust(20, '.'),
             '{:-,.2f}'.format(float(self.__account.equity(end_date))),
@@ -96,52 +69,61 @@ class Report:
         trade_results = 'Results in %d trades: %s' % (len(self.__trades), {k: float(v) for k, v in trade_profits.items()})
         print trade_results
         print separator % 'results breakdown'
-        print 'Mark-to-Market results:', {k: float(v) for k, v in mtm_results.items()}
-        print 'Fx translation results:', {k: float(v) for k, v in fx_translations_results.items()}
-        print 'Commissions paid:', {k: float(v) for k, v in commissions_results.items()}
-        print 'Interest charged on margins:', {k: float(v) for k, v in margin_interest_results.items()}
-        print 'Interest on balances in non-base currency:', {k: float(v) for k, v in non_base_balance_interest_results.items()}
-        print 'Interest on balances in base currency:', {k: float(v) for k, v in base_balance_interest_results.items()}
+        # print 'Mark-to-Market results:', {k: float(v) for k, v in mtm_results.items()}
+        # print 'Fx translation results:', {k: float(v) for k, v in fx_translations_results.items()}
+        # print 'Commissions paid:', {k: float(v) for k, v in commissions_results.items()}
+        # print 'Interest charged on margins:', {k: float(v) for k, v in margin_interest_results.items()}
+        # print 'Interest on balances in non-base currency:', {k: float(v) for k, v in non_base_balance_interest_results.items()}
+        # print 'Interest on balances in base currency:', {k: float(v) for k, v in base_balance_interest_results.items()}
         # TODO also slippage!
 
-        types = [
-            TransactionType.MTM_POSITION,
-            TransactionType.MTM_TRANSACTION,
-            TransactionType.COMMISSION,
-            TransactionType.FX_BALANCE_TRANSLATION,
-            TransactionType.MARGIN_INTEREST,
-            TransactionType.BALANCE_INTEREST
-        ]
-        results = self.__partitioned_results(types, start_date, end_date)
-        for transaction_type in results.keys():
-            for currency in results[transaction_type].keys():
-                result = '{:-,.2f}'.format(results[transaction_type][currency])
-                print '%s: %s (%s)' % (transaction_type, result, currency)
+        performance_results = self.__measure_table(self.__performance_results(start_date, end_date))
+        width = reduce(lambda r, p: r + p['width'], performance_results, 0)
+        balance_results = self.__measure_table(self.__balance_results(start_date, end_date), width)
+        self.__print_balances(balance_results)
+        self.__print_performance(performance_results)
 
-        prefix = 5
-        rows = 0
-        for p in performance_map:
-            for transaction_type in [k for k in results.keys() if k in p['types']]:
-                if len(results[transaction_type]) > rows:
-                    rows = len(results[transaction_type])
+        # print self.__balance_results(start_date, end_date)
 
-                for currency in results[transaction_type].keys():
-                    p['results'][currency] += results[transaction_type][currency]
+    def __print_balances(self, balance_map):
+        rows = self.__max_results(balance_map)
 
-                p['header_width'] = len(p['header'])
-                p['results_width'] = max([len('{:-,.2f}'.format(v)) + prefix for v in p['results'].values()])
-                p['width'] = max([p['header_width'], p['results_width']])
+        table = [[[] for _ in range(0, rows+4)] for _ in range(len(balance_map))]
 
-        print '*' * 100
+        for i, balance in enumerate(balance_map):
+            w = int(balance['width'])
+
+            table[i][0].append('-' * w)
+            table[i][1].append((' ' + balance['title']).ljust(w, ' '))
+            table[i][2].append('-' * w)
+
+            result_items = balance['results'].items()
+
+            for row in range(3, rows+3):
+                content = ' ' * w
+                if len(result_items) > row - 3:
+                    item = result_items[row - 3]
+                    content = (' %s: %s' % (item[0], '{:-,.2f}'.format(item[1]))).ljust(w, ' ')
+                table[i][row].append(content)
+
+            table[i][rows+3].append('-' * w)
+
+        for row in range(0, rows + 4):
+            line = ['']
+            for i, column in enumerate(table):
+                line.append(column[row][0])
+            print ('+' if row == 0 or row == 2 or row == (rows + 3) else '|').join(line + [''])
+
+    def __print_performance(self, performance_map):
+        rows = self.__max_results(performance_map)
 
         table = [[[] for _ in range(0, rows+4)] for _ in range(len(performance_map))]
 
         for i, p in enumerate(performance_map):
-            pads = 1
-            w = int(p['width']) + pads * 2
+            w = int(p['width'])
 
             table[i][0].append('-' * w)
-            table[i][1].append((' ' + p['header']).ljust(w, ' '))
+            table[i][1].append((' ' + p['title']).ljust(w, ' '))
             table[i][2].append('-' * w)
 
             result_items = p['results'].items()
@@ -161,15 +143,58 @@ class Report:
                 line.append(column[row][0])
             print ('+' if row == 0 or row == 2 or row == (rows + 3) else '|').join(line + [''])
 
-    def __partitioned_results(self, types, start_date=dt.date(1900, 1, 1), end_date=dt.date(9999, 12, 31)):
+    def __balance_results(self, start_date=dt.date(1900, 1, 1), end_date=dt.date(9999, 12, 31)):
         """
         Partition transactions into map of transaction types and currencies
 
-        :param types:       list of transaction types to include in the result map
         :param start_date:  Start date to include transactions from
         :param end_date:    End date to include transactions until
         :return:            dict of dict of performance results
         """
+        balances = defaultdict(Decimal)
+        for currency in self.__account.fx_balance_currencies():
+            balances[currency] += self.__account.fx_balance(currency, end_date)
+
+        margins = defaultdict(Decimal)
+        total_margin = Decimal(0)
+        for currency in self.__account.margin_loan_currencies():
+            margin = self.__account.margin_loan_balance(currency, end_date)
+            margins[currency] += margin
+            total_margin += self.__account.base_value(margin, currency, end_date)
+
+        base_currency = self.__account.base_currency()
+        result = [
+            {'title': 'Equity', 'results': {base_currency: self.__account.equity(end_date)}},
+            {'title': 'Funds', 'results': {base_currency: self.__account.available_funds(end_date)}},
+            {'title': 'Balances', 'results': balances},
+            {'title': 'Margins', 'results': margins},
+            {'title': 'Margin / Equity', 'results': {base_currency: total_margin / self.__account.equity(end_date)}}
+        ]
+        # return result
+        return [
+            {'title': 'Equity', 'results': {'EUR': Decimal(1237151.139124938681955360085)}},
+            {'title': 'Funds', 'results': {'EUR': Decimal(1225953.862302661859678537808)}},
+            {'title': 'Balances', 'results': {'USD': Decimal(3379.609368248489405560247165), 'EUR': Decimal(1232826.290936660004890505141)}},
+            {'title': 'Margins', 'results': {'USD': Decimal(8750)}},
+            {'title': 'Margin / Equity', 'results': {'EUR': Decimal(0.009050856009555046173239403523)}}
+        ]
+
+    def __performance_results(self, start_date=dt.date(1900, 1, 1), end_date=dt.date(9999, 12, 31)):
+        """
+        Partition transactions into map of transaction types and currencies
+
+        :param start_date:  Start date to include transactions from
+        :param end_date:    End date to include transactions until
+        :return:            dict of dict of performance results
+        """
+        types = [
+            TransactionType.MTM_POSITION,
+            TransactionType.MTM_TRANSACTION,
+            TransactionType.COMMISSION,
+            TransactionType.FX_BALANCE_TRANSLATION,
+            TransactionType.MARGIN_INTEREST,
+            TransactionType.BALANCE_INTEREST
+        ]
         results = {k: defaultdict(Decimal) for k in types}
 
         for t in [tr for tr in self.__account.transactions(start_date, end_date) if tr.type() in types]:
@@ -177,14 +202,53 @@ class Report:
             results[t.type()][t.currency()] += t.amount() * sign
 
         # return results
-        return {
-            'Fx Balance Translation': {'EUR': Decimal(495.7128667436290545274939486)},
-            'Commission': {'USD': Decimal(-1760.0000000000000000000000000)},
-            'Balance Interest': {'USD': Decimal(-28.60076056902745059268604813), 'EUR': Decimal(225088.9819162945147743464073)},
-            'Margin Interest': {'USD': Decimal(-876.4234649315068493150684923)},
-            'MTM Position': {'USD': Decimal(28537.5000000000000000000000000)},
-            'MTM Transaction': {'USD': Decimal(-19381.25000000000000000000000000)}
-        }
+
+        performance_map = [
+            {'title': 'Mark-to-Market', 'types': [TransactionType.MTM_POSITION, TransactionType.MTM_TRANSACTION], 'results': defaultdict(Decimal)},
+            {'title': 'Commission', 'types': [TransactionType.COMMISSION], 'results': defaultdict(Decimal)},
+            {'title': 'Fx Translation', 'types': [TransactionType.FX_BALANCE_TRANSLATION], 'results': defaultdict(Decimal)},
+            {'title': 'Interest on Margin', 'types': [TransactionType.MARGIN_INTEREST], 'results': defaultdict(Decimal)},
+            {'title': 'Interest on base Balance', 'types': [TransactionType.BALANCE_INTEREST], 'results': defaultdict(Decimal)},
+            {'title': 'Interest on non-base Balance', 'types': [TransactionType.BALANCE_INTEREST], 'results': defaultdict(Decimal)}
+        ]
+
+        for p in performance_map:
+            for transaction_type in [k for k in results.keys() if k in p['types']]:
+                for currency in results[transaction_type].keys():
+                    p['results'][currency] += results[transaction_type][currency]
+
+        # return performance_map
+
+        return [
+            {'title': 'Mark-to-Market', 'results': {'USD': Decimal(-7375.00000000000000000000)}},
+            {'title': 'Commission', 'results': {'USD': Decimal(-100)}},
+            {'title': 'Fx Translation', 'results': {}},
+            {'title': 'Interest on Margin', 'results': {'USD': Decimal(-9.5385904109589041095890410974)}},
+            {'title': 'Interest on base Balance', 'results': {'USD': Decimal(-4.892494623369438184100918898), 'EUR': Decimal(29155.35433443516022309821460)}},
+            {'title': 'Interest on non-base Balance', 'results': {'USD': Decimal(-4.892494623369438184100918898), 'EUR': Decimal(29155.35433443516022309821460)}}
+        ]
+
+    def __measure_table(self, data, max_width=0, prefix=5, pad=1):
+        total_width = 0
+        for d in data:
+            values = d['results'].values()
+            d['title_width'] = len(d['title'])
+            d['results_width'] = max([len('{:-,.2f}'.format(v)) + prefix for v in values]) if len(values) else 0
+            d['width'] = max([d['title_width'], d['results_width']]) + pad * 2
+            total_width += d['width']
+
+        if total_width < max_width:
+            length = len(data)
+            addition = (max_width - total_width) / length
+            reminder = (max_width - total_width) % length + 1
+            for i, d in enumerate(data):
+                d['width'] += addition
+                d['width'] += reminder if i == length - 1 else 0
+
+        return data
+
+    def __max_results(self, data):
+        return max([len(d['results']) for d in data])
 
     def __log(self, day, index=0, length=0.0, complete=False):
         """
