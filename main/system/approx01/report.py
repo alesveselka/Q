@@ -80,68 +80,46 @@ class Report:
         performance_results = self.__measure_table(self.__performance_results(start_date, end_date))
         width = reduce(lambda r, p: r + p['width'], performance_results, 0)
         balance_results = self.__measure_table(self.__balance_results(start_date, end_date), width)
-        self.__print_balances(balance_results)
-        self.__print_performance(performance_results)
 
-        # print self.__balance_results(start_date, end_date)
+        print self.__to_table(balance_results)
+        print self.__to_table(performance_results)
 
-    def __print_balances(self, balance_map):
-        rows = self.__max_results(balance_map)
+    def __to_table(self, data):
+        """
+        Construct and return string table from data passed in
 
-        table = [[[] for _ in range(0, rows+4)] for _ in range(len(balance_map))]
+        :param data:    dict to render into table
+        :return:        string representation of the table
+        """
+        buffer = ''
+        separators = 3
+        rows = self.__max_results(data)
+        table = [[[] for _ in range(0, rows + separators + 1)] for _ in range(len(data))]
 
-        for i, balance in enumerate(balance_map):
-            w = int(balance['width'])
+        for i, d in enumerate(data):
+            w = int(d['width'])
 
             table[i][0].append('-' * w)
-            table[i][1].append((' ' + balance['title']).ljust(w, ' '))
+            table[i][1].append((' ' + d['title']).ljust(w, ' '))
             table[i][2].append('-' * w)
 
-            result_items = balance['results'].items()
-
-            for row in range(3, rows+3):
+            result_items = d['results'].items()
+            for row in range(3, rows + separators):
                 content = ' ' * w
-                if len(result_items) > row - 3:
-                    item = result_items[row - 3]
+                if len(result_items) > row - separators:
+                    item = result_items[row - separators]
                     content = (' %s: %s' % (item[0], '{:-,.2f}'.format(item[1]))).ljust(w, ' ')
                 table[i][row].append(content)
 
-            table[i][rows+3].append('-' * w)
+            table[i][rows + separators].append('-' * w)
 
-        for row in range(0, rows + 4):
+        for row in range(0, rows + separators + 1):
             line = ['']
             for i, column in enumerate(table):
                 line.append(column[row][0])
-            print ('+' if row == 0 or row == 2 or row == (rows + 3) else '|').join(line + [''])
+            buffer += ('+' if row == 0 or row == 2 or row == (rows + separators) else '|').join(line + ['\n'])
 
-    def __print_performance(self, performance_map):
-        rows = self.__max_results(performance_map)
-
-        table = [[[] for _ in range(0, rows+4)] for _ in range(len(performance_map))]
-
-        for i, p in enumerate(performance_map):
-            w = int(p['width'])
-
-            table[i][0].append('-' * w)
-            table[i][1].append((' ' + p['title']).ljust(w, ' '))
-            table[i][2].append('-' * w)
-
-            result_items = p['results'].items()
-
-            for row in range(3, rows+3):
-                content = ' ' * w
-                if len(result_items) > row - 3:
-                    item = result_items[row - 3]
-                    content = (' %s: %s' % (item[0], '{:-,.2f}'.format(item[1]))).ljust(w, ' ')
-                table[i][row].append(content)
-
-            table[i][rows+3].append('-' * w)
-
-        for row in range(0, rows + 4):
-            line = ['']
-            for i, column in enumerate(table):
-                line.append(column[row][0])
-            print ('+' if row == 0 or row == 2 or row == (rows + 3) else '|').join(line + [''])
+        return buffer[:-1]
 
     def __balance_results(self, start_date=dt.date(1900, 1, 1), end_date=dt.date(9999, 12, 31)):
         """
@@ -228,7 +206,16 @@ class Report:
             {'title': 'Interest on non-base Balance', 'results': {'USD': Decimal(-4.892494623369438184100918898), 'EUR': Decimal(29155.35433443516022309821460)}}
         ]
 
-    def __measure_table(self, data, max_width=0, prefix=5, pad=1):
+    def __measure_table(self, data, min_width=0, prefix=5, pad=1):
+        """
+        Measure and append table widths to the data passed in
+
+        :param data:        dict which data to measure
+        :param min_width:   minimal required width
+        :param prefix:      width to prepend to the results' content width
+        :param pad:         space to add on both sides of each result content
+        :return:            original dict with appended measures data
+        """
         total_width = 0
         for d in data:
             values = d['results'].values()
@@ -237,10 +224,10 @@ class Report:
             d['width'] = max([d['title_width'], d['results_width']]) + pad * 2
             total_width += d['width']
 
-        if total_width < max_width:
+        if total_width < min_width:
             length = len(data)
-            addition = (max_width - total_width) / length
-            reminder = (max_width - total_width) % length + 1
+            addition = (min_width - total_width) / length
+            reminder = (min_width - total_width) % length + 1
             for i, d in enumerate(data):
                 d['width'] += addition
                 d['width'] += reminder if i == length - 1 else 0
@@ -248,6 +235,12 @@ class Report:
         return data
 
     def __max_results(self, data):
+        """
+        Return maximum number of results in the data passed in
+
+        :param data:    dict of data to examine
+        :return:        int
+        """
         return max([len(d['results']) for d in data])
 
     def __log(self, day, index=0, length=0.0, complete=False):
