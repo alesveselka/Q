@@ -16,47 +16,13 @@ class Report:
         self.__trades = trades
 
     def stats(self, start_date=dt.date(1900, 1, 1), end_date=dt.date(9999, 12, 31)):
-        # MTM
-        # Fx translation
-        # Commission
-        # Interest on margins
-        # interest on non-base balances
-        # interest on base balance
-        # margin / equity ratio
-
-        date = start_date
-        separator = ''.join([('-' * 50), ' %s ', ('-' * 50)])
-
-        # TODO pass in to 'breakdown' yearly, monthly or daily (or all?)
-        base_currency = self.__account.base_currency()
-        mtm_results = defaultdict(Decimal)
-        fx_translations_results = defaultdict(Decimal)
-        commissions_results = defaultdict(Decimal)
-        margin_interest_results = defaultdict(Decimal)
-        base_balance_interest_results = defaultdict(Decimal)
-        non_base_balance_interest_results = defaultdict(Decimal)
-        for t in self.__account.transactions():
-            type = t.type()
-            sign = 1 if t.account_action() == AccountAction.CREDIT else -1
-            if type == TransactionType.MTM_POSITION or type == TransactionType.MTM_TRANSACTION:
-                mtm_results[t.currency()] += t.amount() * sign
-            elif type == TransactionType.FX_BALANCE_TRANSLATION:
-                fx_translations_results[t.currency()] += t.amount() * sign
-            elif type == TransactionType.COMMISSION:
-                commissions_results[t.currency()] += t.amount() * sign
-            elif type == TransactionType.MARGIN_INTEREST:
-                margin_interest_results[t.currency()] += t.amount() * sign
-            elif type == TransactionType.BALANCE_INTEREST:
-                if t.currency() == base_currency:
-                    base_balance_interest_results[t.currency()] += t.amount() * sign
-                else:
-                    non_base_balance_interest_results[t.currency()] += t.amount() * sign
 
         trade_profits = defaultdict(Decimal)
         for t in self.__trades:
             market = t.market()
             trade_profits[market.currency()] += t.result() * Decimal(t.quantity()) * market.point_value()
 
+        base_currency = self.__account.base_currency()
         print 'Equity: %s %s, funds: %.2f %s, balances: %s, margins: %s' % (
             # '{:,}'.format(float(self.__account.equity(end_date))).rjust(20, '.'),
             '{:-,.2f}'.format(float(self.__account.equity(end_date))),
@@ -68,21 +34,28 @@ class Report:
         )
         trade_results = 'Results in %d trades: %s' % (len(self.__trades), {k: float(v) for k, v in trade_profits.items()})
         print trade_results
-        print separator % 'results breakdown'
-        # print 'Mark-to-Market results:', {k: float(v) for k, v in mtm_results.items()}
-        # print 'Fx translation results:', {k: float(v) for k, v in fx_translations_results.items()}
-        # print 'Commissions paid:', {k: float(v) for k, v in commissions_results.items()}
-        # print 'Interest charged on margins:', {k: float(v) for k, v in margin_interest_results.items()}
-        # print 'Interest on balances in non-base currency:', {k: float(v) for k, v in non_base_balance_interest_results.items()}
-        # print 'Interest on balances in base currency:', {k: float(v) for k, v in base_balance_interest_results.items()}
         # TODO also slippage!
+
+        # TODO transaction list
+        # TODO stats - daily, monthly, yearly - as table, as list
 
         performance_results = self.__measure_table(self.__performance_results(start_date, end_date))
         width = reduce(lambda r, p: r + p['width'], performance_results, 0)
         balance_results = self.__measure_table(self.__balance_results(start_date, end_date), width)
 
+        print self.__to_table_header(end_date, width + len(performance_results) + 1)
         print self.__to_table(balance_results)
         print self.__to_table(performance_results)
+
+    def __to_table_header(self, title, width):
+        """
+        Return table header as a string
+
+        :param title:   Title for the header
+        :param width:   Width of the header
+        :return:        string
+        """
+        return ''.join([' ', str(title), ' ']).center(width, '=')
 
     def __to_table(self, data):
         """
@@ -131,31 +104,35 @@ class Report:
         """
         balances = defaultdict(Decimal)
         for currency in self.__account.fx_balance_currencies():
-            balances[currency] += self.__account.fx_balance(currency, end_date)
+            balance = self.__account.fx_balance(currency, end_date)
+            if balance:
+                balances[currency] += balance
 
         margins = defaultdict(Decimal)
         total_margin = Decimal(0)
         for currency in self.__account.margin_loan_currencies():
             margin = self.__account.margin_loan_balance(currency, end_date)
-            margins[currency] += margin
-            total_margin += self.__account.base_value(margin, currency, end_date)
+            if margin:
+                margins[currency] += margin
+                total_margin += self.__account.base_value(margin, currency, end_date)
 
         base_currency = self.__account.base_currency()
+        margin_ratio = {base_currency: total_margin / self.__account.equity(end_date)} if total_margin else {}
         result = [
             {'title': 'Equity', 'results': {base_currency: self.__account.equity(end_date)}},
             {'title': 'Funds', 'results': {base_currency: self.__account.available_funds(end_date)}},
             {'title': 'Balances', 'results': balances},
             {'title': 'Margins', 'results': margins},
-            {'title': 'Margin / Equity', 'results': {base_currency: total_margin / self.__account.equity(end_date)}}
+            {'title': 'Margin / Equity', 'results': margin_ratio}
         ]
-        # return result
-        return [
-            {'title': 'Equity', 'results': {'EUR': Decimal(1237151.139124938681955360085)}},
-            {'title': 'Funds', 'results': {'EUR': Decimal(1225953.862302661859678537808)}},
-            {'title': 'Balances', 'results': {'USD': Decimal(3379.609368248489405560247165), 'EUR': Decimal(1232826.290936660004890505141)}},
-            {'title': 'Margins', 'results': {'USD': Decimal(8750)}},
-            {'title': 'Margin / Equity', 'results': {'EUR': Decimal(0.009050856009555046173239403523)}}
-        ]
+        # result = [
+        #     {'title': 'Equity', 'results': {'EUR': Decimal(1021665.92123456)}},
+        #     {'title': 'Funds', 'results': {'EUR': Decimal(1021665.92123456)}},
+        #     {'title': 'Balances', 'results': {'EUR': Decimal(1021665.92123456)}},
+        #     {'title': 'Margins', 'results': {}},
+        #     {'title': 'Margin / Equity', 'results': {}}
+        # ]
+        return result
 
     def __performance_results(self, start_date=dt.date(1900, 1, 1), end_date=dt.date(9999, 12, 31)):
         """
@@ -186,25 +163,32 @@ class Report:
             {'title': 'Commission', 'types': [TransactionType.COMMISSION], 'results': defaultdict(Decimal)},
             {'title': 'Fx Translation', 'types': [TransactionType.FX_BALANCE_TRANSLATION], 'results': defaultdict(Decimal)},
             {'title': 'Interest on Margin', 'types': [TransactionType.MARGIN_INTEREST], 'results': defaultdict(Decimal)},
-            {'title': 'Interest on base Balance', 'types': [TransactionType.BALANCE_INTEREST], 'results': defaultdict(Decimal)},
+            {'title': 'Interest on base Balance', 'types': [TransactionType.BALANCE_INTEREST], 'results': defaultdict(Decimal), 'base': True},
             {'title': 'Interest on non-base Balance', 'types': [TransactionType.BALANCE_INTEREST], 'results': defaultdict(Decimal)}
         ]
 
+        base_currency = self.__account.base_currency()
         for p in performance_map:
             for transaction_type in [k for k in results.keys() if k in p['types']]:
                 for currency in results[transaction_type].keys():
-                    p['results'][currency] += results[transaction_type][currency]
+                    if transaction_type == TransactionType.BALANCE_INTEREST:
+                        if p.get('base', False) and currency == base_currency:
+                            p['results'][currency] += results[transaction_type][currency]
+                        elif not p.get('base', False) and currency != base_currency:
+                            p['results'][currency] += results[transaction_type][currency]
+                    else:
+                        p['results'][currency] += results[transaction_type][currency]
 
-        # return performance_map
+        # performance_map = [
+        #     {'title': 'Mark-to-Market', 'results': {'USD': Decimal(-7375.00000000000000000000)}},
+        #     {'title': 'Commission', 'results': {'USD': Decimal(-100)}},
+        #     {'title': 'Fx Translation', 'results': {}},
+        #     {'title': 'Interest on Margin', 'results': {'USD': Decimal(-9.5385904109589041095890410974)}},
+        #     {'title': 'Interest on base Balance', 'results': {'USD': Decimal(-4.892494623369438184100918898), 'EUR': Decimal(29155.35433443516022309821460)}},
+        #     {'title': 'Interest on non-base Balance', 'results': {'USD': Decimal(-4.892494623369438184100918898), 'EUR': Decimal(29155.35433443516022309821460)}}
+        # ]
 
-        return [
-            {'title': 'Mark-to-Market', 'results': {'USD': Decimal(-7375.00000000000000000000)}},
-            {'title': 'Commission', 'results': {'USD': Decimal(-100)}},
-            {'title': 'Fx Translation', 'results': {}},
-            {'title': 'Interest on Margin', 'results': {'USD': Decimal(-9.5385904109589041095890410974)}},
-            {'title': 'Interest on base Balance', 'results': {'USD': Decimal(-4.892494623369438184100918898), 'EUR': Decimal(29155.35433443516022309821460)}},
-            {'title': 'Interest on non-base Balance', 'results': {'USD': Decimal(-4.892494623369438184100918898), 'EUR': Decimal(29155.35433443516022309821460)}}
-        ]
+        return performance_map
 
     def __measure_table(self, data, min_width=0, prefix=5, pad=1):
         """
