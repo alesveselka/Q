@@ -65,6 +65,12 @@ class AccountAction:
     DEBIT = 'DEBIT'
 
 
+class Interval:
+    DAILY = 'DAILY'
+    MONTHLY = 'MONTHLY'
+    YEARLY = 'YEARLY'
+
+
 class Table:
     class Market:
         CODE = 0

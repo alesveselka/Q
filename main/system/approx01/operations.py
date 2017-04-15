@@ -13,6 +13,7 @@ from enum import Currency
 from enum import Study
 from enum import Table
 from enum import EventType
+from enum import Interval
 from study import ATR, SMA, HHLL
 from investment_universe import InvestmentUniverse
 from trading_system import TradingSystem
@@ -37,8 +38,8 @@ class Initialize:
 
         now = dt.datetime.now()
         # end_date = dt.date(now.year, now.month, now.day)
-        # end_date = dt.date(1992, 6, 10)
-        end_date = dt.date(1995, 12, 31)
+        end_date = dt.date(1992, 6, 10)
+        # end_date = dt.date(1995, 12, 27)
         timer = Timer()
 
         investment_universe = InvestmentUniverse(investment_universe_name, connection)
@@ -60,6 +61,7 @@ class Initialize:
 
         self.__load_and_calculate_data(connection, futures, currency_pairs, interest_rates, end_date)
         self.__start(timer, self.__trading_system, end_date)
+        # self.__on_timer_complete(end_date)
 
     def __start(self, timer, trading_system, end_date):
         """
@@ -81,7 +83,8 @@ class Initialize:
         :param date:    date of the complete event
         """
         report = Report(self.__account, self.__broker.orders(), self.__trading_system.trades())
-        report.stats(self.__start_date, date)
+        report.stat_tables(self.__start_date, date, Interval.YEARLY)
+        # report.stat_tables(self.__start_date, date)
 
     def __load_and_calculate_data(self, connection, futures, currency_pairs, interest_rates, end_date):
         """

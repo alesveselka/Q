@@ -2,8 +2,10 @@
 
 import sys
 import datetime as dt
+import calendar
 from enum import TransactionType
 from enum import AccountAction
+from enum import Interval
 from collections import defaultdict
 from decimal import Decimal
 
@@ -15,7 +17,7 @@ class Report:
         self.__orders = orders
         self.__trades = trades
 
-    def stats(self, start_date=dt.date(1900, 1, 1), end_date=dt.date(9999, 12, 31)):
+    def stat_tables(self, start_date=dt.date(1900, 1, 1), end_date=dt.date(9999, 12, 31), interval=None):
 
         trade_profits = defaultdict(Decimal)
         for t in self.__trades:
@@ -39,13 +41,47 @@ class Report:
         # TODO transaction list
         # TODO stats - daily, monthly, yearly - as table, as list
 
-        performance_results = self.__measure_table(self.__performance_results(start_date, end_date))
-        width = reduce(lambda r, p: r + p['width'], performance_results, 0)
-        balance_results = self.__measure_table(self.__balance_results(start_date, end_date), width)
+        print start_date, end_date
+        if interval == Interval.DAILY:
+            for date in self.__daily_date_range(start_date, end_date):
+                performance_results = self.__measure_table(self.__performance_results(date, date))
+                width = reduce(lambda r, p: r + p['width'], performance_results, 0)
+                balance_results = self.__measure_table(self.__balance_results(date, date), width)
 
-        print self.__to_table_header(start_date, end_date, width + len(performance_results) + 1)
-        print self.__to_table(balance_results)
-        print self.__to_table(performance_results)
+                print self.__to_table_header(date, date, width + len(performance_results) + 1)
+                print self.__to_table(balance_results)
+                print self.__to_table(performance_results)
+                print '\n'
+        elif interval == Interval.MONTHLY:
+            for date in self.__monthly_date_range(start_date, end_date)[1:]:
+                previous_date = dt.date(date.year, date.month, 1)
+                performance_results = self.__measure_table(self.__performance_results(previous_date, date))
+                width = reduce(lambda r, p: r + p['width'], performance_results, 0)
+                balance_results = self.__measure_table(self.__balance_results(previous_date, date), width)
+
+                print self.__to_table_header(previous_date, date, width + len(performance_results) + 1)
+                print self.__to_table(balance_results)
+                print self.__to_table(performance_results)
+                print '\n'
+        elif interval == Interval.YEARLY:
+            for date in self.__yearly_date_range(start_date, end_date):
+                previous_date = dt.date(date.year, 1, 1)
+                performance_results = self.__measure_table(self.__performance_results(previous_date, date))
+                width = reduce(lambda r, p: r + p['width'], performance_results, 0)
+                balance_results = self.__measure_table(self.__balance_results(previous_date, date), width)
+
+                print self.__to_table_header(previous_date, date, width + len(performance_results) + 1)
+                print self.__to_table(balance_results)
+                print self.__to_table(performance_results)
+                print '\n'
+        else:
+            performance_results = self.__measure_table(self.__performance_results(start_date, end_date))
+            width = reduce(lambda r, p: r + p['width'], performance_results, 0)
+            balance_results = self.__measure_table(self.__balance_results(start_date, end_date), width)
+
+            print self.__to_table_header(start_date, end_date, width + len(performance_results) + 1)
+            print self.__to_table(balance_results)
+            print self.__to_table(performance_results)
 
     def __to_table_header(self, start_date, end_date, width):
         """
@@ -227,6 +263,44 @@ class Report:
         :return:        int
         """
         return max([len(d['results']) for d in data])
+
+    def __daily_date_range(self, start_date=dt.date(1900, 1, 1), end_date=dt.date(9999, 12, 31)):
+        """
+        Construct and return range of daily dates from start date to end date passed in, included
+
+        :param start_date:  start date of range
+        :param end_date:    end date of range
+        :return:            list fo date objects
+        """
+        workdays = range(1, 6)
+        return [start_date + dt.timedelta(days=i) for i in xrange(0, (end_date - start_date).days + 1)
+                if (start_date + dt.timedelta(days=i)).isoweekday() in workdays]
+
+    def __monthly_date_range(self, start_date=dt.date(1900, 1, 1), end_date=dt.date(9999, 12, 31)):
+        """
+        Construct and return range of dates in monthly interval
+        in between the starting and ending dates passed in included
+
+        :param start_date:  start date
+        :param end_date:    end date
+        :return:            list of date objects
+        """
+        dates = [dt.date(year, month, calendar.monthrange(year, month)[1])
+                 for year in range(start_date.year, end_date.year + 1)
+                 for month in range(1, 13)]
+
+        return [start_date] + [d for d in dates if start_date < d < end_date] + [end_date]
+
+    def __yearly_date_range(self, start_date=dt.date(1900, 1, 1), end_date=dt.date(9999, 12, 31)):
+        """
+        Construct and return range of dates in yearly interval
+        in between the starting and ending dates passed in included
+
+        :param start_date:  start date
+        :param end_date:    end date
+        :return:            list of date objects
+        """
+        return [dt.date(year, 12, calendar.monthrange(year, 12)[1]) for year in range(start_date.year, end_date.year + 1)]
 
     def __log(self, day, index=0, length=0.0, complete=False):
         """
