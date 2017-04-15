@@ -43,19 +43,20 @@ class Report:
         width = reduce(lambda r, p: r + p['width'], performance_results, 0)
         balance_results = self.__measure_table(self.__balance_results(start_date, end_date), width)
 
-        print self.__to_table_header(end_date, width + len(performance_results) + 1)
+        print self.__to_table_header(start_date, end_date, width + len(performance_results) + 1)
         print self.__to_table(balance_results)
         print self.__to_table(performance_results)
 
-    def __to_table_header(self, title, width):
+    def __to_table_header(self, start_date, end_date, width):
         """
         Return table header as a string
 
-        :param title:   Title for the header
-        :param width:   Width of the header
-        :return:        string
+        :param start_date:  start date
+        :param end_date:    end_date
+        :param width:       Width of the header
+        :return:            string
         """
-        return ''.join([' ', str(title), ' ']).center(width, '=')
+        return ''.join([' ', str(start_date), ' - ', str(end_date), ' ']).center(width, '=')
 
     def __to_table(self, data):
         """
