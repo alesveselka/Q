@@ -41,47 +41,36 @@ class Report:
         # TODO transaction list
         # TODO stats - daily, monthly, yearly - as table, as list
 
+        # TODO remove 'print' and return ...
         print start_date, end_date
         if interval == Interval.DAILY:
-            for date in self.__daily_date_range(start_date, end_date):
-                performance_results = self.__measure_table(self.__performance_results(date, date))
-                width = reduce(lambda r, p: r + p['width'], performance_results, 0)
-                balance_results = self.__measure_table(self.__balance_results(date, date), width)
-
-                print self.__to_table_header(date, date, width + len(performance_results) + 1)
-                print self.__to_table(balance_results)
-                print self.__to_table(performance_results)
-                print '\n'
+            print '\n\n'.join([self.__table_stats(date, date)
+                               for date in self.__daily_date_range(start_date, end_date)])
         elif interval == Interval.MONTHLY:
-            for date in self.__monthly_date_range(start_date, end_date)[1:]:
-                previous_date = dt.date(date.year, date.month, 1)
-                performance_results = self.__measure_table(self.__performance_results(previous_date, date))
-                width = reduce(lambda r, p: r + p['width'], performance_results, 0)
-                balance_results = self.__measure_table(self.__balance_results(previous_date, date), width)
-
-                print self.__to_table_header(previous_date, date, width + len(performance_results) + 1)
-                print self.__to_table(balance_results)
-                print self.__to_table(performance_results)
-                print '\n'
+            print '\n\n'.join([self.__table_stats(date, dt.date(date.year, date.month, 1))
+                               for date in self.__monthly_date_range(start_date, end_date)[1:]])
         elif interval == Interval.YEARLY:
-            for date in self.__yearly_date_range(start_date, end_date):
-                previous_date = dt.date(date.year, 1, 1)
-                performance_results = self.__measure_table(self.__performance_results(previous_date, date))
-                width = reduce(lambda r, p: r + p['width'], performance_results, 0)
-                balance_results = self.__measure_table(self.__balance_results(previous_date, date), width)
-
-                print self.__to_table_header(previous_date, date, width + len(performance_results) + 1)
-                print self.__to_table(balance_results)
-                print self.__to_table(performance_results)
-                print '\n'
+            print '\n\n'.join([self.__table_stats(date, dt.date(date.year, 1, 1))
+                               for date in self.__yearly_date_range(start_date, end_date)])
         else:
-            performance_results = self.__measure_table(self.__performance_results(start_date, end_date))
-            width = reduce(lambda r, p: r + p['width'], performance_results, 0)
-            balance_results = self.__measure_table(self.__balance_results(start_date, end_date), width)
+            print self.__table_stats(start_date, end_date)
 
-            print self.__to_table_header(start_date, end_date, width + len(performance_results) + 1)
-            print self.__to_table(balance_results)
-            print self.__to_table(performance_results)
+    def __table_stats(self, date, previous_date):
+        """
+        Concat multiple stat tables into one aggregate statistics table
+
+        :param date:            start date of the stats
+        :param previous_date:   end date of the stats
+        :return:                string representing the full table
+        """
+        performance_results = self.__measure_table(self.__performance_results(previous_date, date))
+        width = reduce(lambda r, p: r + p['width'], performance_results, 0)
+        balance_results = self.__measure_table(self.__balance_results(previous_date, date), width)
+        return '\n'.join([
+            self.__to_table_header(previous_date, date, width + len(performance_results) + 1),
+            self.__to_table(balance_results),
+            self.__to_table(performance_results)
+        ])
 
     def __to_table_header(self, start_date, end_date, width):
         """
