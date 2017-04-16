@@ -92,7 +92,7 @@ class Report:
         """
         buffer = ''
         separators = 3
-        rows = self.__max_results(data)
+        rows = max([len(d['results']) for d in data])
         table = [[[] for _ in range(0, rows + separators + 1)] for _ in range(len(data))]
 
         for i, d in enumerate(data):
@@ -243,15 +243,6 @@ class Report:
                 d['width'] += reminder if i == length - 1 else 0
 
         return data
-
-    def __max_results(self, data):
-        """
-        Return maximum number of results in the data passed in
-
-        :param data:    dict of data to examine
-        :return:        int
-        """
-        return max([len(d['results']) for d in data])
 
     def __daily_date_range(self, start_date=dt.date(1900, 1, 1), end_date=dt.date(9999, 12, 31)):
         """
