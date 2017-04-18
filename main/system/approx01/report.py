@@ -70,7 +70,7 @@ class Report:
             length = float(len(data))
             result = map(lambda i, : self.__log(i[1], i[0], length) and fn(i[1], dt.date(i[1].year, 1, 1)), enumerate(data))
         else:
-            result = fn(end_date, start_date)
+            result = [fn(end_date, start_date)]
 
         self.__log(end_date, complete=True)
         return result
