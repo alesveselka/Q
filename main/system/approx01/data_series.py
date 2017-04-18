@@ -3,13 +3,11 @@
 from market import Market
 from currency_pair import CurrencyPair
 from interest_rate import InterestRate
-from event_dispatcher import EventDispatcher
 
 
-class DataSeries(EventDispatcher):
+class DataSeries:
 
     def __init__(self, investment_universe, connection):
-        super(DataSeries, self).__init__()
 
         self.__investment_universe = investment_universe
         self.__connection = connection
