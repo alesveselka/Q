@@ -17,6 +17,12 @@ class Report:
         self.__orders = orders
         self.__trades = trades
 
+    def to_tables(self, start_date=dt.date(1900, 1, 1), end_date=dt.date(9999, 12, 31), interval=None):
+        return self.__formatted_stats(start_date, end_date, interval, self.__table_stats)
+
+    def to_lists(self, start_date=dt.date(1900, 1, 1), end_date=dt.date(9999, 12, 31), interval=None):
+        return self.__formatted_stats(start_date, end_date, interval, self.__list_stats)
+
     def transactions(self, start_date=dt.date(1900, 1, 1), end_date=dt.date(9999, 12, 31)):
         """
         Return list of transactions aggregated daily under the date header
@@ -28,20 +34,18 @@ class Report:
         buffer = ''
         result = []
         date = dt.date(1900, 1, 1)
-        for t in self.__account.transactions(start_date, end_date):
+        transactions = self.__account.transactions(start_date, end_date)
+        length = float(len(transactions))
+        for i, t in enumerate(transactions):
+            self.__log(t.date(), i, length)
             if t.date() > date:
                 date = t.date()
                 result.append(buffer)
                 buffer = (' %s ' % date).center(80, '-') + '\n'
             buffer += str(t) + '\n'
         result.append(buffer)
+        self.__log(date, complete=True)
         return result
-
-    def to_tables(self, start_date=dt.date(1900, 1, 1), end_date=dt.date(9999, 12, 31), interval=None):
-        return self.__formatted_stats(start_date, end_date, interval, self.__table_stats)
-
-    def to_lists(self, start_date=dt.date(1900, 1, 1), end_date=dt.date(9999, 12, 31), interval=None):
-        return self.__formatted_stats(start_date, end_date, interval, self.__list_stats)
 
     def __formatted_stats(self, start_date, end_date, interval, fn):
         """
@@ -54,13 +58,22 @@ class Report:
         :return:            string representation of the stat in specified style
         """
         if interval == Interval.DAILY:
-            return [fn(date, date) for date in self.__daily_date_range(start_date, end_date)]
+            data = self.__daily_date_range(start_date, end_date)
+            length = float(len(data))
+            result = map(lambda i, : self.__log(i[1], i[0], length) and fn(i[1], i[1]), enumerate(data))
         elif interval == Interval.MONTHLY:
-            return [fn(date, dt.date(date.year, date.month, 1)) for date in self.__monthly_date_range(start_date, end_date)]
+            data = self.__monthly_date_range(start_date, end_date)
+            length = float(len(data))
+            result = map(lambda i, : self.__log(i[1], i[0], length) and fn(i[1], dt.date(i[1].year, i[1].month, 1)), enumerate(data))
         elif interval == Interval.YEARLY:
-            return [fn(date, dt.date(date.year, 1, 1)) for date in self.__yearly_date_range(start_date, end_date)]
+            data = self.__yearly_date_range(start_date, end_date)
+            length = float(len(data))
+            result = map(lambda i, : self.__log(i[1], i[0], length) and fn(i[1], dt.date(i[1].year, 1, 1)), enumerate(data))
         else:
-            return fn(end_date, start_date)
+            result = fn(end_date, start_date)
+
+        self.__log(end_date, complete=True)
+        return result
 
     def __list_stats(self, date, previous_date):
         """
@@ -312,7 +325,7 @@ class Report:
         """
         return [dt.date(year, 12, calendar.monthrange(year, 12)[1]) for year in range(start_date.year, end_date.year + 1)]
 
-    def __log(self, day, index=0, length=0.0, complete=False):  # TODO not used
+    def __log(self, day, index=0, length=0.0, complete=False):
         """
         Print message and percentage progress to console
 
@@ -328,6 +341,7 @@ class Report:
                 day,
                 index,
                 length,
-                '{.2%}'.format(float(index) / length)
+                '{:.2%}'.format(index / length)
             ))
         sys.stdout.flush()
+        return True
