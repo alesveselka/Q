@@ -236,3 +236,4 @@
 * "Trading Room"
 * Mean-Revert allocation to whole portfolio?
 * Cross-Sectional Mean-Reversion (p. 104 in Algo (APR: 70 %, Sharpe > 4!))
+* Seasonal Futures
