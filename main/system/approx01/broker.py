@@ -79,7 +79,6 @@ class Broker(object):
         margin = market.margin(previous_last_price) * Decimal(order.quantity())
         price = (order.price() + slippage) if (order.type() == OrderType.BTO or order.type() == OrderType.BTC) else (order.price() - slippage)  # TODO pass in slippage separe?
 
-        # TODO add commissions for rolling the contracts!
         if order_type == OrderType.BTO or order_type == OrderType.STO:
             if self.__account.available_funds(date) > self.__account.base_value(margin + commissions, currency, date):
                 self.__add_transaction(TransactionType.MARGIN_LOAN, date, margin, currency, 'add')
@@ -95,6 +94,7 @@ class Broker(object):
             self.__add_transaction(TransactionType.COMMISSION, date, -commissions, currency, (market, order, price))
             self.__add_transaction(TransactionType.MARGIN_LOAN, date, -margin, currency, 'remove')
 
+            # TODO also persist positions
             self.__portfolio.remove_position(position)
 
         self.__orders.append(order)

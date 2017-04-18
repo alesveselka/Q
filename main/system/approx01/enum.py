@@ -26,6 +26,8 @@ class Direction:
 class SignalType:
     ENTER = 'ENTER'
     EXIT = 'EXIT'
+    ROLL_ENTER = 'ROLL_ENTER'
+    ROLL_EXIT = 'ROLL_EXIT'
 
 
 class Currency:

@@ -85,16 +85,23 @@ class TradingSystem:
 
                 # TODO pass in rules
                 if market_position:
-                    if market_position.direction() == Direction.LONG:
+                    direction = market_position.direction()
+                    if direction == Direction.LONG:
                         # TODO move SL to Risk object?
                         stop_loss = hhll_long[-1][Table.Study.VALUE] - 3 * atr_long
                         if settle_price <= stop_loss:
                             self.__signals.append(Signal(market, SignalType.EXIT, Direction.SHORT, date, settle_price))
-                    elif market_position.direction() == Direction.SHORT:
+                    elif direction == Direction.SHORT:
                         # TODO move SL to Risk object?
                         stop_loss = hhll_long[-1][Table.Study.VALUE_2] + 3 * atr_long
                         if settle_price >= stop_loss:
                             self.__signals.append(Signal(market, SignalType.EXIT, Direction.LONG, date, settle_price))
+
+                    # Naive contract roll implementation (end of each month)
+                    if date.month > previous_date.month and len(self.__signals) == 0:
+                        opposite_direction = Direction.LONG if direction == Direction.SHORT else Direction.LONG
+                        self.__signals.append(Signal(market, SignalType.ROLL_EXIT, opposite_direction, date, settle_price))
+                        self.__signals.append(Signal(market, SignalType.ROLL_ENTER, direction, date, settle_price))
 
                 # TODO pass-in rules
                 if sma_short > sma_long:
@@ -120,15 +127,16 @@ class TradingSystem:
                 market_data = market.data(end_date=date)
                 atr_long = market.study(Study.ATR_LONG, date)[-1][Table.Study.VALUE]
                 open_price = market_data[-1][Table.Market.OPEN_PRICE]
-                open_signals = [s for s in self.__signals if s.type() == SignalType.ENTER]
-                close_signals = [s for s in self.__signals if s.type() == SignalType.EXIT]
+                enter_signals = [s for s in self.__signals if s.type() == SignalType.ENTER]
+                exit_signals = [s for s in self.__signals if s.type() == SignalType.EXIT]
+                roll_signals = [s for s in self.__signals if s.type() == SignalType.ROLL_ENTER or s.type() == SignalType.ROLL_EXIT]
                 market_position = self.__portfolio.market_position(market)
                 order_type = self.__order_type(signal.type(), signal.direction())
 
-                if signal in close_signals and market_position:
+                if market_position and (signal in exit_signals or signal in roll_signals):
                     orders.append(Order(market, order_type, date, open_price, market_position.quantity()))
 
-                if signal in open_signals and market_position is None:
+                if market_position is None and signal in enter_signals:
                     quantity = self.__risk.position_size(market.point_value(), market.currency(), atr_long, date)
                     if quantity:
                         orders.append(Order(market, order_type, date, open_price, quantity))
@@ -159,5 +167,7 @@ class TradingSystem:
         """
         return {
             SignalType.ENTER: {Direction.LONG: OrderType.BTO, Direction.SHORT: OrderType.STO},
-            SignalType.EXIT: {Direction.LONG: OrderType.BTC, Direction.SHORT: OrderType.STC}
+            SignalType.EXIT: {Direction.LONG: OrderType.BTC, Direction.SHORT: OrderType.STC},
+            SignalType.ROLL_ENTER: {Direction.LONG: OrderType.BTO, Direction.SHORT: OrderType.STO},
+            SignalType.ROLL_EXIT: {Direction.LONG: OrderType.BTC, Direction.SHORT: OrderType.STC}
         }.get(signal_type).get(signal_direction)
