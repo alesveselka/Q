@@ -53,7 +53,7 @@ class Report:
             print '\n\n'.join([self.__table_stats(date, dt.date(date.year, 1, 1))
                                for date in self.__yearly_date_range(start_date, end_date)])
         else:
-            print self.__table_stats(start_date, end_date)
+            print self.__table_stats(end_date, start_date)
 
     def __table_stats(self, date, previous_date):
         """
