@@ -145,7 +145,7 @@ class Market(object):  # TODO rename to Future?
             {'atr': 0.05, 'min': 50000, 'max': 200000},
             {'atr': 0.01, 'min': 200000, 'max': 1e9}
         ])[0].get('atr')
-        slippage_value = Decimal(slippage_atr) * atr * self.__point_value
+        slippage_value = Decimal(slippage_atr) * atr
         return (Decimal(ceil(slippage_value / self.__tick_value)) * self.__tick_value) / self.__point_value
 
     def study(self, study_name, date=dt.date(9999, 12, 31)):
