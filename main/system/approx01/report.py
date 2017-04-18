@@ -18,42 +18,52 @@ class Report:
         self.__trades = trades
 
     def stat_tables(self, start_date=dt.date(1900, 1, 1), end_date=dt.date(9999, 12, 31), interval=None):
+        return self.__formatted_stats(start_date, end_date, interval, self.__table_stats)
 
-        trade_profits = defaultdict(Decimal)
-        for t in self.__trades:
-            market = t.market()
-            trade_profits[market.currency()] += t.result() * Decimal(t.quantity()) * market.point_value()
+    def stat_lists(self, start_date=dt.date(1900, 1, 1), end_date=dt.date(9999, 12, 31), interval=None):
+        return self.__formatted_stats(start_date, end_date, interval, self.__list_stats)
 
-        base_currency = self.__account.base_currency()
-        print 'Equity: %s %s, funds: %.2f %s, balances: %s, margins: %s' % (
-            # '{:,}'.format(float(self.__account.equity(end_date))).rjust(20, '.'),
-            '{:-,.2f}'.format(float(self.__account.equity(end_date))),
-            base_currency,
-            self.__account.available_funds(end_date),
-            base_currency,
-            self.__account.to_fx_balance_string(end_date),
-            self.__account.to_margin_loans_string(end_date)
-        )
-        trade_results = 'Results in %d trades: %s' % (len(self.__trades), {k: float(v) for k, v in trade_profits.items()})
-        print trade_results
-        # TODO also slippage!
+    def __formatted_stats(self, start_date, end_date, interval, fn):
+        """
+        Return formatted stats according the style passed in
 
-        # TODO transaction list
-        # TODO stats - daily, monthly, yearly - as table, as list
-
-        # TODO remove 'print' and return ...
-        print start_date, end_date
+        :param start_date:  start date of the stats
+        :param end_date:    end date of the stats
+        :param interval:    time aggregation for the stats
+        :param style:       either list or table
+        :return:            string representation of the stat in specified style
+        """
         if interval == Interval.DAILY:
-            print '\n\n'.join([self.__table_stats(date, date)
-                               for date in self.__daily_date_range(start_date, end_date)])
+            return [fn(date, date) for date in self.__daily_date_range(start_date, end_date)]
         elif interval == Interval.MONTHLY:
-            print '\n\n'.join([self.__table_stats(date, dt.date(date.year, date.month, 1))
-                               for date in self.__monthly_date_range(start_date, end_date)[1:]])
+            return [fn(date, dt.date(date.year, date.month, 1)) for date in self.__monthly_date_range(start_date, end_date)[1:]]
         elif interval == Interval.YEARLY:
-            print '\n\n'.join([self.__table_stats(date, dt.date(date.year, 1, 1))
-                               for date in self.__yearly_date_range(start_date, end_date)])
+            return [fn(date, dt.date(date.year, 1, 1)) for date in self.__yearly_date_range(start_date, end_date)]
         else:
-            print self.__table_stats(end_date, start_date)
+            return fn(end_date, start_date)
+
+    def __list_stats(self, date, previous_date):
+        """
+        Compile result list
+
+        :param date:            start date of the stats
+        :param previous_date:   end date of the stats
+        :return:                string representing the list with results
+        """
+        balance_results = self.__measure_widths(self.__balance_results(previous_date, date))
+        performance_results = self.__measure_widths(self.__performance_results(previous_date, date))
+        title_width = max([r['title_width'] for r in performance_results] + [r['title_width'] for r in balance_results]) + 2
+        results_width = max([r['results_width'] for r in performance_results] + [r['results_width'] for r in balance_results])
+        buffer = self.__to_table_header(previous_date, date, title_width + results_width) + '\n'
+
+        for r in balance_results + performance_results:
+            title = r['title']
+            for item in r['results'].items():
+                buffer += title.ljust(title_width, '.')
+                buffer += ('{:-,.2f}'.format(item[1]) + ' ' + item[0] + '\n').rjust(results_width, '.')
+                title = ''
+
+        return buffer
 
     def __table_stats(self, date, previous_date):
         """
@@ -63,9 +73,9 @@ class Report:
         :param previous_date:   end date of the stats
         :return:                string representing the full table
         """
-        performance_results = self.__measure_table(self.__performance_results(previous_date, date))
+        performance_results = self.__measure_widths(self.__performance_results(previous_date, date))
         width = reduce(lambda r, p: r + p['width'], performance_results, 0)
-        balance_results = self.__measure_table(self.__balance_results(previous_date, date), width)
+        balance_results = self.__measure_widths(self.__balance_results(previous_date, date), width)
         return '\n'.join([
             self.__to_table_header(previous_date, date, width + len(performance_results) + 1),
             self.__to_table(balance_results),
@@ -151,13 +161,13 @@ class Report:
             {'title': 'Margins', 'results': margins},
             {'title': 'Margin / Equity', 'results': margin_ratio}
         ]
-        # result = [
-        #     {'title': 'Equity', 'results': {'EUR': Decimal(1021665.92123456)}},
-        #     {'title': 'Funds', 'results': {'EUR': Decimal(1021665.92123456)}},
-        #     {'title': 'Balances', 'results': {'EUR': Decimal(1021665.92123456)}},
-        #     {'title': 'Margins', 'results': {}},
-        #     {'title': 'Margin / Equity', 'results': {}}
-        # ]
+        result = [
+            {'title': 'Equity', 'results': {'EUR': Decimal(1021665.92123456)}},
+            {'title': 'Funds', 'results': {'EUR': Decimal(1021665.92123456)}},
+            {'title': 'Balances', 'results': {'EUR': Decimal(1021665.92123456)}},
+            {'title': 'Margins', 'results': {}},
+            {'title': 'Margin / Equity', 'results': {}}
+        ]
         return result
 
     def __performance_results(self, start_date=dt.date(1900, 1, 1), end_date=dt.date(9999, 12, 31)):
@@ -205,18 +215,18 @@ class Report:
                     else:
                         p['results'][currency] += results[transaction_type][currency]
 
-        # performance_map = [
-        #     {'title': 'Mark-to-Market', 'results': {'USD': Decimal(-7375.00000000000000000000)}},
-        #     {'title': 'Commission', 'results': {'USD': Decimal(-100)}},
-        #     {'title': 'Fx Translation', 'results': {}},
-        #     {'title': 'Interest on Margin', 'results': {'USD': Decimal(-9.5385904109589041095890410974)}},
-        #     {'title': 'Interest on base Balance', 'results': {'USD': Decimal(-4.892494623369438184100918898), 'EUR': Decimal(29155.35433443516022309821460)}},
-        #     {'title': 'Interest on non-base Balance', 'results': {'USD': Decimal(-4.892494623369438184100918898), 'EUR': Decimal(29155.35433443516022309821460)}}
-        # ]
+        performance_map = [
+            {'title': 'Mark-to-Market', 'results': {'USD': Decimal(-7375.00000000000000000000)}},
+            {'title': 'Commission', 'results': {'USD': Decimal(-100)}},
+            {'title': 'Fx Translation', 'results': {}},
+            {'title': 'Interest on Margin', 'results': {'USD': Decimal(-9.5385904109589041095890410974)}},
+            {'title': 'Interest on base Balance', 'results': {'USD': Decimal(-4.892494623369438184100918898), 'EUR': Decimal(29155.35433443516022309821460)}},
+            {'title': 'Interest on non-base Balance', 'results': {'USD': Decimal(-4.892494623369438184100918898), 'EUR': Decimal(29155.35433443516022309821460)}}
+        ]
 
         return performance_map
 
-    def __measure_table(self, data, min_width=0, prefix=5, pad=1):
+    def __measure_widths(self, data, min_width=0, prefix=5, pad=1):
         """
         Measure and append table widths to the data passed in
 
@@ -282,7 +292,7 @@ class Report:
         """
         return [dt.date(year, 12, calendar.monthrange(year, 12)[1]) for year in range(start_date.year, end_date.year + 1)]
 
-    def __log(self, day, index=0, length=0.0, complete=False):
+    def __log(self, day, index=0, length=0.0, complete=False):  # TODO not used
         """
         Print message and percentage progress to console
 
