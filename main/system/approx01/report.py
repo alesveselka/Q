@@ -17,10 +17,10 @@ class Report:
         self.__orders = orders
         self.__trades = trades
 
-    def stat_tables(self, start_date=dt.date(1900, 1, 1), end_date=dt.date(9999, 12, 31), interval=None):
+    def to_tables(self, start_date=dt.date(1900, 1, 1), end_date=dt.date(9999, 12, 31), interval=None):
         return self.__formatted_stats(start_date, end_date, interval, self.__table_stats)
 
-    def stat_lists(self, start_date=dt.date(1900, 1, 1), end_date=dt.date(9999, 12, 31), interval=None):
+    def to_lists(self, start_date=dt.date(1900, 1, 1), end_date=dt.date(9999, 12, 31), interval=None):
         return self.__formatted_stats(start_date, end_date, interval, self.__list_stats)
 
     def __formatted_stats(self, start_date, end_date, interval, fn):
@@ -36,7 +36,7 @@ class Report:
         if interval == Interval.DAILY:
             return [fn(date, date) for date in self.__daily_date_range(start_date, end_date)]
         elif interval == Interval.MONTHLY:
-            return [fn(date, dt.date(date.year, date.month, 1)) for date in self.__monthly_date_range(start_date, end_date)[1:]]
+            return [fn(date, dt.date(date.year, date.month, 1)) for date in self.__monthly_date_range(start_date, end_date)]
         elif interval == Interval.YEARLY:
             return [fn(date, dt.date(date.year, 1, 1)) for date in self.__yearly_date_range(start_date, end_date)]
         else:
@@ -279,7 +279,7 @@ class Report:
                  for year in range(start_date.year, end_date.year + 1)
                  for month in range(1, 13)]
 
-        return [start_date] + [d for d in dates if start_date < d < end_date] + [end_date]
+        return [d for d in dates if start_date < d < end_date] + [end_date]
 
     def __yearly_date_range(self, start_date=dt.date(1900, 1, 1), end_date=dt.date(9999, 12, 31)):
         """
