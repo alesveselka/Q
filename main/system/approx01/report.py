@@ -194,13 +194,6 @@ class Report:
             {'title': 'Margins', 'results': margins},
             {'title': 'Margin / Equity', 'results': margin_ratio}
         ]
-        result = [
-            {'title': 'Equity', 'results': {'EUR': Decimal(1021665.92123456)}},
-            {'title': 'Funds', 'results': {'EUR': Decimal(1021665.92123456)}},
-            {'title': 'Balances', 'results': {'EUR': Decimal(1021665.92123456)}},
-            {'title': 'Margins', 'results': {}},
-            {'title': 'Margin / Equity', 'results': {}}
-        ]
         return result
 
     def __performance_results(self, start_date=dt.date(1900, 1, 1), end_date=dt.date(9999, 12, 31)):
@@ -225,8 +218,6 @@ class Report:
             sign = 1 if t.account_action() == AccountAction.CREDIT else -1
             results[t.type()][t.currency()] += t.amount() * sign
 
-        # return results
-
         performance_map = [
             {'title': 'Mark-to-Market', 'types': [TransactionType.MTM_POSITION, TransactionType.MTM_TRANSACTION], 'results': defaultdict(Decimal)},
             {'title': 'Commission', 'types': [TransactionType.COMMISSION], 'results': defaultdict(Decimal)},
@@ -247,15 +238,6 @@ class Report:
                             p['results'][currency] += results[transaction_type][currency]
                     else:
                         p['results'][currency] += results[transaction_type][currency]
-
-        performance_map = [
-            {'title': 'Mark-to-Market', 'results': {'USD': Decimal(-7375.00000000000000000000)}},
-            {'title': 'Commission', 'results': {'USD': Decimal(-100)}},
-            {'title': 'Fx Translation', 'results': {}},
-            {'title': 'Interest on Margin', 'results': {'USD': Decimal(-9.5385904109589041095890410974)}},
-            {'title': 'Interest on base Balance', 'results': {'USD': Decimal(-4.892494623369438184100918898), 'EUR': Decimal(29155.35433443516022309821460)}},
-            {'title': 'Interest on non-base Balance', 'results': {'USD': Decimal(-4.892494623369438184100918898), 'EUR': Decimal(29155.35433443516022309821460)}}
-        ]
 
         return performance_map
 
