@@ -17,6 +17,26 @@ class Report:
         self.__orders = orders
         self.__trades = trades
 
+    def transactions(self, start_date=dt.date(1900, 1, 1), end_date=dt.date(9999, 12, 31)):
+        """
+        Return list of transactions aggregated daily under the date header
+
+        :param start_date:  start date of the stats
+        :param end_date:    end date of the stats
+        :return:            list of strings describing transactions aggregated daily
+        """
+        buffer = ''
+        result = []
+        date = dt.date(1900, 1, 1)
+        for t in self.__account.transactions(start_date, end_date):
+            if t.date() > date:
+                date = t.date()
+                result.append(buffer)
+                buffer = (' %s ' % date).center(80, '-') + '\n'
+            buffer += str(t) + '\n'
+        result.append(buffer)
+        return result
+
     def to_tables(self, start_date=dt.date(1900, 1, 1), end_date=dt.date(9999, 12, 31), interval=None):
         return self.__formatted_stats(start_date, end_date, interval, self.__table_stats)
 
@@ -302,9 +322,9 @@ class Report:
         """
         sys.stdout.write('%s\r' % (' ' * 80))
         if complete:
-            sys.stdout.write('Strategy progress complete\r\n')
+            sys.stdout.write('Compiling stats complete\r\n')
         else:
-            sys.stdout.write('Strategy progress ... %s (%d of %d) [%s]\r' % (
+            sys.stdout.write('Compiling stats ... %s (%d of %d) [%s]\r' % (
                 day,
                 index,
                 length,
