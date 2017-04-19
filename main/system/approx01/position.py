@@ -2,6 +2,7 @@
 
 from enum import Direction
 from enum import OrderType
+from enum import SignalType
 
 
 class Position(object):
@@ -31,6 +32,18 @@ class Position(object):
 
     def enter_price(self):
         return self.__enter_price
+
+    def exit_date(self):
+        last_order = self.__order_results[-1].order()
+        return last_order.date() \
+            if last_order.signal_type() == SignalType.EXIT \
+            else None
+
+    def exit_price(self):
+        last_order_result = self.__order_results[-1]
+        return last_order_result.price() \
+            if last_order_result.order().signal_type() == SignalType.EXIT \
+            else None
 
     def quantity(self):
         return self.__quantity
