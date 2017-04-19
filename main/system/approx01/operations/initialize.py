@@ -26,6 +26,8 @@ from decimal import Decimal
 class Initialize:
 
     def __init__(self, investment_universe_name):
+        # TODO set Decimal context?
+
         self.__connection = mysql.connect(
             os.environ['DB_HOST'],
             os.environ['DB_USER'],
@@ -53,12 +55,12 @@ class Initialize:
         interest_rates = data_series.interest_rates()
 
         self.__account = Account(Decimal(1e6), Currency.EUR, currency_pairs)
+        self.__portfolio = Portfolio()
 
-        portfolio = Portfolio()
         risk = Risk(risk_position_sizing, self.__account)
 
-        self.__broker = Broker(timer, self.__account, portfolio, commission, currency_pairs, interest_rates, minimums)
-        self.__trading_system = TradingSystem(timer, futures, risk, portfolio, self.__broker)
+        self.__broker = Broker(timer, self.__account, self.__portfolio, commission, currency_pairs, interest_rates, minimums)
+        self.__trading_system = TradingSystem(timer, futures, risk, self.__portfolio, self.__broker)
 
         self.__load_and_calculate_data(futures, currency_pairs, interest_rates, end_date)
         self.__start(timer, self.__trading_system, end_date)
@@ -85,15 +87,15 @@ class Initialize:
         """
         persist = Persist(
             self.__connection,
-            self.__broker.orders(),
+            self.__broker.order_results(),
             self.__account.transactions(self.__start_date, date),
             self.__trading_system.trades()
         )
-        # persist.save_orders()
+        persist.save_orders()
         # persist.save_transactions()
-        persist.save_trades()
+        # persist.save_trades()
 
-        report = Report(self.__account, self.__broker.orders(), self.__trading_system.trades())
+        report = Report(self.__account, self.__trading_system.trades())
         # print '\n'.join(report.transactions(self.__start_date, date))
         # print '\n'.join(report.to_lists(self.__start_date, date, Interval.YEARLY))
         # print '\n'.join(report.to_lists(self.__start_date, date))
