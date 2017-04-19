@@ -3,12 +3,17 @@
 
 class Persist:
 
-    def __init__(self, connection, order_results, transactions):
+    def __init__(self, connection, order_results, transactions, portfolio):
         self.__connection = connection
         self.__order_results = order_results
         self.__transactions = transactions
+        self.__portfolio = portfolio
 
-    def save_orders(self):
+        # self.__save_orders()
+        # self.__save_transactions()
+        self.__save_positions()
+
+    def __save_orders(self):
         """
         Serialize and insert Order instances into DB
         """
@@ -27,7 +32,7 @@ class Persist:
                  ) for o in self.__order_results]
         )
 
-    def save_transactions(self):
+    def __save_transactions(self):
         """
         Serialize and insert Transaction instances into DB
         """
@@ -36,36 +41,34 @@ class Persist:
             ['type', 'account_action', 'date', 'amount', 'currency', 'context'],
             [(t.type(), t.account_action(), t.date(), t.amount(), t.currency(), t.context_json()) for t in self.__transactions])
 
-    def save_trades(self):
+    def __save_positions(self):
         """
-        Serialize and insert Trade instances into DB
+        Serialize and insert Position instances into DB
         """
-        # self.__insert_values(
-        #     'trade',
-        #     [
-        #         'market_id',
-        #         'direction',
-        #         'quantity',
-        #         'enter_date',
-        #         'enter_price',
-        #         'enter_slip',
-        #         'exit_date',
-        #         'exit_price',
-        #         'exit_slip',
-        #         'commissions'
-        #     ],
-        #     [(
-        #          t.market().id(),
-        #          t.direction(),
-        #          t.quantity(),
-        #          t.enter_date(),
-        #          t.enter_price(),
-        #          t.enter_slip(),
-        #          t.exit_date(),
-        #          t.exit_price(),
-        #          t.exit_slip(),
-        #          t.commissions()) for t in self.__trades]
-        # )
+        self.__insert_values(
+            'position',
+            [
+                'market_id',
+                'direction',
+                'enter_date',
+                'enter_price',
+                'exit_date',
+                'exit_price',
+                'quantity',
+                'pnl',
+                'commissions'
+            ],
+            [(
+                 p.market().id(),
+                 p.direction(),
+                 p.enter_date(),
+                 p.enter_price(),
+                 p.exit_date(),
+                 p.exit_price(),
+                 p.quantity(),
+                 p.pnl(),
+                 p.commissions()) for p in self.__portfolio.closed_positions() + self.__portfolio.open_positions()]
+        )
 
     def __insert_values(self, table_name, columns, values):
         """

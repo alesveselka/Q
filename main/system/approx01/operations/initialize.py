@@ -41,8 +41,8 @@ class Initialize:
 
         now = dt.datetime.now()
         # end_date = dt.date(now.year, now.month, now.day)
-        end_date = dt.date(1992, 6, 10)
-        # end_date = dt.date(2015, 12, 31)
+        # end_date = dt.date(1992, 6, 10)
+        end_date = dt.date(1992, 12, 1)
         timer = Timer()
 
         investment_universe = InvestmentUniverse(investment_universe_name, self.__connection)
@@ -85,14 +85,12 @@ class Initialize:
 
         :param date:    date of the complete event
         """
-        persist = Persist(
+        Persist(
             self.__connection,
             self.__broker.order_results(),
-            self.__account.transactions(self.__start_date, date)
+            self.__account.transactions(self.__start_date, date),
+            self.__portfolio
         )
-        persist.save_orders()
-        # persist.save_transactions()
-        # persist.save_trades()
 
         report = Report(self.__account)
         # print '\n'.join(report.transactions(self.__start_date, date))
