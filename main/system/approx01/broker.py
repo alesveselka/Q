@@ -22,7 +22,7 @@ class Broker(object):
         self.__currency_pairs = currency_pairs
         self.__interest_rates = interest_rates
         self.__minimums = minimums
-        self.__orders = []
+        self.__order_results = []
 
     def subscribe(self):
         """
@@ -30,13 +30,13 @@ class Broker(object):
         """
         self.__timer.on(EventType.MARKET_CLOSE, self.__on_market_close)
 
-    def orders(self):
+    def order_results(self):
         """
-        Return orders
+        Return OrderResults
 
-        :return:    list of Order objects
+        :return:    list of OrderResult objects
         """
-        return self.__orders
+        return self.__order_results
 
     def __on_market_close(self, date, previous_date):
         """
@@ -94,8 +94,7 @@ class Broker(object):
 
             order_result = OrderResult(OrderResultType.FILLED, order, price, margin, commissions)
 
-        self.__orders.append(order)
-
+        self.__order_results.append(order_result)
         return order_result
 
     def __commissions(self, quantity, currency, date):
