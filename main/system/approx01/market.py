@@ -39,54 +39,8 @@ class Market(object):  # TODO rename to Future?
         self.__data = []
         self.__studies = {}
 
-    def load_data(self, connection, end_date):
-        """
-        Load market's data
-
-        :param connection:  MySQLdb connection instance
-        :param end_date:    Last date to fetch data to
-        """
-        cursor = connection.cursor()
-        sql = """
-            SELECT %s
-            FROM continuous_back_adjusted
-            WHERE market_id = '%s'
-            AND code = '%s'
-            AND DATE(price_date) >= '%s'
-            AND DATE(price_date) <= '%s';
-        """
-        cursor.execute(sql % (
-            self.__column_names(),
-            self.__id,
-            self.__instrument_code,
-            self.__start_data_date.strftime('%Y-%m-%d'),
-            end_date.strftime('%Y-%m-%d')
-        ))
-        self.__data = cursor.fetchall()
-
-        # TODO update more realistically - include actual ATR?
-        self.__margin_multiple = (self.__margin / (self.__data[-1][Table.Market.SETTLE_PRICE] * self.__point_value)) \
-            if len(self.__data) \
-            else Decimal(0.1)
-
-        return True
-
-    def __column_names(self):
-        """
-        Construct and return column names sorted by their index in ENUM
-
-        :return:    string
-        """
-        columns = {
-            'code': Table.Market.CODE,
-            'price_date': Table.Market.PRICE_DATE,
-            'open_price': Table.Market.OPEN_PRICE,
-            'high_price': Table.Market.HIGH_PRICE,
-            'low_price': Table.Market.LOW_PRICE,
-            'settle_price': Table.Market.SETTLE_PRICE,
-            'volume': Table.Market.VOLUME
-        }
-        return ', '.join([i[0] for i in sorted(columns.items(), key=itemgetter(1))])
+    def id(self):
+        return self.__id
 
     def code(self):
         return self.__instrument_code
@@ -170,3 +124,52 @@ class Market(object):  # TODO rename to Future?
                     [tuple(map(lambda c: d[c], params['columns'])) for d in self.__data],
                     params['window']
                 )
+
+    def load_data(self, connection, end_date):
+        """
+        Load market's data
+
+        :param connection:  MySQLdb connection instance
+        :param end_date:    Last date to fetch data to
+        """
+        cursor = connection.cursor()
+        sql = """
+            SELECT %s
+            FROM continuous_back_adjusted
+            WHERE market_id = '%s'
+            AND code = '%s'
+            AND DATE(price_date) >= '%s'
+            AND DATE(price_date) <= '%s';
+        """
+        cursor.execute(sql % (
+            self.__column_names(),
+            self.__id,
+            self.__instrument_code,
+            self.__start_data_date.strftime('%Y-%m-%d'),
+            end_date.strftime('%Y-%m-%d')
+        ))
+        self.__data = cursor.fetchall()
+
+        # TODO update more realistically - include actual ATR?
+        self.__margin_multiple = (self.__margin / (self.__data[-1][Table.Market.SETTLE_PRICE] * self.__point_value)) \
+            if len(self.__data) \
+            else Decimal(0.1)
+
+        return True
+
+    def __column_names(self):
+        """
+        Construct and return column names sorted by their index in ENUM
+
+        :return:    string
+        """
+        columns = {
+            'code': Table.Market.CODE,
+            'price_date': Table.Market.PRICE_DATE,
+            'open_price': Table.Market.OPEN_PRICE,
+            'high_price': Table.Market.HIGH_PRICE,
+            'low_price': Table.Market.LOW_PRICE,
+            'settle_price': Table.Market.SETTLE_PRICE,
+            'volume': Table.Market.VOLUME
+        }
+        return ', '.join([i[0] for i in sorted(columns.items(), key=itemgetter(1))])
