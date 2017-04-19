@@ -131,15 +131,14 @@ class TradingSystem:
                 exit_signals = [s for s in self.__signals if s.type() == SignalType.EXIT]
                 roll_signals = [s for s in self.__signals if s.type() == SignalType.ROLL_ENTER or s.type() == SignalType.ROLL_EXIT]
                 market_position = self.__portfolio.market_position(market)
-                order_type = self.__order_type(signal.type(), signal.direction())
 
                 if market_position and (signal in exit_signals or signal in roll_signals):
-                    orders.append(Order(market, order_type, date, open_price, market_position.quantity()))
+                    orders.append(Order(market, signal, date, open_price, market_position.quantity()))
 
                 if market_position is None and signal in enter_signals:
                     quantity = self.__risk.position_size(market.point_value(), market.currency(), atr_long, date)
                     if quantity:
-                        orders.append(Order(market, order_type, date, open_price, quantity))
+                        orders.append(Order(market, signal, date, open_price, quantity))
 
         return orders
 
@@ -154,20 +153,5 @@ class TradingSystem:
             market_position = self.__portfolio.market_position(order.market())
             order_result = self.__broker.transfer(order)
 
-            if order.type() == OrderType.BTC or order.type() == OrderType.STC:
+            if order.signal_type() == SignalType.EXIT:
                 self.__trades.append(Trade(market_position, order, order_result))
-
-    def __order_type(self, signal_type, signal_direction):
-        """
-        Return OrderType based on signal type and direction passed in
-
-        :param signal_type:         Signal type, either ENTER of EXIT
-        :param signal_direction:    Signal direction, either LONG or SHORT
-        :return:                    string - OrderType
-        """
-        return {
-            SignalType.ENTER: {Direction.LONG: OrderType.BTO, Direction.SHORT: OrderType.STO},
-            SignalType.EXIT: {Direction.LONG: OrderType.BTC, Direction.SHORT: OrderType.STC},
-            SignalType.ROLL_ENTER: {Direction.LONG: OrderType.BTO, Direction.SHORT: OrderType.STO},
-            SignalType.ROLL_EXIT: {Direction.LONG: OrderType.BTC, Direction.SHORT: OrderType.STC}
-        }.get(signal_type).get(signal_direction)
