@@ -39,7 +39,7 @@ class Initialize:
         now = dt.datetime.now()
         # end_date = dt.date(now.year, now.month, now.day)
         end_date = dt.date(1992, 6, 10)
-        # end_date = dt.date(1995, 12, 27)
+        # end_date = dt.date(2015, 12, 31)
         timer = Timer()
 
         investment_universe = InvestmentUniverse(investment_universe_name, connection)
@@ -83,8 +83,9 @@ class Initialize:
         :param date:    date of the complete event
         """
         report = Report(self.__account, self.__broker.orders(), self.__trading_system.trades())
-        report.stat_tables(self.__start_date, date, Interval.YEARLY)
-        # report.stat_tables(self.__start_date, date)
+        # print '\n'.join(report.transactions(self.__start_date, date))
+        print '\n'.join(report.to_lists(self.__start_date, date, Interval.YEARLY))
+        print '\n'.join(report.to_lists(self.__start_date, date))
 
     def __load_and_calculate_data(self, connection, futures, currency_pairs, interest_rates, end_date):
         """
