@@ -89,8 +89,9 @@ class Initialize:
             self.__account.transactions(self.__start_date, date),
             self.__trading_system.trades()
         )
-        persist.save_orders()
+        # persist.save_orders()
         # persist.save_transactions()
+        persist.save_trades()
 
         report = Report(self.__account, self.__broker.orders(), self.__trading_system.trades())
         # print '\n'.join(report.transactions(self.__start_date, date))

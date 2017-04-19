@@ -16,10 +16,31 @@ class Trade(object):
         self.__exit_date = order.date()
         self.__exit_price = order_result.price()
         self.__exit_slip = abs(order_result.price() - order.price())
-        self.__commissions = order_result.commission() * 2
+        self.__commissions = order_result.commission() * 2  # TODO how about commissions during rolling?
 
     def market(self):
         return self.__market
+
+    def direction(self):
+        return self.__direction
+
+    def enter_date(self):
+        return self.__enter_date
+
+    def enter_price(self):
+        return self.__enter_price
+
+    def enter_slip(self):
+        return self.__enter_slip
+
+    def exit_date(self):
+        return self.__exit_date
+
+    def exit_price(self):
+        return self.__exit_price
+
+    def exit_slip(self):
+        return self.__exit_slip
 
     def quantity(self):
         return self.__quantity

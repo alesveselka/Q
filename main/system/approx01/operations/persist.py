@@ -39,3 +39,39 @@ class Persist:
                 'INSERT INTO `transaction` (%s) VALUES (%s)' % (','.join(columns), ('%s,' * len(columns))[:-1]),
                 values
             )
+
+    def save_trades(self):
+        """
+        Serialize and insert Trade instances into DB
+        """
+        columns = [
+            'market_id',
+            'direction',
+            'quantity',
+            'enter_date',
+            'enter_price',
+            'enter_slip',
+            'exit_date',
+            'exit_price',
+            'exit_slip',
+            'commissions'
+        ]
+        values = [(
+            t.market().id(),
+            t.direction(),
+            t.quantity(),
+            t.enter_date(),
+            t.enter_price(),
+            t.enter_slip(),
+            t.exit_date(),
+            t.exit_price(),
+            t.exit_slip(),
+            t.commissions()) for t in self.__trades]
+
+        self.__connection.cursor().execute('DELETE FROM `trade`')
+        with self.__connection:
+            cursor = self.__connection.cursor()
+            cursor.executemany(
+                'INSERT INTO `trade` (%s) VALUES (%s)' % (','.join(columns), ('%s,' * len(columns))[:-1]),
+                values
+            )
