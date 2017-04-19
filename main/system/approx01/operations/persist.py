@@ -3,11 +3,10 @@
 
 class Persist:
 
-    def __init__(self, connection, order_results, transactions, trades):
+    def __init__(self, connection, order_results, transactions):
         self.__connection = connection
         self.__order_results = order_results
         self.__transactions = transactions
-        self.__trades = trades
 
     def save_orders(self):
         """
@@ -41,8 +40,6 @@ class Persist:
         """
         Serialize and insert Trade instances into DB
         """
-        for t in self.__trades:
-            print t
         # self.__insert_values(
         #     'trade',
         #     [

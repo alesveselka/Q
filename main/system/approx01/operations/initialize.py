@@ -88,14 +88,13 @@ class Initialize:
         persist = Persist(
             self.__connection,
             self.__broker.order_results(),
-            self.__account.transactions(self.__start_date, date),
-            self.__trading_system.trades()
+            self.__account.transactions(self.__start_date, date)
         )
         persist.save_orders()
         # persist.save_transactions()
         # persist.save_trades()
 
-        report = Report(self.__account, self.__trading_system.trades())
+        report = Report(self.__account)
         # print '\n'.join(report.transactions(self.__start_date, date))
         # print '\n'.join(report.to_lists(self.__start_date, date, Interval.YEARLY))
         # print '\n'.join(report.to_lists(self.__start_date, date))

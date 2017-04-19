@@ -12,9 +12,8 @@ from decimal import Decimal
 
 class Report:
 
-    def __init__(self, account, trades):
+    def __init__(self, account):
         self.__account = account
-        self.__trades = trades
 
     def to_tables(self, start_date=dt.date(1900, 1, 1), end_date=dt.date(9999, 12, 31), interval=None):
         return self.__formatted_stats(start_date, end_date, interval, self.__table_stats)

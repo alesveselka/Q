@@ -20,15 +20,6 @@ class TradingSystem:
         self.__portfolio = portfolio
         self.__broker = broker
         self.__signals = []
-        self.__trades = []
-
-    def trades(self):
-        """
-        Return trades
-
-        :return: list of Trade objects
-        """
-        return self.__trades
 
     def subscribe(self):
         """
