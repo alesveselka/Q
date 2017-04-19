@@ -18,6 +18,7 @@ from study import ATR, SMA, HHLL
 from investment_universe import InvestmentUniverse
 from trading_system import TradingSystem
 from data_series import DataSeries
+from persist import Persist
 from report import Report
 from decimal import Decimal
 
@@ -25,7 +26,7 @@ from decimal import Decimal
 class Initialize:
 
     def __init__(self, investment_universe_name):
-        connection = mysql.connect(
+        self.__connection = mysql.connect(
             os.environ['DB_HOST'],
             os.environ['DB_USER'],
             os.environ['DB_PASS'],
@@ -42,11 +43,11 @@ class Initialize:
         # end_date = dt.date(2015, 12, 31)
         timer = Timer()
 
-        investment_universe = InvestmentUniverse(investment_universe_name, connection)
+        investment_universe = InvestmentUniverse(investment_universe_name, self.__connection)
         investment_universe.load_data()
         self.__start_date = investment_universe.start_data_date()
 
-        data_series = DataSeries(investment_universe, connection)
+        data_series = DataSeries(investment_universe, self.__connection)
         futures = data_series.futures()
         currency_pairs = data_series.currency_pairs()
         interest_rates = data_series.interest_rates()
@@ -59,7 +60,7 @@ class Initialize:
         self.__broker = Broker(timer, self.__account, portfolio, commission, currency_pairs, interest_rates, minimums)
         self.__trading_system = TradingSystem(timer, futures, risk, portfolio, self.__broker)
 
-        self.__load_and_calculate_data(connection, futures, currency_pairs, interest_rates, end_date)
+        self.__load_and_calculate_data(futures, currency_pairs, interest_rates, end_date)
         self.__start(timer, self.__trading_system, end_date)
         # self.__on_timer_complete(end_date)
 
@@ -82,16 +83,22 @@ class Initialize:
 
         :param date:    date of the complete event
         """
+        Persist(
+            self.__connection,
+            self.__broker.orders(),
+            self.__account.transactions(self.__start_date, date),
+            self.__trading_system.trades()
+        )
+
         report = Report(self.__account, self.__broker.orders(), self.__trading_system.trades())
         # print '\n'.join(report.transactions(self.__start_date, date))
-        print '\n'.join(report.to_lists(self.__start_date, date, Interval.YEARLY))
-        print '\n'.join(report.to_lists(self.__start_date, date))
+        # print '\n'.join(report.to_lists(self.__start_date, date, Interval.YEARLY))
+        # print '\n'.join(report.to_lists(self.__start_date, date))
 
-    def __load_and_calculate_data(self, connection, futures, currency_pairs, interest_rates, end_date):
+    def __load_and_calculate_data(self, futures, currency_pairs, interest_rates, end_date):
         """
         Load data and calculate studies
 
-        :param connection:      MySQLdb connection instance
         :param futures:         List of futures Market objects
         :param currency_pairs:  List of CurrencyPair instances
         :param interest_rates:  List of InterestRate instances
@@ -99,7 +106,7 @@ class Initialize:
         """
         message = 'Loading Futures data ...'
         length = float(len(futures))
-        map(lambda i: self.__log(message, i[1].code(), i[0], length) and i[1].load_data(connection, end_date),
+        map(lambda i: self.__log(message, i[1].code(), i[0], length) and i[1].load_data(self.__connection, end_date),
             enumerate(futures))
         self.__log(message, complete=True)
 
@@ -111,13 +118,13 @@ class Initialize:
 
         message = 'Loading currency pairs data ...'
         length = float(len(currency_pairs))
-        map(lambda i: self.__log(message, i[1].code(), i[0], length) and i[1].load_data(connection, end_date),
+        map(lambda i: self.__log(message, i[1].code(), i[0], length) and i[1].load_data(self.__connection, end_date),
             enumerate(currency_pairs))
         self.__log(message, complete=True)
 
         message = 'Loading interest rates data ...'
         length = float(len(interest_rates))
-        map(lambda i: self.__log(message, i[1].code(), i[0], length) and i[1].load_data(connection, end_date),
+        map(lambda i: self.__log(message, i[1].code(), i[0], length) and i[1].load_data(self.__connection, end_date),
             enumerate(interest_rates))
         self.__log(message, complete=True)
 

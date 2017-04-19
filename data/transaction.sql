@@ -5,7 +5,7 @@ CREATE TABLE `transaction`(
   `type` varchar(32) NOT NULL,
   `account_action` varchar(16) NOT NULL,
   `date` date NOT NULL,
-  `amount` decimal(20,10) NOT NULL,
+  `amount` decimal(40,30) NOT NULL,
   `currency` varchar(8) NOT NULL,
   `context` TEXT CHARACTER SET utf8,
   PRIMARY KEY (`id`)
