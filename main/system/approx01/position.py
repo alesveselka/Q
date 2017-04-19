@@ -76,7 +76,7 @@ class Position(object):
 
         :return:    Sum of all Profit and Losses
         """
-        return reduce(lambda result, item: result + item[2], self.__pnls, 0)
+        return sum([p[2] for p in self.__pnls])
 
     def __pnl_index(self, date):
         """
