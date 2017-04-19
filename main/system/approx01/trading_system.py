@@ -4,11 +4,11 @@ from enum import Study
 from enum import EventType
 from enum import Direction
 from enum import SignalType
-from enum import OrderType
+from enum import OrderResultType
 from enum import Table
 from strategy_signal import Signal
 from order import Order
-from trade import Trade
+from position import Position
 
 
 class TradingSystem:
@@ -149,9 +149,18 @@ class TradingSystem:
         :param orders:  list of order objects
         """
         for order in orders:
-            # TODO temporal binding - identify the position better way
-            market_position = self.__portfolio.market_position(order.market())
             order_result = self.__broker.transfer(order)
 
-            if order.signal_type() == SignalType.EXIT:
-                self.__trades.append(Trade(market_position, order, order_result))
+            if order_result.type() == OrderResultType.FILLED:
+                signal_type = order.signal_type()
+                if signal_type == SignalType.ENTER:
+                    self.__portfolio.add_position(Position(order_result))
+
+                if signal_type == SignalType.ROLL_ENTER or signal_type == SignalType.ROLL_EXIT:
+                    position = self.__portfolio.market_position(order.market())
+                    position.add_order_result(order_result)
+
+                if signal_type == SignalType.EXIT:
+                    position = self.__portfolio.market_position(order.market())
+                    position.add_order_result(order_result)
+                    self.__portfolio.remove_position(position)

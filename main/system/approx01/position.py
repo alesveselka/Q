@@ -1,19 +1,21 @@
 #!/usr/bin/python
 
 from enum import Direction
+from enum import OrderType
 
 
 class Position(object):
 
-    def __init__(self, market, direction, date, order_price, price, quantity, margin):
-        self.__market = market
-        self.__direction = direction
-        self.__date = date
-        self.__order_price = order_price
-        self.__price = price
-        self.__quantity = quantity
+    def __init__(self, order_result):
+        order = order_result.order()
+        self.__market = order.market()
+        self.__direction = {OrderType.BTO: Direction.LONG, OrderType.STO: Direction.SHORT}.get(order.type())
+        self.__quantity = order.quantity()
+        self.__enter_date = order_result.order().date()
+        self.__enter_price = order_result.price()
+        self.__margins = [(order_result.order().date(), order_result.margin())]
         self.__pnls = []
-        self.__margins = [margin]
+        self.__order_results = [order_result]
 
     def market(self):
         return self.__market
@@ -21,17 +23,26 @@ class Position(object):
     def direction(self):
         return self.__direction
 
-    def date(self):
-        return self.__date
+    def enter_date(self):
+        return self.__enter_date
 
-    def price(self):
-        return self.__price
+    def latest_enter_date(self):
+        return self.__open_order_results()[-1].order().date()
 
-    def order_price(self):
-        return self.__order_price
+    def enter_price(self):
+        return self.__enter_price
 
     def quantity(self):
         return self.__quantity
+
+    def commissions(self):
+        return sum([r.commission() for r in self.__order_results])
+
+    def order_results(self):
+        return self.__order_results
+
+    def add_order_result(self, order_result):
+        self.__order_results.append(order_result)
 
     def margins(self):
         return self.__margins
@@ -47,15 +58,15 @@ class Position(object):
         :param price:   Number representing price to be marked
         :return:        Number representing calculated Profit or Loss in market points
         """
-        pnl_index = self.__pnl_index(date)
-        previous_index = pnl_index - 1 if pnl_index > 0 else -1
-        previous_price = self.__pnls[previous_index][1] if len(self.__pnls) else self.__price
-        pnl = (price - previous_price) if self.__direction == Direction.LONG else (previous_price - price)
-
-        if pnl_index > -1:
-            self.__pnls[pnl_index] = (date, price, pnl)
+        if date == self.latest_enter_date():
+            previous_price = self.__open_order_results()[-1].price()
         else:
-            self.__pnls.append((date, price, pnl))
+            pnl_index = self.__pnl_index(date)
+            previous_index = pnl_index - 1 if pnl_index > 0 else -1
+            previous_price = self.__pnls[previous_index][1] if len(self.__pnls) else self.__enter_price
+
+        pnl = (price - previous_price) if self.__direction == Direction.LONG else (previous_price - price)
+        self.__pnls.append((date, price, pnl))
 
         return pnl
 
@@ -80,16 +91,25 @@ class Position(object):
                 return i
         return -1
 
+    def __open_order_results(self):
+        """
+        Return OrderResults of order type either BTO ot STO
+
+        :return:    list of OrderResult instances
+        """
+        return [r for r in self.__order_results
+                if r.order().type() == OrderType.BTO or r.order().type() == OrderType.STO]
+
     def __str__(self):
         """
         String representation of the position instance
 
         :return:    String
         """
-        return ', '.join([
-            self.__market.code(),
+        return '%s %d x %s at %4f on %s' % (
             self.__direction,
-            str(self.__date),
-            str(self.__price),
-            str(self.__quantity)
-        ])
+            self.__quantity,
+            self.__market.code(),
+            self.__enter_price,
+            self.__enter_date
+        )

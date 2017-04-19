@@ -1,13 +1,11 @@
 #!/usr/bin/python
 
-from enum import Direction
 from enum import OrderType
 from enum import OrderResultType
 from enum import TransactionType
 from enum import EventType
 from enum import Table
 from transaction import Transaction
-from position import Position
 from order_result import OrderResult
 from collections import defaultdict
 from decimal import Decimal
@@ -78,14 +76,14 @@ class Broker(object):
         previous_last_price = market.data(end_date=date)[-2][Table.Market.SETTLE_PRICE]
         margin = market.margin(previous_last_price) * Decimal(order.quantity())
         price = (order.price() + slippage) if (order.type() == OrderType.BTO or order.type() == OrderType.BTC) else (order.price() - slippage)  # TODO pass in slippage separe?
+        order_result = OrderResult(OrderResultType.REJECTED, order, price, margin, commissions)
 
         if order_type == OrderType.BTO or order_type == OrderType.STO:
             if self.__account.available_funds(date) > self.__account.base_value(margin + commissions, currency, date):
                 self.__add_transaction(TransactionType.MARGIN_LOAN, date, margin, currency, 'add')
                 self.__add_transaction(TransactionType.COMMISSION, date, -commissions, currency, (market, order, price))
 
-                direction = {OrderType.BTO: Direction.LONG, OrderType.STO: Direction.SHORT}.get(order.type())
-                self.__portfolio.add_position(Position(market, direction, date, order.price(), price, order.quantity(), (date, margin)))
+                order_result = OrderResult(OrderResultType.FILLED, order, price, margin, commissions)
         else:
             position = self.__portfolio.market_position(market)
             mtm = position.mark_to_market(order.date(), price) * Decimal(position.quantity()) * market.point_value()
@@ -94,12 +92,11 @@ class Broker(object):
             self.__add_transaction(TransactionType.COMMISSION, date, -commissions, currency, (market, order, price))
             self.__add_transaction(TransactionType.MARGIN_LOAN, date, -margin, currency, 'remove')
 
-            # TODO also persist positions
-            self.__portfolio.remove_position(position)
+            order_result = OrderResult(OrderResultType.FILLED, order, price, margin, commissions)
 
         self.__orders.append(order)
 
-        return OrderResult(OrderResultType.FILLED, date, price, commissions)
+        return order_result
 
     def __commissions(self, quantity, currency, date):
         """
@@ -149,8 +146,8 @@ class Broker(object):
 
             if market.has_data(date):
                 price = market.data(end_date=date)[-1][Table.Market.SETTLE_PRICE]
-                mtm = p.mark_to_market(date, price) * Decimal(p.quantity()) * p.market().point_value()
-                mtm_type = TransactionType.MTM_TRANSACTION if p.date() == date else TransactionType.MTM_POSITION
+                mtm = p.mark_to_market(date, price) * Decimal(p.quantity()) * market.point_value()
+                mtm_type = TransactionType.MTM_TRANSACTION if p.latest_enter_date() == date else TransactionType.MTM_POSITION
                 self.__add_transaction(mtm_type, date, mtm, market.currency(), (market, price))
 
     def __translate_fx_balances(self, date, previous_date):
@@ -185,7 +182,7 @@ class Broker(object):
             to_close = defaultdict(Decimal)
 
             for p in self.__portfolio.open_positions():
-                if date > p.date():
+                if date > p.enter_date():
                     market = p.market()
 
                     if market.has_data(date):

@@ -49,6 +49,7 @@ class OrderType:
 
 class OrderResultType:
     FILLED = 'FILLED'
+    REJECTED = 'REJECTED'
 
 
 class TransactionType:
