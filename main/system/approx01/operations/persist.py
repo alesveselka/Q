@@ -13,65 +13,64 @@ class Persist:
         """
         Serialize and insert Order instances into DB
         """
-        columns = ['market_id', 'type', 'date', 'price', 'quantity']
-        values = [(o.market().id(), o.type(), o.date(), o.price(), o.quantity()) for o in self.__orders]
-
-        self.__connection.cursor().execute('DELETE FROM `order`')
-        with self.__connection:
-            cursor = self.__connection.cursor()
-            cursor.executemany(
-                'INSERT INTO `order` (%s) VALUES (%s)' % (','.join(columns), ('%s,' * len(columns))[:-1]),
-                values
-            )
+        self.__insert_values(
+            'order',
+            ['market_id', 'type', 'date', 'price', 'quantity'],
+            [(o.market().id(), o.type(), o.date(), o.price(), o.quantity()) for o in self.__orders]
+        )
 
     def save_transactions(self):
         """
         Serialize and insert Transaction instances into DB
         """
-        columns = ['type', 'account_action', 'date', 'amount', 'currency', 'context']
-        values = [(t.type(), t.account_action(), t.date(), t.amount(), t.currency(), t.context_json())
-                  for t in self.__transactions]
-
-        self.__connection.cursor().execute('DELETE FROM `transaction`')
-        with self.__connection:
-            cursor = self.__connection.cursor()
-            cursor.executemany(
-                'INSERT INTO `transaction` (%s) VALUES (%s)' % (','.join(columns), ('%s,' * len(columns))[:-1]),
-                values
-            )
+        self.__insert_values(
+            'transaction',
+            ['type', 'account_action', 'date', 'amount', 'currency', 'context'],
+            [(t.type(), t.account_action(), t.date(), t.amount(), t.currency(), t.context_json()) for t in self.__transactions])
 
     def save_trades(self):
         """
         Serialize and insert Trade instances into DB
         """
-        columns = [
-            'market_id',
-            'direction',
-            'quantity',
-            'enter_date',
-            'enter_price',
-            'enter_slip',
-            'exit_date',
-            'exit_price',
-            'exit_slip',
-            'commissions'
-        ]
-        values = [(
-            t.market().id(),
-            t.direction(),
-            t.quantity(),
-            t.enter_date(),
-            t.enter_price(),
-            t.enter_slip(),
-            t.exit_date(),
-            t.exit_price(),
-            t.exit_slip(),
-            t.commissions()) for t in self.__trades]
+        self.__insert_values(
+            'trade',
+            [
+                'market_id',
+                'direction',
+                'quantity',
+                'enter_date',
+                'enter_price',
+                'enter_slip',
+                'exit_date',
+                'exit_price',
+                'exit_slip',
+                'commissions'
+            ],
+            [(
+                 t.market().id(),
+                 t.direction(),
+                 t.quantity(),
+                 t.enter_date(),
+                 t.enter_price(),
+                 t.enter_slip(),
+                 t.exit_date(),
+                 t.exit_price(),
+                 t.exit_slip(),
+                 t.commissions()) for t in self.__trades]
+        )
 
-        self.__connection.cursor().execute('DELETE FROM `trade`')
+    def __insert_values(self, table_name, columns, values):
+        """
+        Insert values to the schema of name and columns passed in
+
+        :param table_name:  Name of the table to insert data into
+        :param columns:     list of column names to insert value into
+        :param values:      list of values to insert
+        """
+        self.__connection.cursor().execute('DELETE FROM `%s`' % table_name)
         with self.__connection:
             cursor = self.__connection.cursor()
             cursor.executemany(
-                'INSERT INTO `trade` (%s) VALUES (%s)' % (','.join(columns), ('%s,' * len(columns))[:-1]),
+                'INSERT INTO `%s` (%s) VALUES (%s)' % (table_name, ','.join(columns), ('%s,' * len(columns))[:-1]),
                 values
             )
