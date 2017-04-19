@@ -83,12 +83,14 @@ class Initialize:
 
         :param date:    date of the complete event
         """
-        Persist(
+        persist = Persist(
             self.__connection,
             self.__broker.orders(),
             self.__account.transactions(self.__start_date, date),
             self.__trading_system.trades()
         )
+        persist.save_orders()
+        # persist.save_transactions()
 
         report = Report(self.__account, self.__broker.orders(), self.__trading_system.trades())
         # print '\n'.join(report.transactions(self.__start_date, date))

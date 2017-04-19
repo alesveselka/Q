@@ -9,11 +9,24 @@ class Persist:
         self.__transactions = transactions
         self.__trades = trades
 
-        self.__save_transactions()
-
-    def __save_transactions(self):
+    def save_orders(self):
         """
-        Serialize and insert transaction objects into DB
+        Serialize and insert Order instances into DB
+        """
+        columns = ['market_id', 'type', 'date', 'price', 'quantity']
+        values = [(o.market().id(), o.type(), o.date(), o.price(), o.quantity()) for o in self.__orders]
+
+        self.__connection.cursor().execute('DELETE FROM `order`')
+        with self.__connection:
+            cursor = self.__connection.cursor()
+            cursor.executemany(
+                'INSERT INTO `order` (%s) VALUES (%s)' % (','.join(columns), ('%s,' * len(columns))[:-1]),
+                values
+            )
+
+    def save_transactions(self):
+        """
+        Serialize and insert Transaction instances into DB
         """
         columns = ['type', 'account_action', 'date', 'amount', 'currency', 'context']
         values = [(t.type(), t.account_action(), t.date(), t.amount(), t.currency(), t.context_json())
