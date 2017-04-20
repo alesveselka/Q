@@ -22,6 +22,7 @@ class Persist:
         """
         Serialize and insert Order instances into DB
         """
+        exponent = Decimal('1.' + ('0' * 10))
         self.__insert_values(
             'order',
             ['market_id', 'type', 'signal_type', 'date', 'price', 'quantity', 'result_type', 'result_price'],
@@ -30,10 +31,10 @@ class Persist:
                  o.order().type(),
                  o.order().signal_type(),
                  o.order().date(),
-                 o.order().price(),
+                 o.order().price().quantize(exponent),
                  o.order().quantity(),
                  o.type(),
-                 o.price()
+                 o.price().quantize(exponent)
                  ) for o in self.__order_results]
         )
 
@@ -41,16 +42,18 @@ class Persist:
         """
         Serialize and insert Transaction instances into DB
         """
+        exponent = Decimal('1.' + ('0' * 30))
         self.__insert_values(
             'transaction',
             ['type', 'account_action', 'date', 'amount', 'currency', 'context'],
-            [(t.type(), t.account_action(), t.date(), t.amount(), t.currency(), t.context_json()) for t in self.__transactions]
+            [(t.type(), t.account_action(), t.date(), t.amount().quantize(exponent), t.currency(), t.context_json()) for t in self.__transactions]
         )
 
     def __save_positions(self):
         """
         Serialize and insert Position instances into DB
         """
+        exponent = Decimal('1.' + ('0' * 10))
         self.__insert_values(
             'position',
             [
@@ -68,12 +71,13 @@ class Persist:
                  p.market().id(),
                  p.direction(),
                  p.enter_date(),
-                 p.enter_price(),
+                 p.enter_price().quantize(exponent),
                  p.exit_date(),
-                 p.exit_price(),
+                 p.exit_price().quantize(exponent),
                  p.quantity(),
-                 p.pnl(),
-                 p.commissions()) for p in self.__portfolio.closed_positions() + self.__portfolio.open_positions()]
+                 p.pnl().quantize(exponent),
+                 p.commissions().quantize(exponent)
+             ) for p in self.__portfolio.closed_positions() + self.__portfolio.open_positions()]
         )
 
     def __save_studies(self, markets, study_parameters):
@@ -83,7 +87,7 @@ class Persist:
         :param markets:             list of Market objects
         :param study_parameters:    list of Study parameters
         """
-        exponent = Decimal('1.' + ('0' * 4))
+        exponent = Decimal('1.' + ('0' * 30))
         values = []
         for m in [m for m in markets if m.data()]:
             for p in study_parameters:
