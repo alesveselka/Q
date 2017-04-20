@@ -41,8 +41,8 @@ class Initialize:
 
         now = dt.datetime.now()
         # end_date = dt.date(now.year, now.month, now.day)
-        # end_date = dt.date(1992, 6, 10)
-        end_date = dt.date(1992, 12, 1)
+        end_date = dt.date(1992, 6, 10)
+        # end_date = dt.date(2015, 12, 31)
         timer = Timer()
 
         investment_universe = InvestmentUniverse(investment_universe_name, self.__connection)
@@ -50,7 +50,7 @@ class Initialize:
         self.__start_date = investment_universe.start_data_date()
 
         data_series = DataSeries(investment_universe, self.__connection)
-        futures = data_series.futures()
+        self.__futures = data_series.futures()
         currency_pairs = data_series.currency_pairs()
         interest_rates = data_series.interest_rates()
 
@@ -60,9 +60,9 @@ class Initialize:
         risk = Risk(risk_position_sizing, self.__account)
 
         self.__broker = Broker(timer, self.__account, self.__portfolio, commission, currency_pairs, interest_rates, minimums)
-        self.__trading_system = TradingSystem(timer, futures, risk, self.__portfolio, self.__broker)
+        self.__trading_system = TradingSystem(timer, self.__futures, risk, self.__portfolio, self.__broker)
 
-        self.__load_and_calculate_data(futures, currency_pairs, interest_rates, end_date)
+        self.__load_and_calculate_data(self.__futures, currency_pairs, interest_rates, end_date)
         self.__start(timer, self.__trading_system, end_date)
         # self.__on_timer_complete(end_date)
 
@@ -89,7 +89,9 @@ class Initialize:
             self.__connection,
             self.__broker.order_results(),
             self.__account.transactions(self.__start_date, date),
-            self.__portfolio
+            self.__portfolio,
+            self.__futures,
+            self.__study_parameters()
         )
 
         report = Report(self.__account)
