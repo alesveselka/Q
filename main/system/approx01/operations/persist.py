@@ -1,28 +1,26 @@
 #!/usr/bin/python
 
 from enum import Table
-from decimal import Decimal, ROUND_HALF_EVEN
+from decimal import Decimal, getcontext, InvalidOperation
 
 
 class Persist:
 
     def __init__(self, connection, order_results, transactions, portfolio, markets, study_parameters):
-        # TODO no need to save - pass in
         self.__connection = connection
-        self.__order_results = order_results
-        self.__transactions = transactions
-        self.__portfolio = portfolio
 
-        # self.__save_orders()
-        # self.__save_transactions()
-        # self.__save_positions()
+        self.__save_orders(order_results)
+        self.__save_transactions(transactions)
+        self.__save_positions(portfolio)
         self.__save_studies(markets, study_parameters)
 
-    def __save_orders(self):
+    def __save_orders(self, order_results):
         """
         Serialize and insert Order instances into DB
+
+        :param order_results:   list of OrderResult objects
         """
-        exponent = Decimal('1.' + ('0' * 10))
+        precision = 10
         self.__insert_values(
             'order',
             ['market_id', 'type', 'signal_type', 'date', 'price', 'quantity', 'result_type', 'result_price'],
@@ -31,29 +29,34 @@ class Persist:
                  o.order().type(),
                  o.order().signal_type(),
                  o.order().date(),
-                 o.order().price().quantize(exponent),
+                 self.__round(o.order().price(), precision),
                  o.order().quantity(),
                  o.type(),
-                 o.price().quantize(exponent)
-                 ) for o in self.__order_results]
+                 self.__round(o.price(), precision)
+                 ) for o in order_results]
         )
 
-    def __save_transactions(self):
+    def __save_transactions(self, transactions):
         """
         Serialize and insert Transaction instances into DB
+
+        :param transactions:    list of Transaction objects
         """
-        exponent = Decimal('1.' + ('0' * 30))
+        precision = 28
         self.__insert_values(
             'transaction',
             ['type', 'account_action', 'date', 'amount', 'currency', 'context'],
-            [(t.type(), t.account_action(), t.date(), t.amount().quantize(exponent), t.currency(), t.context_json()) for t in self.__transactions]
+            [(t.type(), t.account_action(), t.date(), self.__round(t.amount(), precision), t.currency(), t.context_json())
+             for t in transactions]
         )
 
-    def __save_positions(self):
+    def __save_positions(self, portfolio):
         """
         Serialize and insert Position instances into DB
+
+        :param portfolio:   Portfolio object with references to lists of positions
         """
-        exponent = Decimal('1.' + ('0' * 10))
+        precision = 10
         self.__insert_values(
             'position',
             [
@@ -71,13 +74,13 @@ class Persist:
                  p.market().id(),
                  p.direction(),
                  p.enter_date(),
-                 p.enter_price().quantize(exponent),
+                 self.__round(p.enter_price(), precision),
                  p.exit_date(),
-                 p.exit_price().quantize(exponent),
+                 self.__round(p.exit_price(), precision),
                  p.quantity(),
-                 p.pnl().quantize(exponent),
-                 p.commissions().quantize(exponent)
-             ) for p in self.__portfolio.closed_positions() + self.__portfolio.open_positions()]
+                 self.__round(p.pnl(), precision),
+                 self.__round(p.commissions(), precision)
+             ) for p in portfolio.closed_positions() + portfolio.open_positions()]
         )
 
     def __save_studies(self, markets, study_parameters):
@@ -87,7 +90,7 @@ class Persist:
         :param markets:             list of Market objects
         :param study_parameters:    list of Study parameters
         """
-        exponent = Decimal('1.' + ('0' * 30))
+        precision = 28
         values = []
         for m in [m for m in markets if m.data()]:
             for p in study_parameters:
@@ -101,8 +104,8 @@ class Persist:
                         market_id,
                         market_code,
                         d[Table.Study.DATE],
-                        d[Table.Study.VALUE].quantize(exponent),
-                        d[Table.Study.VALUE_2].quantize(exponent) if len(d) > 2 else None
+                        self.__round(d[Table.Study.VALUE], precision),
+                        self.__round(d[Table.Study.VALUE_2], precision) if len(d) > 2 else None
                     ))
 
         self.__insert_values('study', ['name', 'market_id', 'market_code', 'date', 'value', 'value_2'], values)
@@ -122,3 +125,17 @@ class Persist:
                 'INSERT INTO `%s` (%s) VALUES (%s)' % (table_name, ','.join(columns), ('%s,' * len(columns))[:-1]),
                 values
             )
+
+    def __round(self, value, precision):
+        """
+        Round Decimal value to specific precision
+
+        :param value:       Decimal to round
+        :param precision:   number of places in exponent
+        :return:            rounded Decimal
+        """
+        try:
+            result = value.quantize(Decimal('1.' + ('0' * precision)))
+        except InvalidOperation:
+            result = value
+        return result
