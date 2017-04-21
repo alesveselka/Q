@@ -167,8 +167,8 @@ class Persist:
                 date,
                 self.__round(equity, 28),
                 json.dumps({k: str(v) for k, v in balances.items()}),
-                json.dumps({k: str(v) for k, v in margins.items()}),
-                self.__round(total_margin / equity, 10) if total_margin else 0
+                json.dumps({k: str(v) for k, v in margins.items()}) if len(margins) else None,
+                self.__round(total_margin / equity, 10) if total_margin else None
             ))
 
         self.__insert_values('equity', columns, values)
