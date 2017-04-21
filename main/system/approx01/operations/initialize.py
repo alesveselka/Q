@@ -87,12 +87,14 @@ class Initialize:
         """
         Persist(
             self.__connection,
+            self.__start_date,
+            date,
             self.__broker.order_results(),
-            self.__account.transactions(self.__start_date, date),
+            self.__account,
             self.__portfolio,
             self.__futures,
             self.__study_parameters()
-        )
+        )  # TODO also persist equity and balances
 
         report = Report(self.__account)
         # print '\n'.join(report.transactions(self.__start_date, date))

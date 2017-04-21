@@ -1,18 +1,22 @@
 #!/usr/bin/python
 
+import json
+import datetime as dt
 from enum import Table
-from decimal import Decimal, getcontext, InvalidOperation
+from collections import defaultdict
+from decimal import Decimal, InvalidOperation
 
 
 class Persist:
 
-    def __init__(self, connection, order_results, transactions, portfolio, markets, study_parameters):
+    def __init__(self, connection, start_date, end_date, order_results, account, portfolio, markets, study_parameters):
         self.__connection = connection
 
         self.__save_orders(order_results)
-        self.__save_transactions(transactions)
+        self.__save_transactions(account.transactions(start_date, end_date))
         self.__save_positions(portfolio)
         self.__save_studies(markets, study_parameters)
+        self.__save_equity(account, start_date, end_date)
 
     def __save_orders(self, order_results):
         """
@@ -125,6 +129,49 @@ class Persist:
                 'INSERT INTO `%s` (%s) VALUES (%s)' % (table_name, ','.join(columns), ('%s,' * len(columns))[:-1]),
                 values
             )
+
+    def __save_equity(self, account, start_date, end_date):
+        """
+        Calculates equity, balances and margins and insert the values into DB
+
+        :param account:     Account instance
+        :param start_date:  start date to calculate from
+        :param end_date:    end date to calculate to
+        """
+        workdays = range(1, 6)
+        daily_range = [start_date + dt.timedelta(days=i)
+                       for i in xrange(0, (end_date - start_date).days + 1)
+                       if (start_date + dt.timedelta(days=i)).isoweekday() in workdays]
+        base_currency = account.base_currency()
+        columns = ['base_currency', 'date', 'equity', 'balances', 'margins', 'margin_ratio']
+        values = []
+
+        for date in daily_range:
+            equity = account.equity(date)
+            balances = defaultdict(Decimal)
+            for currency in account.fx_balance_currencies():
+                balance = account.fx_balance(currency, date)
+                if balance:
+                    balances[currency] += balance
+
+            margins = defaultdict(Decimal)
+            total_margin = Decimal(0)
+            for currency in account.margin_loan_currencies():
+                margin = account.margin_loan_balance(currency, date)
+                if margin:
+                    margins[currency] += margin
+                    total_margin += account.base_value(margin, currency, date)
+
+            values.append((
+                base_currency,
+                date,
+                self.__round(equity, 28),
+                json.dumps({k: str(v) for k, v in balances.items()}),
+                json.dumps({k: str(v) for k, v in margins.items()}),
+                self.__round(total_margin / equity, 10) if total_margin else 0
+            ))
+
+        self.__insert_values('equity', columns, values)
 
     def __round(self, value, precision):
         """
