@@ -1,5 +1,6 @@
 #!/usr/bin/python
 
+import sys
 import json
 from timer import Timer
 from enum import Table
@@ -23,6 +24,8 @@ class Persist:
 
         :param order_results:   list of OrderResult objects
         """
+        self.__log('Saving orders')
+
         precision = 10
         self.__insert_values(
             'order',
@@ -45,6 +48,8 @@ class Persist:
 
         :param transactions:    list of Transaction objects
         """
+        self.__log('Saving transactions')
+
         precision = 28
         self.__insert_values(
             'transaction',
@@ -59,6 +64,8 @@ class Persist:
 
         :param portfolio:   Portfolio object with references to lists of positions
         """
+        self.__log('Saving positions')
+
         precision = 10
         self.__insert_values(
             'position',
@@ -93,9 +100,15 @@ class Persist:
         :param markets:             list of Market objects
         :param study_parameters:    list of Study parameters
         """
+        self.__log('Saving studies')
+
         precision = 28
+        markets_with_data = [m for m in markets if m.data()]
+        length = float(len(markets_with_data))
         values = []
-        for m in [m for m in markets if m.data()]:
+        for i, m in enumerate(markets_with_data):
+            self.__log('Saving studies', i, length)
+
             for p in study_parameters:
                 study_data = m.study(p['name'])
                 study_name = '_'.join([p['name'].split('_')[0], str(p['window'])])
@@ -121,11 +134,17 @@ class Persist:
         :param start_date:  start date to calculate from
         :param end_date:    end date to calculate to
         """
+        self.__log('Saving equity')
+
         base_currency = account.base_currency()
         columns = ['base_currency', 'date', 'equity', 'balances', 'margins', 'margin_ratio']
         values = []
+        date_range = Timer.daily_date_range(start_date, end_date)
+        length = float(len(date_range))
 
-        for date in Timer.daily_date_range(start_date, end_date):
+        for i, date in enumerate(date_range):
+            self.__log('Saving equity', i, length)
+
             equity = account.equity(date)
             margins = account.margin_loan_balances(date)
             total_margin = sum([account.base_value(v, k, date) for k, v in margins.items()])
@@ -140,6 +159,8 @@ class Persist:
             ))
 
         self.__insert_values('equity', columns, values)
+
+        self.__log('Saving equity', complete=True)
 
     def __insert_values(self, table_name, columns, values):
         """
@@ -166,7 +187,28 @@ class Persist:
         :return:            rounded Decimal
         """
         try:
-            result = value.quantize(Decimal('1.' + ('0' * precision)))
+            result = value.quantize(Decimal('1.' + ('0' * precision))) if value else value
         except InvalidOperation:
             result = value
         return result
+
+    def __log(self, message, index=1, length=1.0, complete=False):
+        """
+        Print message and percentage progress to console
+
+        :param index:       Index of the item being processed
+        :param length:      Length of the whole range
+        :param complete:    Flag indicating if the progress is complete
+        """
+        sys.stdout.write('%s\r' % (' ' * 80))
+        if complete:
+            sys.stdout.write('%s complete\r\n' % message)
+        else:
+            sys.stdout.write('%s ... (%d of %d) [%s]\r' % (
+                message,
+                index,
+                length,
+                '{:.2%}'.format(index / length)
+            ))
+        sys.stdout.flush()
+        return True
