@@ -94,12 +94,12 @@ class Initialize:
             self.__portfolio,
             self.__futures,
             self.__study_parameters()
-        )  # TODO also persist equity and balances
+        )
 
         report = Report(self.__account)
         # print '\n'.join(report.transactions(self.__start_date, date))
-        # print '\n'.join(report.to_lists(self.__start_date, date, Interval.YEARLY))
-        # print '\n'.join(report.to_lists(self.__start_date, date))
+        # print '\n'.join(report.to_lists(self.__start_date, date, Interval.MONTHLY))
+        print '\n'.join(report.to_lists(self.__start_date, date))
 
     def __load_and_calculate_data(self, futures, currency_pairs, interest_rates, end_date):
         """
