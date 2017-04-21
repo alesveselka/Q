@@ -181,7 +181,6 @@ class Account(object):
 
         :param transaction:     Transaction object to be added
         """
-        # TODO persist
         self.__transactions.append(transaction)
 
         {AccountAction.CREDIT: self.__credit, AccountAction.DEBIT: self.__debit}[transaction.account_action()](
