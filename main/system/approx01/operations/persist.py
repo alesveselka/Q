@@ -1,7 +1,6 @@
 #!/usr/bin/python
 
 import json
-import datetime as dt
 from timer import Timer
 from enum import Table
 from decimal import Decimal, InvalidOperation
@@ -114,22 +113,6 @@ class Persist:
 
         self.__insert_values('study', ['name', 'market_id', 'market_code', 'date', 'value', 'value_2'], values)
 
-    def __insert_values(self, table_name, columns, values):
-        """
-        Insert values to the schema of name and columns passed in
-
-        :param table_name:  Name of the table to insert data into
-        :param columns:     list of column names to insert value into
-        :param values:      list of values to insert
-        """
-        self.__connection.cursor().execute('DELETE FROM `%s`' % table_name)
-        with self.__connection:
-            cursor = self.__connection.cursor()
-            cursor.executemany(
-                'INSERT INTO `%s` (%s) VALUES (%s)' % (table_name, ','.join(columns), ('%s,' * len(columns))[:-1]),
-                values
-            )
-
     def __save_equity(self, account, start_date, end_date):
         """
         Calculates equity, balances and margins and insert the values into DB
@@ -157,6 +140,22 @@ class Persist:
             ))
 
         self.__insert_values('equity', columns, values)
+
+    def __insert_values(self, table_name, columns, values):
+        """
+        Insert values to the schema of name and columns passed in
+
+        :param table_name:  Name of the table to insert data into
+        :param columns:     list of column names to insert value into
+        :param values:      list of values to insert
+        """
+        self.__connection.cursor().execute('DELETE FROM `%s`' % table_name)
+        with self.__connection:
+            cursor = self.__connection.cursor()
+            cursor.executemany(
+                'INSERT INTO `%s` (%s) VALUES (%s)' % (table_name, ','.join(columns), ('%s,' * len(columns))[:-1]),
+                values
+            )
 
     def __round(self, value, precision):
         """
