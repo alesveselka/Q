@@ -2,7 +2,7 @@
 
 import sys
 import datetime as dt
-import calendar
+from timer import Timer
 from enum import TransactionType
 from enum import AccountAction
 from enum import Interval
@@ -56,15 +56,15 @@ class Report:
         :return:            string representation of the stat in specified style
         """
         if interval == Interval.DAILY:
-            data = self.__daily_date_range(start_date, end_date)
+            data = Timer.daily_date_range(start_date, end_date)
             length = float(len(data))
             result = map(lambda i, : self.__log(i[1], i[0], length) and fn(i[1], i[1]), enumerate(data))
         elif interval == Interval.MONTHLY:
-            data = self.__monthly_date_range(start_date, end_date)
+            data = Timer.monthly_date_range(start_date, end_date)
             length = float(len(data))
             result = map(lambda i, : self.__log(i[1], i[0], length) and fn(i[1], dt.date(i[1].year, i[1].month, 1)), enumerate(data))
         elif interval == Interval.YEARLY:
-            data = self.__yearly_date_range(start_date, end_date)
+            data = Timer.yearly_date_range(start_date, end_date)
             length = float(len(data))
             result = map(lambda i, : self.__log(i[1], i[0], length) and fn(i[1], dt.date(i[1].year, 1, 1)), enumerate(data))
         else:
@@ -266,44 +266,6 @@ class Report:
                 d['width'] += reminder if i == length - 1 else 0
 
         return data
-
-    def __daily_date_range(self, start_date=dt.date(1900, 1, 1), end_date=dt.date(9999, 12, 31)):
-        """
-        Construct and return range of daily dates from start date to end date passed in, included
-
-        :param start_date:  start date of range
-        :param end_date:    end date of range
-        :return:            list fo date objects
-        """
-        workdays = range(1, 6)
-        return [start_date + dt.timedelta(days=i) for i in xrange(0, (end_date - start_date).days + 1)
-                if (start_date + dt.timedelta(days=i)).isoweekday() in workdays]
-
-    def __monthly_date_range(self, start_date=dt.date(1900, 1, 1), end_date=dt.date(9999, 12, 31)):
-        """
-        Construct and return range of dates in monthly interval
-        in between the starting and ending dates passed in included
-
-        :param start_date:  start date
-        :param end_date:    end date
-        :return:            list of date objects
-        """
-        dates = [dt.date(year, month, calendar.monthrange(year, month)[1])
-                 for year in range(start_date.year, end_date.year + 1)
-                 for month in range(1, 13)]
-
-        return [d for d in dates if start_date < d < end_date] + [end_date]
-
-    def __yearly_date_range(self, start_date=dt.date(1900, 1, 1), end_date=dt.date(9999, 12, 31)):
-        """
-        Construct and return range of dates in yearly interval
-        in between the starting and ending dates passed in included
-
-        :param start_date:  start date
-        :param end_date:    end date
-        :return:            list of date objects
-        """
-        return [dt.date(year, 12, calendar.monthrange(year, 12)[1]) for year in range(start_date.year, end_date.year + 1)]
 
     def __log(self, day, index=0, length=0.0, complete=False):
         """
