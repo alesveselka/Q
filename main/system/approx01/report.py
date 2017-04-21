@@ -169,26 +169,14 @@ class Report:
         :param end_date:    End date to include transactions until
         :return:            dict of dict of performance results
         """
-        balances = defaultdict(Decimal)
-        for currency in self.__account.fx_balance_currencies():
-            balance = self.__account.fx_balance(currency, end_date)
-            if balance:
-                balances[currency] += balance
-
-        margins = defaultdict(Decimal)
-        total_margin = Decimal(0)
-        for currency in self.__account.margin_loan_currencies():
-            margin = self.__account.margin_loan_balance(currency, end_date)
-            if margin:
-                margins[currency] += margin
-                total_margin += self.__account.base_value(margin, currency, end_date)
-
         base_currency = self.__account.base_currency()
+        margins = self.__account.margin_loan_balances(end_date)
+        total_margin = sum([self.__account.base_value(v, k, end_date) for k, v in margins.items()])
         margin_ratio = {base_currency: total_margin / self.__account.equity(end_date)} if total_margin else {}
         result = [
             {'title': 'Equity', 'results': {base_currency: self.__account.equity(end_date)}},
             {'title': 'Funds', 'results': {base_currency: self.__account.available_funds(end_date)}},
-            {'title': 'Balances', 'results': balances},
+            {'title': 'Balances', 'results': self.__account.fx_balances(end_date)},
             {'title': 'Margins', 'results': margins},
             {'title': 'Margin / Equity', 'results': margin_ratio}
         ]
