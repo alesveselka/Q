@@ -113,6 +113,16 @@ class Account(object):
             lambda t: t.type() == TransactionType.MARGIN_LOAN and t.currency() == currency
         )
 
+    def margin_loan_balances(self, date):
+        """
+        Construct and returns dict of margin loans
+
+        :param date:    date of the
+        :return:
+        """
+        return {c: self.margin_loan_balance(c, date)
+                for c in self.margin_loan_currencies() if self.margin_loan_balance(c, date)}
+
     def fx_balance_currencies(self):
         """
         Return list of currencies the account is holding Fx balances in
@@ -134,6 +144,16 @@ class Account(object):
             date,
             lambda t: t.type() != TransactionType.MARGIN_LOAN and t.currency() == currency
         )
+
+    def fx_balances(self, date):
+        """
+        Construct and returns dict of Fx balances
+
+        :param date:    date of the
+        :return:
+        """
+        return {c: self.fx_balance(c, date)
+                for c in self.fx_balance_currencies() if self.fx_balance(c, date)}
 
     def to_fx_balance_string(self, date):
         """

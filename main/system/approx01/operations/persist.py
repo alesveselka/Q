@@ -2,8 +2,8 @@
 
 import json
 import datetime as dt
+from timer import Timer
 from enum import Table
-from collections import defaultdict
 from decimal import Decimal, InvalidOperation
 
 
@@ -138,35 +138,20 @@ class Persist:
         :param start_date:  start date to calculate from
         :param end_date:    end date to calculate to
         """
-        workdays = range(1, 6)
-        daily_range = [start_date + dt.timedelta(days=i)
-                       for i in xrange(0, (end_date - start_date).days + 1)
-                       if (start_date + dt.timedelta(days=i)).isoweekday() in workdays]
         base_currency = account.base_currency()
         columns = ['base_currency', 'date', 'equity', 'balances', 'margins', 'margin_ratio']
         values = []
 
-        for date in daily_range:
+        for date in Timer.daily_date_range(start_date, end_date):
             equity = account.equity(date)
-            balances = defaultdict(Decimal)
-            for currency in account.fx_balance_currencies():
-                balance = account.fx_balance(currency, date)
-                if balance:
-                    balances[currency] += balance
-
-            margins = defaultdict(Decimal)
-            total_margin = Decimal(0)
-            for currency in account.margin_loan_currencies():
-                margin = account.margin_loan_balance(currency, date)
-                if margin:
-                    margins[currency] += margin
-                    total_margin += account.base_value(margin, currency, date)
+            margins = account.margin_loan_balances(date)
+            total_margin = sum([account.base_value(v, k, date) for k, v in margins.items()])
 
             values.append((
                 base_currency,
                 date,
                 self.__round(equity, 28),
-                json.dumps({k: str(v) for k, v in balances.items()}),
+                json.dumps({k: str(v) for k, v in account.fx_balances(date).items()}),
                 json.dumps({k: str(v) for k, v in margins.items()}) if len(margins) else None,
                 self.__round(total_margin / equity, 10) if total_margin else None
             ))
