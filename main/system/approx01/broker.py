@@ -71,11 +71,10 @@ class Broker(object):
         date = order.date()
         order_type = order.type()
         currency = market.currency()
-        slippage = Decimal(market.slippage(date))
         commissions = self.__commissions(order.quantity(), market.currency(), date)
         previous_last_price = market.data(end_date=date)[-2][Table.Market.SETTLE_PRICE]
         margin = market.margin(previous_last_price) * Decimal(order.quantity())
-        price = (order.price() + slippage) if (order.type() == OrderType.BTO or order.type() == OrderType.BTC) else (order.price() - slippage)  # TODO pass in slippage separe?
+        price = self.__slipped_price(order, order_type)
         order_result = OrderResult(OrderResultType.REJECTED, order, price, margin, commissions)
 
         if order_type == OrderType.BTO or order_type == OrderType.STO:
@@ -96,6 +95,17 @@ class Broker(object):
 
         self.__order_results.append(order_result)
         return order_result
+
+    def __slipped_price(self, order, order_type):
+        """
+        Calculate and return price after slippage is added
+
+        :param order:   Order instance
+        :return:        number representing final price
+        """
+        price = order.price()
+        slippage = Decimal(order.market().slippage(order.date()))
+        return (price + slippage) if (order_type == OrderType.BTO or order_type == OrderType.BTC) else (price - slippage)
 
     def __commissions(self, quantity, currency, date):
         """
