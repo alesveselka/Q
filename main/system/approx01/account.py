@@ -20,6 +20,7 @@ class Account(object):
         self.__records = {}
 
         self.__fx_balances[base_currency] = initial_balance
+        self.__record_balances(dt.date(1900, 1, 1))
 
     def base_currency(self):
         """
@@ -101,11 +102,10 @@ class Account(object):
         """
         Construct and returns dict of margin loans
 
-        :param date:    date of the
+        :param date:    date of the balance
         :return:
         """
-        return {c: self.margin_loan_balance(c, date)
-                for c in self.margin_loan_currencies() if self.margin_loan_balance(c, date)}
+        return self.record(date)[AccountRecord.MARGIN_LOANS]
 
     def fx_balance_currencies(self):
         """
@@ -121,13 +121,10 @@ class Account(object):
 
         :param currency:    String - the currency symbol of requested Fx balance
         :param date:        Date of the final balance
-        :return:            Number representing the Fx balance
+        :return:            Decimal number representing the Fx balance
         """
-        return self.__balance_to_date(
-            self.__fx_balances[currency],
-            date,
-            lambda t: t.type() != TransactionType.MARGIN_LOAN and t.currency() == currency
-        )
+        balances = self.record(date)[AccountRecord.FX_BALANCE]
+        return balances[currency] if currency in balances else Decimal(0)
 
     def fx_balances(self, date):
         """
@@ -136,8 +133,7 @@ class Account(object):
         :param date:    date of the
         :return:
         """
-        return {c: self.fx_balance(c, date)
-                for c in self.fx_balance_currencies() if self.fx_balance(c, date)}
+        return self.record(date)[AccountRecord.FX_BALANCE]
 
     def to_fx_balance_string(self, date):
         """
@@ -217,7 +213,6 @@ class Account(object):
 
         :param date:    date on which to record
         """
-        # TODO use records everywhere for past requests (report, persist, broker, ... ?)
         fx_currencies = self.fx_balance_currencies()
         equity = sum([self.base_value(self.__fx_balances[c], c, date) for c in fx_currencies if self.__fx_balances[c]])
         fx_balances = {c: self.__fx_balances[c] for c in fx_currencies if self.__fx_balances[c]}
