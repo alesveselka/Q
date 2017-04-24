@@ -135,26 +135,6 @@ class Account(object):
         """
         return self.record(date)[AccountRecord.FX_BALANCE]
 
-    def to_fx_balance_string(self, date):
-        """
-        Return string representation of the Fx balances
-
-        :param date:    Date of the final balance
-        :return:        String representing the account's Fx balances
-        """
-        return '{%s}' % ', '.join(['%s: %.2f' % (k, float(self.fx_balance(k, date)))
-                                   for k in self.__fx_balances.keys() if self.fx_balance(k, date)])
-
-    def to_margin_loans_string(self, date):
-        """
-        Return string representation of the margin loan balances
-
-        :param date:    Date of the final balance
-        :return:        String representing the account's margin loan balances
-        """
-        return '{%s}' % ', '.join(['%s: %.2f' % (k, float(self.margin_loan_balance(k, date)))
-                                   for k in self.__margin_loan_balances.keys() if self.margin_loan_balance(k, date)])
-
     def records(self):
         """
         Returns sorted records of balances
