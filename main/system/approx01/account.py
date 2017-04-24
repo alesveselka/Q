@@ -94,11 +94,8 @@ class Account(object):
         :param date:        Date of the final balance
         :return:            Number representing the balance
         """
-        return self.__balance_to_date(
-            self.__margin_loan_balances[currency],
-            date,
-            lambda t: t.type() == TransactionType.MARGIN_LOAN and t.currency() == currency
-        )
+        margins = self.record(date)[AccountRecord.MARGIN_LOANS]
+        return margins[currency] if currency in margins else Decimal(0)
 
     def margin_loan_balances(self, date):
         """
