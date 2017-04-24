@@ -68,6 +68,12 @@ class AccountAction:
     DEBIT = 'DEBIT'
 
 
+class AccountRecord:
+    EQUITY = 0
+    FX_BALANCE = 1
+    MARGIN_LOANS = 2
+
+
 class Interval:
     DAILY = 'DAILY'
     MONTHLY = 'MONTHLY'

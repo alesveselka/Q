@@ -3,6 +3,7 @@
 import datetime as dt
 from enum import TransactionType
 from enum import AccountAction
+from enum import AccountRecord
 from collections import defaultdict
 from decimal import Decimal
 
@@ -60,37 +61,22 @@ class Account(object):
 
     def equity(self, date):
         """
-        Calculate and returns actual equity value
-        (Sum of all FX balances)
+        Returns recorded equity value on the date passed in
 
         :param date:    date on which return equity value
         :return:        Number representing actual equity value
         """
-        return reduce(
-            lambda t, k: t + self.base_value(self.fx_balance(k, date), k, date),
-            self.__fx_balances.keys(),
-            Decimal(0)
-        )
+        return self.record(date)[AccountRecord.EQUITY]
 
     def available_funds(self, date):
         """
         Calculates and returns funds available for trading
-        (Sum of FX balances minus sum of margin loans)
 
         :param date:    date on which return equity value
         :return:        Number representing funds available for trading
         """
-        balance = reduce(
-            lambda t, k: t + self.base_value(self.fx_balance(k, date), k, date),
-            self.__fx_balances.keys(),
-            Decimal(0)
-        )
-        margin = reduce(
-            lambda t, k: t + self.base_value(self.margin_loan_balance(k, date), k, date),
-            self.__margin_loan_balances.keys(),
-            Decimal(0)
-        )
-        return balance - margin
+        record = self.record(date)
+        return record[AccountRecord.EQUITY] - sum([m for m in record[AccountRecord.MARGIN_LOANS].values()])
 
     def margin_loan_currencies(self):
         """
@@ -176,8 +162,11 @@ class Account(object):
         return '{%s}' % ', '.join(['%s: %.2f' % (k, float(self.margin_loan_balance(k, date)))
                                    for k in self.__margin_loan_balances.keys() if self.margin_loan_balance(k, date)])
 
-    def records(self):  # TODO pass in date?
+    def records(self):
         return sorted(self.__records.items())
+
+    def record(self, date):
+        return self.__records[date] if date in self.__records else self.records()[-1][1]
 
     def add_transaction(self, transaction):
         """
@@ -237,7 +226,7 @@ class Account(object):
         fx_balances = {c: self.__fx_balances[c] for c in fx_currencies if self.__fx_balances[c]}
         margins = {c: self.__margin_loan_balances[c] for c in self.margin_loan_currencies() if self.__margin_loan_balances[c]}
 
-        self.__records[date] = [date, equity, fx_balances, margins]
+        self.__records[date] = equity, fx_balances, margins
 
     def __balance_to_date(self, balance, date, predicate):
         """
