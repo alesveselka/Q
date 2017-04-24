@@ -67,7 +67,7 @@ class Account(object):
         :param date:    date on which return equity value
         :return:        Number representing actual equity value
         """
-        return self.record(date)[AccountRecord.EQUITY]
+        return self.__record(date)[AccountRecord.EQUITY]
 
     def available_funds(self, date):
         """
@@ -76,7 +76,7 @@ class Account(object):
         :param date:    date on which return equity value
         :return:        Number representing funds available for trading
         """
-        record = self.record(date)
+        record = self.__record(date)
         return record[AccountRecord.EQUITY] - sum([m for m in record[AccountRecord.MARGIN_LOANS].values()])
 
     def margin_loan_currencies(self):
@@ -95,7 +95,7 @@ class Account(object):
         :param date:        Date of the final balance
         :return:            Number representing the balance
         """
-        margins = self.record(date)[AccountRecord.MARGIN_LOANS]
+        margins = self.__record(date)[AccountRecord.MARGIN_LOANS]
         return margins[currency] if currency in margins else Decimal(0)
 
     def margin_loan_balances(self, date):
@@ -105,7 +105,7 @@ class Account(object):
         :param date:    date of the balance
         :return:
         """
-        return self.record(date)[AccountRecord.MARGIN_LOANS]
+        return self.__record(date)[AccountRecord.MARGIN_LOANS]
 
     def fx_balance_currencies(self):
         """
@@ -123,7 +123,7 @@ class Account(object):
         :param date:        Date of the final balance
         :return:            Decimal number representing the Fx balance
         """
-        balances = self.record(date)[AccountRecord.FX_BALANCE]
+        balances = self.__record(date)[AccountRecord.FX_BALANCE]
         return balances[currency] if currency in balances else Decimal(0)
 
     def fx_balances(self, date):
@@ -133,24 +133,16 @@ class Account(object):
         :param date:    date of the
         :return:
         """
-        return self.record(date)[AccountRecord.FX_BALANCE]
+        return self.__record(date)[AccountRecord.FX_BALANCE]
 
-    def records(self):
-        """
-        Returns sorted records of balances
-        
-        :return:    list of tuples (date, [equity, fx balances, margin loans])
-        """
-        return sorted(self.__records.items())
-
-    def record(self, date):
+    def __record(self, date):
         """
         Find and return balance record on the date passed in
         
         :param date:    the date of the record
         :return:        tuple (equity, fx balances, margin loans) representing the record on the requested date
         """
-        return self.__records[date] if date in self.__records else self.records()[-1][1]
+        return self.__records[date] if date in self.__records else sorted(self.__records.items())[-1][1]
 
     def add_transaction(self, transaction):
         """
@@ -210,25 +202,3 @@ class Account(object):
         margins = {c: self.__margin_loan_balances[c] for c in self.margin_loan_currencies() if self.__margin_loan_balances[c]}
 
         self.__records[date] = equity, fx_balances, margins
-
-    def __balance_to_date(self, balance, date, predicate):
-        """
-        Calculate balance to the date passed in
-
-        :param balance:     Number - starting balance
-        :param date:        Date of the final balance
-        :param predicate:   Function predicate - condition to meet to include a transaction
-        :return:            Number representing the final balance
-        """
-        if date:
-            for t in reversed(self.__transactions):
-                if t.date() > date:
-                    if predicate(t):
-                        if t.account_action() == AccountAction.CREDIT:
-                            balance -= Decimal(t.amount())
-                        elif t.account_action() == AccountAction.DEBIT:
-                            balance += Decimal(t.amount())
-                else:
-                    break
-
-        return balance
