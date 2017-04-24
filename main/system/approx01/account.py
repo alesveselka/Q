@@ -156,9 +156,20 @@ class Account(object):
                                    for k in self.__margin_loan_balances.keys() if self.margin_loan_balance(k, date)])
 
     def records(self):
+        """
+        Returns sorted records of balances
+        
+        :return:    list of tuples (date, [equity, fx balances, margin loans])
+        """
         return sorted(self.__records.items())
 
     def record(self, date):
+        """
+        Find and return balance record on the date passed in
+        
+        :param date:    the date of the record
+        :return:        tuple (equity, fx balances, margin loans) representing the record on the requested date
+        """
         return self.__records[date] if date in self.__records else self.records()[-1][1]
 
     def add_transaction(self, transaction):
