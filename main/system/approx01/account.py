@@ -16,6 +16,7 @@ class Account(object):
         self.__fx_balances = defaultdict(Decimal)
         self.__margin_loan_balances = defaultdict(Decimal)
         self.__transactions = []
+        self.__records = {}
 
         self.__fx_balances[base_currency] = initial_balance
 
@@ -175,6 +176,9 @@ class Account(object):
         return '{%s}' % ', '.join(['%s: %.2f' % (k, float(self.margin_loan_balance(k, date)))
                                    for k in self.__margin_loan_balances.keys() if self.margin_loan_balance(k, date)])
 
+    def records(self):  # TODO pass in date?
+        return sorted(self.__records.items())
+
     def add_transaction(self, transaction):
         """
         Add transaction and update related balances
@@ -188,6 +192,8 @@ class Account(object):
             transaction.currency(),
             transaction.amount()
         )
+
+        self.__record_balances(transaction.date())
 
     def transactions(self, start_date=dt.date(1900, 1, 1), end_date=dt.date(9999, 12, 31)):
         """
@@ -218,6 +224,20 @@ class Account(object):
         :param amount:      Amount to be debited
         """
         balance[currency] -= Decimal(amount)
+
+    def __record_balances(self, date):
+        """
+        Save current values of equity, fx- and margin loan balances
+
+        :param date:    date on which to record
+        """
+        # TODO use records everywhere for past requests (report, persist, broker, ... ?)
+        fx_currencies = self.fx_balance_currencies()
+        equity = sum([self.base_value(self.__fx_balances[c], c, date) for c in fx_currencies if self.__fx_balances[c]])
+        fx_balances = {c: self.__fx_balances[c] for c in fx_currencies if self.__fx_balances[c]}
+        margins = {c: self.__margin_loan_balances[c] for c in self.margin_loan_currencies() if self.__margin_loan_balances[c]}
+
+        self.__records[date] = [date, equity, fx_balances, margins]
 
     def __balance_to_date(self, balance, date, predicate):
         """
