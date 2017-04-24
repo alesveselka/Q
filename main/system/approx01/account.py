@@ -135,15 +135,6 @@ class Account(object):
         """
         return self.__record(date)[AccountRecord.FX_BALANCE]
 
-    def __record(self, date):
-        """
-        Find and return balance record on the date passed in
-        
-        :param date:    the date of the record
-        :return:        tuple (equity, fx balances, margin loans) representing the record on the requested date
-        """
-        return self.__records[date] if date in self.__records else sorted(self.__records.items())[-1][1]
-
     def add_transaction(self, transaction):
         """
         Add transaction and update related balances
@@ -202,3 +193,12 @@ class Account(object):
         margins = {c: self.__margin_loan_balances[c] for c in self.margin_loan_currencies() if self.__margin_loan_balances[c]}
 
         self.__records[date] = equity, fx_balances, margins
+
+    def __record(self, date):
+        """
+        Find and return balance record on the date passed in
+        
+        :param date:    the date of the record
+        :return:        tuple (equity, fx balances, margin loans) representing the record on the requested date
+        """
+        return self.__records[date] if date in self.__records else sorted(self.__records.items())[-1][1]
