@@ -48,6 +48,7 @@
 ###Trade Management
 
 * (E-mini 2:1:1?)
+* Turtle rules?
 
 ###Leading Risk Indicators
 
