@@ -12,11 +12,11 @@ class Persist:
     def __init__(self, connection, start_date, end_date, order_results, account, portfolio, markets, study_parameters):
         self.__connection = connection
 
-        self.__save_orders(order_results)
-        self.__save_transactions(account.transactions(start_date, end_date))
-        self.__save_positions(portfolio)
-        self.__save_studies(markets, study_parameters)
-        self.__save_equity(account, start_date, end_date)
+        # self.__save_orders(order_results)
+        # self.__save_transactions(account.transactions(start_date, end_date))
+        # self.__save_positions(portfolio)
+        # self.__save_studies(markets, study_parameters)
+        # self.__save_equity(account, start_date, end_date)
 
     def __save_orders(self, order_results):
         """
