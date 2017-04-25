@@ -13,4 +13,4 @@ class EventDispatcher(object):
         self._listeners = [l for l in self._listeners if l[0] != event_type]
 
     def dispatch(self, event_type, *data):
-        map(lambda l: l[1](data), [l for l in self._listeners if l[0] == event_type])
+        map(lambda l: l[1](*data), [l for l in self._listeners if l[0] == event_type])
