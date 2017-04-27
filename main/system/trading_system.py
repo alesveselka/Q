@@ -75,6 +75,8 @@ class TradingSystem:
                 # TODO pass in rules
                 if market_position:
                     direction = market_position.direction()
+                    previous_date = market_data[-2][Table.Market.PRICE_DATE]
+
                     if direction == Direction.LONG:
                         if settle_price <= self.__risk.stop_loss(date, market_position):
                             self.__signals.append(Signal(market, SignalType.EXIT, Direction.SHORT, date, settle_price))
@@ -83,8 +85,7 @@ class TradingSystem:
                             self.__signals.append(Signal(market, SignalType.EXIT, Direction.LONG, date, settle_price))
 
                     # Naive contract roll implementation (end of each month)
-                    # TODO doesn't roll on 2013-01-01
-                    if date.month > previous_date.month and len(self.__signals) == 0:
+                    if date.month != previous_date.month and len(self.__signals) == 0:
                         opposite_direction = Direction.LONG if direction == Direction.SHORT else Direction.LONG
                         self.__signals.append(Signal(market, SignalType.ROLL_EXIT, opposite_direction, date, settle_price))
                         self.__signals.append(Signal(market, SignalType.ROLL_ENTER, direction, date, settle_price))
