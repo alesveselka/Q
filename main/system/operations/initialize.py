@@ -165,10 +165,6 @@ class Initialize:
                 Table.Market.PRICE_DATE,
                 Table.Market.SETTLE_PRICE
             ]},
-            {'name': Study.HHLL_LONG, 'study': HHLL, 'window': long_window, 'columns': [
-                Table.Market.PRICE_DATE,
-                Table.Market.SETTLE_PRICE
-            ]},
             {'name': Study.HHLL_SHORT, 'study': HHLL, 'window': short_window, 'columns': [
                 Table.Market.PRICE_DATE,
                 Table.Market.SETTLE_PRICE
