@@ -75,7 +75,6 @@ class TradingSystem:
                 # TODO pass in rules
                 if market_position:
                     direction = market_position.direction()
-
                     if direction == Direction.LONG:
                         if settle_price <= self.__risk.stop_loss(date, market_position):
                             self.__signals.append(Signal(market, SignalType.EXIT, Direction.SHORT, date, settle_price))
@@ -123,6 +122,7 @@ class TradingSystem:
 
                 if market_position is None and signal in enter_signals:
                     quantity = self.__risk.position_size(market.point_value(), market.currency(), atr_long, date)
+                    # TODO keep track of signal that don't pass
                     if quantity:
                         orders.append(Order(market, signal, date, open_price, quantity))
 
