@@ -133,7 +133,7 @@ class Broker(object):
         """
         base_currency = self.__account.base_currency()
         for currency in [c for c in self.__account.fx_balance_currencies() if c != base_currency]:
-            balance = self.__account.fx_balance(currency)
+            balance = self.__account.fx_balance(currency, date)
 
             if abs(balance):
                 amount = self.__account.base_value(balance, currency, date)

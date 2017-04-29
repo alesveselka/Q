@@ -87,7 +87,7 @@ class Account(object):
         """
         return self.__margin_loan_balances.keys()
 
-    def margin_loan_balance(self, currency, date=None):
+    def margin_loan_balance(self, currency, date):
         """
         Return margin loan balance for currency Fx passed in
 
@@ -115,7 +115,7 @@ class Account(object):
         """
         return self.__fx_balances.keys()
 
-    def fx_balance(self, currency, date=None):
+    def fx_balance(self, currency, date):
         """
         Returns balance in currency specified in argument
 
@@ -201,4 +201,5 @@ class Account(object):
         :param date:    the date of the record
         :return:        tuple (equity, fx balances, margin loans) representing the record on the requested date
         """
-        return self.__records[date] if date in self.__records else sorted(self.__records.items())[-1][1]
+        return self.__records[date] if date in self.__records \
+            else [r for r in sorted(self.__records.items()) if r[0] <= date][-1][1]
