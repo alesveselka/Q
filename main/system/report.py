@@ -66,7 +66,8 @@ class Report:
             title = r['title']
             for item in r['results'].items():
                 buffer += title.ljust(title_width, '.')
-                buffer += ('{:-,.2f}'.format(item[1]) + ' ' + item[0] + '\n').rjust(results_width, '.')
+                ret = '{:.3%}'.format(r['return']) if 'return' in r else ''
+                buffer += ('{:-,.2f}'.format(item[1]) + ' ' + item[0] + ' ' + ret + '\n').rjust(results_width, '.')
                 title = ''
 
         return buffer
@@ -152,7 +153,7 @@ class Report:
             Interval.DAILY: Timer.daily_date_range(start_date, end_date),
             Interval.MONTHLY: Timer.monthly_date_range(start_date, end_date),
             Interval.YEARLY: Timer.yearly_date_range(start_date, end_date)
-        }[interval]
+        }.get(interval, [])
         length = float(len(data))
 
         if length:
