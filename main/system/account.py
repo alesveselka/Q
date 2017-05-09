@@ -22,6 +22,14 @@ class Account(object):
         self.__fx_balances[base_currency] = initial_balance
         self.__record_balances(dt.date(1900, 1, 1))
 
+    def initial_balance(self):
+        """
+        Find and return initial equity balance
+        
+        :return:    Decimal
+        """
+        return sorted(self.__records.items())[0][1][AccountRecord.EQUITY]
+
     def base_currency(self):
         """
         Returns account's base currency
