@@ -19,6 +19,21 @@ class Report:
         return self.__formatted_stats(start_date, end_date, interval, self.__table_stats)
 
     def to_lists(self, start_date=dt.date(1900, 1, 1), end_date=dt.date(9999, 12, 31), interval=None):
+
+        data = Timer.monthly_date_range(start_date, end_date)
+        results = self.__returns(
+            [self.__balance_results(end_date=d) for d in data],
+            self.__account.initial_balance(),
+            self.__account.base_currency()
+        )
+
+        for r in results:
+            print
+            equity_result = [x for x in r if x['title'] == 'Equity'][0]
+            equity = equity_result['results'][self.__account.base_currency()]
+            print equity, equity_result['return']
+            print r
+
         return self.__formatted_stats(start_date, end_date, interval, self.__list_stats)
 
     def transactions(self, start_date=dt.date(1900, 1, 1), end_date=dt.date(9999, 12, 31)):
@@ -226,6 +241,23 @@ class Report:
                         p['results'][currency] += results[transaction_type][currency]
 
         return performance_map
+
+    def __returns(self, results, initial_balance, base_currency):
+        """
+        Calculates return on each successive equity balance and add that number to the results structure
+         
+        :param results:         list of list of dictionaries; 
+                                each child list contains result for specified period
+        :param initial_balance: initial account balance to start from
+        :param base_currency:   currency in which the account is denominated
+        :return:                modified 'results' structure with added equity returns
+        """
+        previous = initial_balance
+        for result in [result[0] for result in results if [r for r in result if r['title'] == 'Equity']]:
+            equity = result['results'][base_currency]
+            result['return'] = equity / previous - 1
+            previous = equity
+        return results
 
     def __measure_widths(self, data, min_width=0, prefix=5, pad=1):
         """
