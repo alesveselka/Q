@@ -66,8 +66,8 @@ class Report:
             title = r['title']
             for item in r['results'].items():
                 buffer += title.ljust(title_width, '.')
-                ret = '{:.3%}'.format(r['return']) if 'return' in r else ''
-                buffer += ('{:-,.2f}'.format(item[1]) + ' ' + item[0] + ' ' + ret + '\n').rjust(results_width, '.')
+                ret = ' {:.3%}'.format(r['return']) if 'return' in r else ''
+                buffer += ('{:-,.2f}'.format(item[1]) + ' ' + item[0] + ret + '\n').rjust(results_width, '.')
                 title = ''
 
         return buffer
