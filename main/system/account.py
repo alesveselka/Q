@@ -85,7 +85,8 @@ class Account(object):
         :return:        Number representing funds available for trading
         """
         record = self.__record(date)
-        return record[AccountRecord.EQUITY] - sum([m for m in record[AccountRecord.MARGIN_LOANS].values()])
+        margin_loans = record[AccountRecord.MARGIN_LOANS]
+        return record[AccountRecord.EQUITY] - sum([self.base_value(margin_loans[k], k, date) for k in margin_loans.keys()])
 
     def margin_loan_currencies(self):
         """
