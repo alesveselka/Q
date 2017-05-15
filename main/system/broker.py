@@ -171,9 +171,9 @@ class Broker(object):
             pair = [cp for cp in self.__currency_pairs if cp.code() == '%s%s' % (base_currency, currency)][0]
             rate = pair.rate(date)
             prior_rate = pair.rate(previous_date)
+            balance = self.__account.fx_balance(currency, previous_date)
 
-            if rate != prior_rate:
-                balance = self.__account.fx_balance(currency, previous_date)
+            if rate != prior_rate and balance:
                 base_value = balance / rate
                 prior_base_value = balance / prior_rate
                 translation = base_value - prior_base_value
