@@ -72,8 +72,8 @@ class Broker(object):
         order_type = order.type()
         currency = market.currency()
         commissions = self.__commissions(order.quantity(), market.currency(), date)
-        previous_last_price = market.data(end_date=date)[-2][Table.Market.SETTLE_PRICE]
-        margin = market.margin(previous_last_price) * Decimal(order.quantity())
+        previous_date = market.data(end_date=date)[-2][Table.Market.PRICE_DATE]
+        margin = market.margin(previous_date) * Decimal(order.quantity())
         price = self.__slipped_price(order, order_type)
         order_result = OrderResult(OrderResultType.REJECTED, order, price, margin, commissions)
 
@@ -195,7 +195,7 @@ class Broker(object):
                     market = p.market()
 
                     if market.has_data(date):
-                        margin = market.margin(market.data(end_date=date)[-1][Table.Market.SETTLE_PRICE]) * Decimal(p.quantity())
+                        margin = market.margin(date) * Decimal(p.quantity())
                         currency = market.currency()
                         to_close[currency] += Decimal(p.margins()[-1][1])
                         to_open[currency] += Decimal(margin)

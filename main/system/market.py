@@ -34,7 +34,7 @@ class Market(object):  # TODO rename to Future?
         self.__group = group
         self.__tick_value = tick_value
         self.__point_value = point_value
-        self.__margin = margin if margin else Decimal(0.1)
+        self.__margin = margin
         self.__margin_multiple = 0.0
         self.__data = []
         self.__studies = {}
@@ -70,14 +70,14 @@ class Market(object):  # TODO rename to Future?
         """
         return self.data(end_date=date)[-1][Table.Market.PRICE_DATE] == date
 
-    def margin(self, price):
+    def margin(self, date):
         """
         Calculates margin estimate
 
-        :param price:   Market price for margin calculation
+        :param date:    Date on which to estimate the margin
         :return:        Number representing margin in account-base-currency
         """
-        return Decimal(ceil(price * self.__point_value * self.__margin_multiple))
+        return Decimal(ceil(self.__margin_multiple * self.study(Study.ATR_SHORT, date)[-1][Table.Study.VALUE]))
 
     def slippage(self, date):
         """
@@ -125,6 +125,9 @@ class Market(object):  # TODO rename to Future?
                     params['window']
                 )
 
+            margin = self.__margin if self.__margin else self.__data[-1][Table.Market.SETTLE_PRICE] * self.__point_value * 0.1
+            self.__margin_multiple = margin / self.study(Study.ATR_SHORT)[-1][Table.Study.VALUE]
+
     def load_data(self, connection, end_date):
         """
         Load market's data
@@ -149,11 +152,6 @@ class Market(object):  # TODO rename to Future?
             end_date.strftime('%Y-%m-%d')
         ))
         self.__data = cursor.fetchall()
-
-        # TODO update more realistically - include actual ATR?
-        self.__margin_multiple = (self.__margin / (self.__data[-1][Table.Market.SETTLE_PRICE] * self.__point_value)) \
-            if len(self.__data) \
-            else Decimal(0.1)
 
         return True
 
