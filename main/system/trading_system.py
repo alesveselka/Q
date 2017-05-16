@@ -83,12 +83,13 @@ class TradingSystem:
                             self.__signals.append(Signal(market, SignalType.EXIT, Direction.LONG, date, settle_price))
 
                     # Naive contract roll implementation (end of each month)
-                    if date.month != previous_date.month and len(self.__signals) == 0:
+                    if date.month != previous_date.month and len([s for s in self.__signals if s.market() == market]) == 0:
                         opposite_direction = Direction.LONG if direction == Direction.SHORT else Direction.LONG
                         self.__signals.append(Signal(market, SignalType.ROLL_EXIT, opposite_direction, date, settle_price))
                         self.__signals.append(Signal(market, SignalType.ROLL_ENTER, direction, date, settle_price))
 
                 # TODO pass-in rules
+                # TODO use EMAs?
                 if sma_short > sma_long:
                     if settle_price > hhll_short[Table.Study.VALUE]:
                         self.__signals.append(Signal(market, SignalType.ENTER, Direction.LONG, date, settle_price))
