@@ -11,7 +11,7 @@ from order import Order
 from position import Position
 
 
-class TradingSystem:
+class TradingModel:
 
     def __init__(self, timer, markets, risk, portfolio, broker):
         self.__timer = timer
