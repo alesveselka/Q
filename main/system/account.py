@@ -22,6 +22,14 @@ class Account(object):
         self.__fx_balances[base_currency] = initial_balance
         self.__record_balances(dt.date(1900, 1, 1))
 
+    def initial_balance(self):
+        """
+        Find and return initial equity balance
+        
+        :return:    Decimal
+        """
+        return sorted(self.__records.items())[0][1][AccountRecord.EQUITY]
+
     def base_currency(self):
         """
         Returns account's base currency
@@ -77,7 +85,8 @@ class Account(object):
         :return:        Number representing funds available for trading
         """
         record = self.__record(date)
-        return record[AccountRecord.EQUITY] - sum([m for m in record[AccountRecord.MARGIN_LOANS].values()])
+        margin_loans = record[AccountRecord.MARGIN_LOANS]
+        return record[AccountRecord.EQUITY] - sum([self.base_value(margin_loans[k], k, date) for k in margin_loans.keys()])
 
     def margin_loan_currencies(self):
         """
@@ -87,7 +96,7 @@ class Account(object):
         """
         return self.__margin_loan_balances.keys()
 
-    def margin_loan_balance(self, currency, date=None):
+    def margin_loan_balance(self, currency, date):
         """
         Return margin loan balance for currency Fx passed in
 
@@ -115,7 +124,7 @@ class Account(object):
         """
         return self.__fx_balances.keys()
 
-    def fx_balance(self, currency, date=None):
+    def fx_balance(self, currency, date):
         """
         Returns balance in currency specified in argument
 
@@ -201,4 +210,5 @@ class Account(object):
         :param date:    the date of the record
         :return:        tuple (equity, fx balances, margin loans) representing the record on the requested date
         """
-        return self.__records[date] if date in self.__records else sorted(self.__records.items())[-1][1]
+        return self.__records[date] if date in self.__records \
+            else [r for r in sorted(self.__records.items()) if r[0] <= date][-1][1]

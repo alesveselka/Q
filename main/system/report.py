@@ -9,17 +9,19 @@ from enum import Interval
 from collections import defaultdict
 from decimal import Decimal
 
-
+# TODO also calculate Drawdowns, Sharpe, etc.
 class Report:
 
     def __init__(self, account):
         self.__account = account
 
     def to_tables(self, start_date=dt.date(1900, 1, 1), end_date=dt.date(9999, 12, 31), interval=None):
-        return self.__formatted_stats(start_date, end_date, interval, self.__table_stats)
+        balance_results, performance_results = self.__results(start_date, end_date, interval)
+        return [self.__table_stats(balance_results[i], performance_results[i]) for i in range(0, len(balance_results))]
 
     def to_lists(self, start_date=dt.date(1900, 1, 1), end_date=dt.date(9999, 12, 31), interval=None):
-        return self.__formatted_stats(start_date, end_date, interval, self.__list_stats)
+        balance_results, performance_results = self.__results(start_date, end_date, interval)
+        return [self.__list_stats(balance_results[i], performance_results[i]) for i in range(0, len(balance_results))]
 
     def transactions(self, start_date=dt.date(1900, 1, 1), end_date=dt.date(9999, 12, 31)):
         """
@@ -45,70 +47,45 @@ class Report:
         self.__log(date, complete=True)
         return result
 
-    def __formatted_stats(self, start_date, end_date, interval, fn):
-        """
-        Return formatted stats according the style passed in
-
-        :param start_date:  start date of the stats
-        :param end_date:    end date of the stats
-        :param interval:    time aggregation for the stats
-        :param style:       either list or table
-        :return:            string representation of the stat in specified style
-        """
-        if interval == Interval.DAILY:
-            data = Timer.daily_date_range(start_date, end_date)
-            length = float(len(data))
-            result = map(lambda i, : self.__log(i[1], i[0], length) and fn(i[1], i[1]), enumerate(data))
-        elif interval == Interval.MONTHLY:
-            data = Timer.monthly_date_range(start_date, end_date)
-            length = float(len(data))
-            result = map(lambda i, : self.__log(i[1], i[0], length) and fn(i[1], dt.date(i[1].year, i[1].month, 1)), enumerate(data))
-        elif interval == Interval.YEARLY:
-            data = Timer.yearly_date_range(start_date, end_date)
-            length = float(len(data))
-            result = map(lambda i, : self.__log(i[1], i[0], length) and fn(i[1], dt.date(i[1].year, 1, 1)), enumerate(data))
-        else:
-            result = [fn(end_date, start_date)]
-
-        self.__log(end_date, complete=True)
-        return result
-
-    def __list_stats(self, date, previous_date):
+    def __list_stats(self, balance_results, performance_results):
         """
         Compile result list
 
-        :param date:            start date of the stats
-        :param previous_date:   end date of the stats
-        :return:                string representing the list with results
+        :param balance_results:     list of balance results
+        :param performance_results: list of performance results
+        :return:                    string representing the list with results
         """
-        balance_results = self.__measure_widths(self.__balance_results(previous_date, date))
-        performance_results = self.__measure_widths(self.__performance_results(previous_date, date))
+        meta = [r for r in balance_results if r['title'] == 'Meta'][0]
+        balance_results = self.__measure_widths([r for r in balance_results if r['title'] != 'Meta'])
+        performance_results = self.__measure_widths(performance_results)
         title_width = max([r['title_width'] for r in performance_results] + [r['title_width'] for r in balance_results]) + 2
         results_width = max([r['results_width'] for r in performance_results] + [r['results_width'] for r in balance_results])
-        buffer = self.__to_table_header(previous_date, date, title_width + results_width) + '\n'
+        buffer = self.__to_table_header(meta['start_date'], meta['end_date'], title_width + results_width) + '\n'
 
         for r in balance_results + performance_results:
             title = r['title']
             for item in r['results'].items():
                 buffer += title.ljust(title_width, '.')
-                buffer += ('{:-,.2f}'.format(item[1]) + ' ' + item[0] + '\n').rjust(results_width, '.')
+                ret = ' {:.3%}'.format(r['return']) if 'return' in r else ''
+                buffer += ('{:-,.2f}'.format(item[1]) + ' ' + item[0] + ret + '\n').rjust(results_width, '.')
                 title = ''
 
         return buffer
 
-    def __table_stats(self, date, previous_date):
+    def __table_stats(self, balance_results, performance_results):
         """
         Concat multiple stat tables into one aggregate statistics table
 
-        :param date:            start date of the stats
-        :param previous_date:   end date of the stats
-        :return:                string representing the full table
+        :param balance_results:     list of balance results
+        :param performance_results: list of performance results
+        :return:                    string representing the full table
         """
-        performance_results = self.__measure_widths(self.__performance_results(previous_date, date))
+        meta = [r for r in balance_results if r['title'] == 'Meta'][0]
+        performance_results = self.__measure_widths(performance_results)
         width = reduce(lambda r, p: r + p['width'], performance_results, 0)
-        balance_results = self.__measure_widths(self.__balance_results(previous_date, date), width)
+        balance_results = self.__measure_widths([r for r in balance_results if r['title'] != 'Meta'])
         return '\n'.join([
-            self.__to_table_header(previous_date, date, width + len(performance_results) + 1),
+            self.__to_table_header(meta['start_date'], meta['end_date'], width + len(performance_results) + 1),
             self.__to_table(balance_results),
             self.__to_table(performance_results)
         ])
@@ -161,6 +138,40 @@ class Report:
 
         return buffer[:-1]
 
+    def __results(self, start_date, end_date, interval):
+        """
+        Assembles balance and performance results and return resulting lists
+        
+        :param start_date:  start date
+        :param end_date:    end date
+        :param interval:    interval constant
+        :return:            tuple(balance results list, performance results list)
+        """
+        balance_results = []
+        performance_results = []
+        data = {
+            Interval.DAILY: Timer.daily_date_range(start_date, end_date),
+            Interval.MONTHLY: Timer.monthly_date_range(start_date, end_date),
+            Interval.YEARLY: Timer.yearly_date_range(start_date, end_date)
+        }.get(interval, [])
+        length = float(len(data))
+
+        if length:
+            for i, d in enumerate(data):
+                self.__log(d, i, length)
+                balance_results += [self.__balance_results(self.__previous_date(d, interval), d)]
+                performance_results += [self.__performance_results(self.__previous_date(d, interval), d)]
+        else:
+            balance_results += [self.__balance_results(start_date, end_date)]
+            performance_results += [self.__performance_results(start_date, end_date)]
+
+        self.__log(end_date, complete=True)
+
+        return (
+            self.__returns(balance_results, self.__account.initial_balance(), self.__account.base_currency()),
+            performance_results
+        )
+
     def __balance_results(self, start_date=dt.date(1900, 1, 1), end_date=dt.date(9999, 12, 31)):
         """
         Partition transactions into map of transaction types and currencies
@@ -174,6 +185,7 @@ class Report:
         total_margin = sum([self.__account.base_value(v, k, end_date) for k, v in margins.items()])
         margin_ratio = {base_currency: total_margin / self.__account.equity(end_date)} if total_margin else {}
         result = [
+            {'title': 'Meta', 'start_date': start_date, 'end_date': end_date},
             {'title': 'Equity', 'results': {base_currency: self.__account.equity(end_date)}},
             {'title': 'Funds', 'results': {base_currency: self.__account.available_funds(end_date)}},
             {'title': 'Balances', 'results': self.__account.fx_balances(end_date)},
@@ -227,6 +239,23 @@ class Report:
 
         return performance_map
 
+    def __returns(self, results, initial_balance, base_currency):
+        """
+        Calculates return on each successive equity balance and add that number to the results structure
+         
+        :param results:         list of list of dictionaries; 
+                                each child list contains result for specified period
+        :param initial_balance: initial account balance to start from
+        :param base_currency:   currency in which the account is denominated
+        :return:                modified 'results' structure with added equity returns
+        """
+        previous = initial_balance
+        for result in [[r for r in result if r['title'] == 'Equity'][0] for result in results]:
+            equity = result['results'][base_currency]
+            result['return'] = equity / previous - 1
+            previous = equity
+        return results
+
     def __measure_widths(self, data, min_width=0, prefix=5, pad=1):
         """
         Measure and append table widths to the data passed in
@@ -254,6 +283,18 @@ class Report:
                 d['width'] += reminder if i == length - 1 else 0
 
         return data
+
+    def __previous_date(self, date, interval):
+        """
+        Return new date based on interval constant passed in
+        :param date:        date to derive new date from
+        :param interval:    constant to use for derivation
+        :return:            date
+        """
+        return {
+            Interval.MONTHLY: dt.date(date.year, date.month, 1),
+            Interval.YEARLY: dt.date(date.year, 1, 1)
+        }.get(interval, date)
 
     def __log(self, day, index=0, length=0.0, complete=False):
         """

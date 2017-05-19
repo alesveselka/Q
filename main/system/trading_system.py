@@ -65,12 +65,10 @@ class TradingSystem:
 
             # TODO replace hard-coded data
             if len(market_data) >= long_window + 1 and market.has_data(date):
-
-                sma_long = market.study(Study.SMA_LONG, date)[-2][Table.Study.VALUE]
-                sma_short = market.study(Study.SMA_SHORT, date)[-2][Table.Study.VALUE]
-                hhll_long = market.study(Study.HHLL_LONG, date)
-                hhll_short = market.study(Study.HHLL_SHORT, date)
-                atr_long = market.study(Study.ATR_LONG, date)[-1][Table.Study.VALUE]
+                previous_date = market_data[-2][Table.Market.PRICE_DATE]
+                sma_long = market.study(Study.SMA_LONG, date)[-1][Table.Study.VALUE]
+                sma_short = market.study(Study.SMA_SHORT, date)[-1][Table.Study.VALUE]
+                hhll_short = market.study(Study.HHLL_SHORT, previous_date)[-1]
                 settle_price = market_data[-1][Table.Market.SETTLE_PRICE]
                 market_position = self.__portfolio.market_position(market)
 
@@ -78,29 +76,27 @@ class TradingSystem:
                 if market_position:
                     direction = market_position.direction()
                     if direction == Direction.LONG:
-                        # TODO move SL to Risk object?
-                        stop_loss = hhll_long[-1][Table.Study.VALUE] - 3 * atr_long
-                        if settle_price <= stop_loss:
+                        if settle_price <= self.__risk.stop_loss(date, market_position):
                             self.__signals.append(Signal(market, SignalType.EXIT, Direction.SHORT, date, settle_price))
                     elif direction == Direction.SHORT:
-                        # TODO move SL to Risk object?
-                        stop_loss = hhll_long[-1][Table.Study.VALUE_2] + 3 * atr_long
-                        if settle_price >= stop_loss:
+                        if settle_price >= self.__risk.stop_loss(date, market_position):
                             self.__signals.append(Signal(market, SignalType.EXIT, Direction.LONG, date, settle_price))
 
+                    # TODO REBALANCE (during rolls?)!
                     # Naive contract roll implementation (end of each month)
-                    if date.month > previous_date.month and len(self.__signals) == 0:
+                    if date.month != previous_date.month and len([s for s in self.__signals if s.market() == market]) == 0:
                         opposite_direction = Direction.LONG if direction == Direction.SHORT else Direction.LONG
                         self.__signals.append(Signal(market, SignalType.ROLL_EXIT, opposite_direction, date, settle_price))
                         self.__signals.append(Signal(market, SignalType.ROLL_ENTER, direction, date, settle_price))
 
                 # TODO pass-in rules
+                # TODO use EMAs?
                 if sma_short > sma_long:
-                    if settle_price > hhll_short[-2][Table.Study.VALUE]:
+                    if settle_price > hhll_short[Table.Study.VALUE]:
                         self.__signals.append(Signal(market, SignalType.ENTER, Direction.LONG, date, settle_price))
 
                 elif sma_short < sma_long:
-                    if settle_price < hhll_short[-2][Table.Study.VALUE_2]:
+                    if settle_price < hhll_short[Table.Study.VALUE_2]:
                         self.__signals.append(Signal(market, SignalType.ENTER, Direction.SHORT, date, settle_price))
 
     def __generate_orders(self, date):
@@ -128,6 +124,7 @@ class TradingSystem:
 
                 if market_position is None and signal in enter_signals:
                     quantity = self.__risk.position_size(market.point_value(), market.currency(), atr_long, date)
+                    # TODO keep track of signal that don't pass
                     if quantity:
                         orders.append(Order(market, signal, date, open_price, quantity))
 

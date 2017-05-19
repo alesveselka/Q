@@ -41,8 +41,8 @@ class Initialize:
 
         now = dt.datetime.now()
         # end_date = dt.date(now.year, now.month, now.day)
-        end_date = dt.date(1992, 6, 10)
-        # end_date = dt.date(2015, 12, 31)
+        # end_date = dt.date(1992, 6, 10)
+        end_date = dt.date(2015, 12, 31)
         timer = Timer()
 
         investment_universe = InvestmentUniverse(investment_universe_name, self.__connection)
@@ -99,6 +99,7 @@ class Initialize:
         report = Report(self.__account)
         # print '\n'.join(report.transactions(self.__start_date, date))
         print '\n'.join(report.to_lists(self.__start_date, date, Interval.YEARLY))
+        # report.to_lists(self.__start_date, date, Interval.MONTHLY)
         print '\n'.join(report.to_lists(self.__start_date, date))
 
     def __load_and_calculate_data(self, futures, currency_pairs, interest_rates, end_date):
@@ -162,10 +163,6 @@ class Initialize:
                 Table.Market.SETTLE_PRICE
             ]},
             {'name': Study.SMA_SHORT, 'study': SMA, 'window': short_window, 'columns': [
-                Table.Market.PRICE_DATE,
-                Table.Market.SETTLE_PRICE
-            ]},
-            {'name': Study.HHLL_LONG, 'study': HHLL, 'window': long_window, 'columns': [
                 Table.Market.PRICE_DATE,
                 Table.Market.SETTLE_PRICE
             ]},

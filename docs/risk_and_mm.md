@@ -24,6 +24,11 @@
 
 ###Risk Management
 
+* Cap ATR for position sizing (see Clenow's article)
+* Correlations (Internal - among group members, Pair - between markets)
+  (based on 50 day log return correlations and using a 5 day smoothing (geometric mean?))
+* Weighted position sizing
+* Rebalancing (monthly?)
 * Value-at-Risk (VaR)
   Estimate, under a given degree of confidence, of the size of a loss
   from a portfolio over a given time period.

@@ -72,8 +72,8 @@ class Broker(object):
         order_type = order.type()
         currency = market.currency()
         commissions = self.__commissions(order.quantity(), market.currency(), date)
-        previous_last_price = market.data(end_date=date)[-2][Table.Market.SETTLE_PRICE]
-        margin = market.margin(previous_last_price) * Decimal(order.quantity())
+        previous_date = market.data(end_date=date)[-2][Table.Market.PRICE_DATE]
+        margin = market.margin(previous_date) * Decimal(order.quantity())
         price = self.__slipped_price(order, order_type)
         order_result = OrderResult(OrderResultType.REJECTED, order, price, margin, commissions)
 
@@ -133,7 +133,7 @@ class Broker(object):
         """
         base_currency = self.__account.base_currency()
         for currency in [c for c in self.__account.fx_balance_currencies() if c != base_currency]:
-            balance = self.__account.fx_balance(currency)
+            balance = self.__account.fx_balance(currency, date)
 
             if abs(balance):
                 amount = self.__account.base_value(balance, currency, date)
@@ -171,9 +171,9 @@ class Broker(object):
             pair = [cp for cp in self.__currency_pairs if cp.code() == '%s%s' % (base_currency, currency)][0]
             rate = pair.rate(date)
             prior_rate = pair.rate(previous_date)
+            balance = self.__account.fx_balance(currency, previous_date)
 
-            if rate != prior_rate:
-                balance = self.__account.fx_balance(currency, previous_date)
+            if rate != prior_rate and balance:
                 base_value = balance / rate
                 prior_base_value = balance / prior_rate
                 translation = base_value - prior_base_value
@@ -195,7 +195,7 @@ class Broker(object):
                     market = p.market()
 
                     if market.has_data(date):
-                        margin = market.margin(market.data(end_date=date)[-1][Table.Market.SETTLE_PRICE]) * Decimal(p.quantity())
+                        margin = market.margin(date) * Decimal(p.quantity())
                         currency = market.currency()
                         to_close[currency] += Decimal(p.margins()[-1][1])
                         to_open[currency] += Decimal(margin)

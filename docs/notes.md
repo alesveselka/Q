@@ -223,6 +223,8 @@
     * Use Roll-return threshold as signal triggers instead of price? (p. 140 in Algo)
     * Not entering position when market is already trending, but the EMAs crossed just now?
 * Futures Calendar (Roll Yield) (as its own strategy?)
+* Enter on price crossing shot-EMA in direction of trend? (short- VS long-EMA)
+* Darvas?
 * Statistical Pair trading (Mean-Reversion on Cointegrated portfolios)
 * Futures Roll return / Spot return arbitrage (p. 142 in Algo)
 * Dual Momentum
