@@ -82,6 +82,7 @@ class TradingSystem:
                         if settle_price >= self.__risk.stop_loss(date, market_position):
                             self.__signals.append(Signal(market, SignalType.EXIT, Direction.LONG, date, settle_price))
 
+                    # TODO REBALANCE (during rolls?)!
                     # Naive contract roll implementation (end of each month)
                     if date.month != previous_date.month and len([s for s in self.__signals if s.market() == market]) == 0:
                         opposite_direction = Direction.LONG if direction == Direction.SHORT else Direction.LONG

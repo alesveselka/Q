@@ -9,7 +9,7 @@ from enum import Interval
 from collections import defaultdict
 from decimal import Decimal
 
-
+# TODO also calculate Drawdowns, Sharpe, etc.
 class Report:
 
     def __init__(self, account):
