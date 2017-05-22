@@ -45,6 +45,7 @@ if __name__ == '__main__':
         'data_codes',
         'investment_universe'
     ]
+    # TODO add schemas in diff folder (simulation, trading_models, etc.)
     contents = commands(file_contents(folder, schemas))
     drop_commands = filter(lambda cmd: cmd.lower().startswith('drop'), contents)
     create_table_commands = filter(lambda cmd: cmd.lower().startswith('create table'), contents)
