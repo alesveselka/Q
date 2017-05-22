@@ -9,9 +9,10 @@ from strategy_signal import Signal
 
 class TradingModel:
 
-    def __init__(self, markets, risk):
+    def __init__(self, markets, risk, params):
         self.__markets = markets
         self.__risk = risk
+        self.__params = params
 
     def signals(self, date, positions):
         """
@@ -20,17 +21,12 @@ class TradingModel:
         :param date:            date for the market open
         :param positions:       list of open positions
         """
-        # TODO pass in the configuration of parameters
-        short_window = 50
-        long_window = 100
-
         signals = []
 
         for market in self.__markets:
             market_data = market.data(end_date=date)
 
-            # TODO replace hard-coded data
-            if len(market_data) >= long_window + 1 and market.has_data(date):
+            if date > market.first_study_date() and market.has_data(date):
                 previous_date = market_data[-2][Table.Market.PRICE_DATE]
                 ma_long = market.study(Study.MA_LONG, date)[-1][Table.Study.VALUE]
                 ma_short = market.study(Study.MA_SHORT, date)[-1][Table.Study.VALUE]

@@ -40,6 +40,7 @@ class Market(object):  # TODO rename to Future?
         self.__margin_multiple = 0.0
         self.__data = []
         self.__studies = {}
+        self.__first_study_date = dt.date(9999, 12, 31)
 
     def id(self):
         return self.__id
@@ -52,6 +53,9 @@ class Market(object):  # TODO rename to Future?
 
     def point_value(self):
         return self.__point_value
+
+    def first_study_date(self):
+        return self.__first_study_date
 
     def data(self, start_date=dt.date(1900, 1, 1), end_date=dt.date(9999, 12, 31)):
         """
@@ -118,6 +122,8 @@ class Market(object):  # TODO rename to Future?
                     [tuple(map(lambda c: d[c], params['columns'])) for d in self.__data],
                     params['window']
                 )
+
+            self.__first_study_date = max([self.__studies[k][0][0] for k in self.__studies.keys()])
 
             margin = self.__margin if self.__margin else self.__data[-1][Table.Market.SETTLE_PRICE] * self.__point_value * 0.1
             self.__margin_multiple = margin / self.study(Study.ATR_SHORT)[-1][Table.Study.VALUE]
