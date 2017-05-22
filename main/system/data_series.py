@@ -1,19 +1,31 @@
 #!/usr/bin/python
 
+import sys
+import json
 from market import Market
+from enum import Table
 from currency_pair import CurrencyPair
 from interest_rate import InterestRate
 
 
 class DataSeries:
 
-    def __init__(self, investment_universe, connection):
+    def __init__(self, investment_universe, connection, studies):
 
         self.__investment_universe = investment_universe
         self.__connection = connection
+        self.__studies = studies
         self.__futures = None
         self.__currency_pairs = None
         self.__interest_rates = None
+        self.__study_parameters = []
+
+    def start_date(self):
+        """
+        Return data's start data date
+        :return:    date
+        """
+        return self.__investment_universe.start_data_date()
 
     def futures(self, slippage_map):
         """
@@ -82,3 +94,62 @@ class DataSeries:
             self.__interest_rates = [InterestRate(start_data_date, *r) for r in cursor.fetchall()]
 
         return self.__interest_rates
+
+    def load_and_calculate_data(self, end_date):
+        """
+        Load data and calculate studies
+
+        :param end_date:        last date to load data
+        """
+        message = 'Loading Futures data ...'
+        length = float(len(self.__futures))
+        map(lambda i: self.__log(message, i[1].code(), i[0], length) and i[1].load_data(self.__connection, end_date),
+            enumerate(self.__futures))
+        self.__log(message, complete=True)
+
+        message = 'Calculating Futures studies ...'
+        self.__study_parameters = json.loads(self.__studies)
+        for s in self.__study_parameters:
+            s['study'] = getattr(sys.modules['study'], s['study'])
+            s['columns'] = [Table.Market.__dict__[c.upper()] for c in s['columns']]
+
+        map(lambda i: self.__log(message, i[1].code(), i[0], length) and i[1].calculate_studies(self.__study_parameters),
+            enumerate(self.__futures))
+        self.__log(message, complete=True)
+
+        message = 'Loading currency pairs data ...'
+        length = float(len(self.__currency_pairs))
+        map(lambda i: self.__log(message, i[1].code(), i[0], length) and i[1].load_data(self.__connection, end_date),
+            enumerate(self.__currency_pairs))
+        self.__log(message, complete=True)
+
+        message = 'Loading interest rates data ...'
+        length = float(len(self.__interest_rates))
+        map(lambda i: self.__log(message, i[1].code(), i[0], length) and i[1].load_data(self.__connection, end_date),
+            enumerate(self.__interest_rates))
+        self.__log(message, complete=True)
+
+    def study_parameters(self):
+        """
+        Return Studies' parameters
+        :return: 
+        """
+        return self.__study_parameters
+
+    def __log(self, message, code='', index=0, length=0.0, complete=False):
+        """
+        Print message and percentage progress to console
+
+        :param message:     Message to print
+        :param index:       Index of the item being processed
+        :param length:      Length of the whole range
+        :param complete:    Flag indicating if the progress is complete
+        :return:            boolean
+        """
+        sys.stdout.write('%s\r' % (' ' * 80))
+        if complete:
+            sys.stdout.write('%s complete\r\n' % message)
+        else:
+            sys.stdout.write('%s %s (%d of %d) [%d %%]\r' % (message, code, index, length, index / length * 100))
+        sys.stdout.flush()
+        return True
