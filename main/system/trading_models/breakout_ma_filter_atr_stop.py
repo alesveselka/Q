@@ -5,25 +5,7 @@ from enum import Direction
 from enum import SignalType
 from enum import Table
 from strategy_signal import Signal
-from abc import ABCMeta, abstractmethod
-
-
-class TradingModel:
-    """
-    Abstract Base Class for all trading models
-    """
-
-    __metaclass__ = ABCMeta
-
-    @abstractmethod
-    def signals(self, date, positions):
-        """
-        Generate trading signals
-
-        :param date:            date for the market open
-        :param positions:       list of open positions
-        """
-        raise NotImplementedError("Should implement 'signals()'")
+from trading_models.trading_model import TradingModel
 
 
 class BreakoutMAFilterATRStop(TradingModel):

@@ -3,17 +3,17 @@
 import os
 import json
 import MySQLdb as mysql
-from risk import Risk
-from portfolio import Portfolio
-from account import Account
-from broker import Broker
+from decimal import Decimal, getcontext
 from enum import Currency
 from enum import Table
-from investment_universe import InvestmentUniverse
-from trading_model import BreakoutMAFilterATRStop
+from account import Account
+from broker import Broker
 from data_series import DataSeries
+from investment_universe import InvestmentUniverse
+from portfolio import Portfolio
+from risk import Risk
 from simulate import Simulate
-from decimal import Decimal, getcontext
+from trading_models.breakout_ma_filter_atr_stop import BreakoutMAFilterATRStop
 
 
 class Initialize:
