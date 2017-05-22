@@ -111,7 +111,7 @@ class Table:
         ID = 0
         NAME = 1
         PARAMS = 2
-        TRADING_MODEL_ID = 3
+        TRADING_MODEL = 3
         TRADING_PARAMS = 4
         STUDIES = 5
         ROLL_STRATEGY_ID = 6

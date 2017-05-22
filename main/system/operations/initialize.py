@@ -27,7 +27,7 @@ class Initialize:
         )
         self.__simulation = self.__simulation(simulation_name)
         params = json.loads(self.__simulation[Table.Simulation.PARAMS])
-        trading_model_id = self.__simulation[Table.Simulation.TRADING_MODEL_ID]
+        trading_model = self.__simulation[Table.Simulation.TRADING_MODEL]
         roll_strategy = self.__simulation[Table.Simulation.ROLL_STRATEGY_ID]
 
         precision = getcontext().prec
