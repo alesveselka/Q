@@ -9,14 +9,8 @@ def insert_trading_models(values):
         cursor.executemany('INSERT INTO trading_model(name, description) VALUES (%s, %s)', values)
 
 
-def trading_models():
-    cursor = mysql_connection.cursor()
-    cursor.execute('SELECT id, name FROM `trading_model`')
-    return cursor.fetchall()
-
-
 def insert_simulations(values):
-    columns = ['name', 'params', 'trading_model_id', 'trading_params', 'studies', 'roll_strategy_id', 'investment_universe']
+    columns = ['name', 'params', 'trading_model', 'trading_params', 'studies', 'roll_strategy_id', 'investment_universe']
     command = 'INSERT INTO `simulation` (%s) VALUES(%s)' % (', '.join(columns), ('%s, ' * len(columns))[:-2])
 
     with mysql_connection:
@@ -55,7 +49,7 @@ def simulation_params(initial_balance, risk_factor):
 
 
 def simulations():
-    trading_model_id, trading_model_name = trading_models()[0]
+    trading_model_name = trading_model_data[0][0]
     trading_params = {
         'short_window': 50,
         'long_window': 100,
@@ -75,7 +69,7 @@ def simulations():
     return [(
         '%s_1' % trading_model_name,
         json.dumps(simulation_params(1e6, 0.002)),
-        trading_model_id,
+        trading_model_name,
         json.dumps(trading_params),
         json.dumps(study_map),
         0,
