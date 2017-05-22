@@ -2,6 +2,7 @@
 
 import os
 import sys
+import json
 import MySQLdb as mysql
 import datetime as dt
 from timer import Timer
@@ -10,60 +11,62 @@ from portfolio import Portfolio
 from account import Account
 from broker import Broker
 from enum import Currency
-from enum import Study
 from enum import Table
 from enum import EventType
 from enum import Interval
-from study import ATR, SMA, HHLL
 from investment_universe import InvestmentUniverse
-from trading_system import TradingSystem
+from trading_model import TradingModel
 from data_series import DataSeries
 from persist import Persist
 from report import Report
-from decimal import Decimal
+from decimal import Decimal, getcontext
 
 
 class Initialize:
 
-    def __init__(self, investment_universe_name):
-        # TODO set Decimal context?
-
+    def __init__(self, simulation_name):
         self.__connection = mysql.connect(
             os.environ['DB_HOST'],
             os.environ['DB_USER'],
             os.environ['DB_PASS'],
             os.environ['DB_NAME']
         )
-        # TODO load from external config
-        risk_position_sizing = Decimal(0.002)
-        commission = (10.0, Currency.USD)
-        minimums = {'AUD': 14000, 'CAD': 14000, 'CHF': 100000, 'EUR': 100000, 'GBP': 8000, 'JPY': 11000000, 'USD': 10000}
+        self.__simulation = self.__simulation(simulation_name)
+        params = json.loads(self.__simulation[Table.Simulation.PARAMS])
+        trading_model_id = self.__simulation[Table.Simulation.TRADING_MODEL_ID]
+        trading_params = self.__simulation[Table.Simulation.TRADING_PARAMS]
+        roll_strategy = self.__simulation[Table.Simulation.ROLL_STRATEGY_ID]
+
+        precision = getcontext().prec
+        risk_position_sizing = Decimal('%s' % params['risk_factor']).quantize(Decimal('1.' + ('0' * precision)))
+        commission = (params['commission'], params['commission_currency'])
+        interest_minimums = params['interest_minimums']
 
         now = dt.datetime.now()
         # end_date = dt.date(now.year, now.month, now.day)
-        # end_date = dt.date(1992, 6, 10)
-        end_date = dt.date(2015, 12, 31)
+        end_date = dt.date(1992, 6, 10)
+        # end_date = dt.date(2015, 12, 31)
         timer = Timer()
 
-        investment_universe = InvestmentUniverse(investment_universe_name, self.__connection)
+        investment_universe = InvestmentUniverse(self.__simulation[Table.Simulation.INVESTMENT_UNIVERSE], self.__connection)
         investment_universe.load_data()
         self.__start_date = investment_universe.start_data_date()
 
         data_series = DataSeries(investment_universe, self.__connection)
-        self.__futures = data_series.futures()
+        self.__futures = data_series.futures(params['slippage_map'])
         currency_pairs = data_series.currency_pairs()
         interest_rates = data_series.interest_rates()
 
-        self.__account = Account(Decimal(1e6), Currency.EUR, currency_pairs)
+        self.__account = Account(Decimal(params['initial_balance']), Currency.EUR, currency_pairs)
         self.__portfolio = Portfolio()
 
         risk = Risk(risk_position_sizing, self.__account)
 
-        self.__broker = Broker(timer, self.__account, self.__portfolio, commission, currency_pairs, interest_rates, minimums)
-        self.__trading_system = TradingSystem(timer, self.__futures, risk, self.__portfolio, self.__broker)
+        self.__broker = Broker(timer, self.__account, self.__portfolio, commission, currency_pairs, interest_rates, interest_minimums)
+        trading_model = TradingModel(timer, self.__futures, risk, self.__portfolio, self.__broker)
 
         self.__load_and_calculate_data(self.__futures, currency_pairs, interest_rates, end_date)
-        self.__start(timer, self.__trading_system, end_date)
+        self.__start(timer, trading_model, end_date)
         # self.__on_timer_complete(end_date)
 
     def __start(self, timer, trading_system, end_date):
@@ -98,7 +101,7 @@ class Initialize:
 
         report = Report(self.__account)
         # print '\n'.join(report.transactions(self.__start_date, date))
-        print '\n'.join(report.to_lists(self.__start_date, date, Interval.YEARLY))
+        print '\n'.join(report.to_lists(self.__start_date, date, Interval.MONTHLY))
         # report.to_lists(self.__start_date, date, Interval.MONTHLY)
         print '\n'.join(report.to_lists(self.__start_date, date))
 
@@ -139,38 +142,22 @@ class Initialize:
         """
         :return:    List of dictionaries with parameters for study calculations
         """
-        short_window = 50
-        long_window = 100
-        return [
-            {'name': Study.ATR_LONG, 'study': ATR, 'window': long_window, 'columns': [
-                Table.Market.PRICE_DATE,
-                Table.Market.HIGH_PRICE,
-                Table.Market.LOW_PRICE,
-                Table.Market.SETTLE_PRICE
-            ]},
-            {'name': Study.ATR_SHORT, 'study': ATR, 'window': short_window, 'columns': [
-                Table.Market.PRICE_DATE,
-                Table.Market.HIGH_PRICE,
-                Table.Market.LOW_PRICE,
-                Table.Market.SETTLE_PRICE
-            ]},
-            {'name': Study.VOL_SHORT, 'study': SMA, 'window': short_window, 'columns': [
-                Table.Market.PRICE_DATE,
-                Table.Market.VOLUME
-            ]},
-            {'name': Study.SMA_LONG, 'study': SMA, 'window': long_window, 'columns': [
-                Table.Market.PRICE_DATE,
-                Table.Market.SETTLE_PRICE
-            ]},
-            {'name': Study.SMA_SHORT, 'study': SMA, 'window': short_window, 'columns': [
-                Table.Market.PRICE_DATE,
-                Table.Market.SETTLE_PRICE
-            ]},
-            {'name': Study.HHLL_SHORT, 'study': HHLL, 'window': short_window, 'columns': [
-                Table.Market.PRICE_DATE,
-                Table.Market.SETTLE_PRICE
-            ]}
-        ]
+        studies = json.loads(self.__simulation[Table.Simulation.STUDIES])
+        for s in studies:
+            s['study'] = getattr(sys.modules['study'], s['study'])
+            s['columns'] = [Table.Market.__dict__[c.upper()] for c in s['columns']]
+        return studies
+
+    def __simulation(self, name):
+        """
+        Fetches simulation data based on simulation name passed in
+        
+        :param name:    name of simulation data to return
+        :return:        tuple representing record of requested simulation data
+        """
+        cursor = self.__connection.cursor()
+        cursor.execute("SELECT * FROM `simulation` WHERE name = '%s'" % name)
+        return cursor.fetchone()
 
     def __log(self, message, code='', index=0, length=0.0, complete=False):
         """
