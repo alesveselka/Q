@@ -29,8 +29,8 @@ class Simulate:
 
         now = dt.datetime.now()
         # end_date = dt.date(now.year, now.month, now.day)
-        end_date = dt.date(1992, 6, 10)
-        # end_date = dt.date(1992, 12, 31)
+        # end_date = dt.date(1992, 6, 10)
+        end_date = dt.date(2015, 12, 31)
 
         self.__data_series.load_and_calculate_data(end_date)
         self.__subscribe()
@@ -75,7 +75,7 @@ class Simulate:
         start_date = self.__data_series.start_date()
         report = Report(self.__account)
         # print '\n'.join(report.transactions(start_date, date))
-        # print '\n'.join(report.to_lists(start_date, date, Interval.MONTHLY))
+        print '\n'.join(report.to_lists(start_date, date, Interval.YEARLY))
         # report.to_lists(start_date, date, Interval.MONTHLY)
         print '\n'.join(report.to_lists(start_date, date))
 
@@ -87,9 +87,6 @@ class Simulate:
         :param previous_date:   previous market date
         """
         self.__transfer_orders(self.__orders(date))
-
-        # TODO what if signals will be deleted on holiday and next day no orders created?
-        del self.__trading_signals[:]
 
     def __on_market_close(self, date, previous_date):
         """
