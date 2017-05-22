@@ -3,8 +3,6 @@
 import os
 import json
 import MySQLdb as mysql
-import datetime as dt
-from timer import Timer
 from risk import Risk
 from portfolio import Portfolio
 from account import Account
@@ -30,19 +28,12 @@ class Initialize:
         self.__simulation = self.__simulation(simulation_name)
         params = json.loads(self.__simulation[Table.Simulation.PARAMS])
         trading_model_id = self.__simulation[Table.Simulation.TRADING_MODEL_ID]
-        trading_params = self.__simulation[Table.Simulation.TRADING_PARAMS]
         roll_strategy = self.__simulation[Table.Simulation.ROLL_STRATEGY_ID]
 
         precision = getcontext().prec
         risk_position_sizing = Decimal('%s' % params['risk_factor']).quantize(Decimal('1.' + ('0' * precision)))
         commission = (params['commission'], params['commission_currency'])
         interest_minimums = params['interest_minimums']
-
-        now = dt.datetime.now()
-        # end_date = dt.date(now.year, now.month, now.day)
-        end_date = dt.date(1992, 6, 10)
-        # end_date = dt.date(2015, 12, 31)
-        timer = Timer()
 
         investment_universe = InvestmentUniverse(self.__simulation[Table.Simulation.INVESTMENT_UNIVERSE], self.__connection)
         investment_universe.load_data()
@@ -59,9 +50,9 @@ class Initialize:
         risk = Risk(risk_position_sizing, self.__account)
 
         self.__broker = Broker(self.__account, commission, currency_pairs, interest_rates, interest_minimums)
-        trading_model = TradingModel(self.__futures, risk)
+        trading_model = TradingModel(self.__futures, risk, json.loads(self.__simulation[Table.Simulation.TRADING_PARAMS]))
 
-        Simulate(timer, data_series, risk, self.__account, self.__broker, self.__portfolio, trading_model)
+        Simulate(data_series, risk, self.__account, self.__broker, self.__portfolio, trading_model)
 
     def __simulation(self, name):
         """

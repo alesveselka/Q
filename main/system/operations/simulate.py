@@ -8,12 +8,12 @@ from enum import Table
 from position import Position
 from report import Report
 from order import Order
+from timer import Timer
 
 
 class Simulate:
 
-    def __init__(self, timer, data_series, risk, account, broker, portfolio, trading_model):
-        self.__timer = timer
+    def __init__(self, data_series, risk, account, broker, portfolio, trading_model):
         self.__data_series = data_series
         self.__risk = risk
         self.__account = account
@@ -21,11 +21,12 @@ class Simulate:
         self.__portfolio = portfolio
         self.__trading_model = trading_model
         self.__trading_signals = []
+        self.__timer = Timer()
 
         now = dt.datetime.now()
         # end_date = dt.date(now.year, now.month, now.day)
-        # end_date = dt.date(1992, 6, 10)
-        end_date = dt.date(1992, 12, 31)
+        end_date = dt.date(1992, 6, 10)
+        # end_date = dt.date(1992, 12, 31)
 
         self.__data_series.load_and_calculate_data(end_date)
         self.__subscribe()
