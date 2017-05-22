@@ -21,6 +21,8 @@ class BreakoutMAFilterATRStop(TradingModel):
         self.__markets = markets
         self.__params = params
 
+        self.__stop_multiple = int(self.__params['stop_multiple'])
+
     def signals(self, date, positions):
         """
         Generate trading signals
@@ -81,8 +83,7 @@ class BreakoutMAFilterATRStop(TradingModel):
         position_data = market.data(position.enter_date(), date)
         prices = [d[Table.Market.SETTLE_PRICE] for d in position_data]
         atr = market.study(Study.ATR_SHORT, date)[-1][Table.Study.VALUE]
-        # TODO hard-coded values
-        risk = 3 * atr
+        risk = atr * self.__stop_multiple
         return max(prices) - risk if position.direction() == Direction.LONG else min(prices) + risk
 
     def __market_position(self, positions, market):
