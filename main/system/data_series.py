@@ -15,11 +15,12 @@ class DataSeries:
         self.__currency_pairs = None
         self.__interest_rates = None
 
-    def futures(self):
+    def futures(self, slippage_map):
         """
         Load futures data if not already loaded
 
-        :return:    list of Market objects
+        :param slippage_map:    list of dicts, each representing volume range to arrive at slippage estimate
+        :return:                list of Market objects
         """
         if self.__futures is None:
             cursor = self.__connection.cursor()
@@ -39,10 +40,10 @@ class DataSeries:
             """
             start_data_date = self.__investment_universe.start_data_date()
             self.__futures = []
-            # for market_id in [int(self.__investment_universe.market_ids()[37])]:  # JY = 37@25Y, W = 16@25Y, ES = 74@15Y
+
             for market_id in self.__investment_universe.market_ids():
                 cursor.execute(market_query % market_id)
-                self.__futures.append(Market(start_data_date, market_id, *cursor.fetchone()))
+                self.__futures.append(Market(start_data_date, market_id, slippage_map, *cursor.fetchone()))
 
         return self.__futures
 
