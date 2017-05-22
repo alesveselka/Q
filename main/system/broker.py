@@ -19,15 +19,6 @@ class Broker(object):
         self.__currency_pairs = currency_pairs
         self.__interest_rates = interest_rates
         self.__minimums = minimums
-        self.__order_results = []
-
-    def order_results(self):
-        """
-        Return OrderResults
-
-        :return:    list of OrderResult objects
-        """
-        return self.__order_results
 
     def update_account(self, date, previous_date, open_positions):
         """
@@ -68,7 +59,7 @@ class Broker(object):
         previous_date = market.data(end_date=date)[-2][Table.Market.PRICE_DATE]
         margin = market.margin(previous_date) * Decimal(order.quantity())
         price = self.__slipped_price(order, order_type)
-        order_result = OrderResult(OrderResultType.REJECTED, order, price, margin, commissions)
+        order_result = OrderResult(OrderResultType.REJECTED, order, 0, 0, 0)
 
         if order_type == OrderType.BTO or order_type == OrderType.STO:
             if self.__account.available_funds(date) > self.__account.base_value(margin + commissions, currency, date):
@@ -86,7 +77,6 @@ class Broker(object):
 
             order_result = OrderResult(OrderResultType.FILLED, order, price, margin, commissions)
 
-        self.__order_results.append(order_result)
         return order_result
 
     def __slipped_price(self, order, order_type):

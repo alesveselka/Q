@@ -1,3 +1,5 @@
+#!/usr/bin/python
+
 import datetime as dt
 from enum import EventType
 from enum import Interval
@@ -9,6 +11,7 @@ from position import Position
 from report import Report
 from order import Order
 from timer import Timer
+from order_result import OrderResult
 
 
 class Simulate:
@@ -21,6 +24,7 @@ class Simulate:
         self.__portfolio = portfolio
         self.__trading_model = trading_model
         self.__trading_signals = []
+        self.__order_results = []
         self.__timer = Timer()
 
         now = dt.datetime.now()
@@ -71,7 +75,7 @@ class Simulate:
         start_date = self.__data_series.start_date()
         report = Report(self.__account)
         # print '\n'.join(report.transactions(start_date, date))
-        print '\n'.join(report.to_lists(start_date, date, Interval.MONTHLY))
+        # print '\n'.join(report.to_lists(start_date, date, Interval.MONTHLY))
         # report.to_lists(start_date, date, Interval.MONTHLY)
         print '\n'.join(report.to_lists(start_date, date))
 
@@ -112,7 +116,9 @@ class Simulate:
         :param orders:  list of order objects
         """
         for order in orders:
-            order_result = self.__broker.transfer(order, self.__portfolio.open_positions())
+            order_result = order.quantity() \
+                           and self.__broker.transfer(order, self.__portfolio.open_positions()) \
+                           or OrderResult(OrderResultType.REJECTED, order, 0, 0, 0)
 
             if order_result.type() == OrderResultType.FILLED:
                 signal_type = order.signal_type()
@@ -127,6 +133,8 @@ class Simulate:
                     position = self.__portfolio.market_position(order.market())
                     position.add_order_result(order_result)
                     self.__portfolio.remove_position(position)
+
+            self.__order_results.append(order_result)
 
     def __orders(self, date):
         """
@@ -153,8 +161,6 @@ class Simulate:
 
                 if market_position is None and signal in enter_signals:
                     quantity = self.__risk.position_size(market.point_value(), market.currency(), atr_long, date)
-                    # TODO keep track of signal that don't pass
-                    if quantity:
-                        orders.append(Order(market, signal, date, open_price, quantity))
+                    orders.append(Order(market, signal, date, open_price, quantity))
 
         return orders
