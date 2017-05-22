@@ -1,7 +1,7 @@
 from enum import EventType
 
 
-class Simulation:
+class Simulation:  # TODO Refactor to operation 'Simulate'?
 
     # def __init__(self, timer, risk, portfolio, trading_model, params, studies, roll_strategy, investment_universe):
     def __init__(self, simulation_id, timer, risk, portfolio):
