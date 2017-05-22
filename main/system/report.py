@@ -15,10 +15,6 @@ class Report:
     def __init__(self, account):
         self.__account = account
 
-    def to_tables(self, start_date=dt.date(1900, 1, 1), end_date=dt.date(9999, 12, 31), interval=None):
-        balance_results, performance_results = self.__results(start_date, end_date, interval)
-        return [self.__table_stats(balance_results[i], performance_results[i]) for i in range(0, len(balance_results))]
-
     def to_lists(self, start_date=dt.date(1900, 1, 1), end_date=dt.date(9999, 12, 31), interval=None):
         balance_results, performance_results = self.__results(start_date, end_date, interval)
         return [self.__list_stats(balance_results[i], performance_results[i]) for i in range(0, len(balance_results))]
@@ -60,7 +56,7 @@ class Report:
         performance_results = self.__measure_widths(performance_results)
         title_width = max([r['title_width'] for r in performance_results] + [r['title_width'] for r in balance_results]) + 2
         results_width = max([r['results_width'] for r in performance_results] + [r['results_width'] for r in balance_results])
-        buffer = self.__to_table_header(meta['start_date'], meta['end_date'], title_width + results_width) + '\n'
+        buffer = self.__header(meta['start_date'], meta['end_date'], title_width + results_width) + '\n'
 
         for r in balance_results + performance_results:
             title = r['title']
@@ -72,25 +68,7 @@ class Report:
 
         return buffer
 
-    def __table_stats(self, balance_results, performance_results):
-        """
-        Concat multiple stat tables into one aggregate statistics table
-
-        :param balance_results:     list of balance results
-        :param performance_results: list of performance results
-        :return:                    string representing the full table
-        """
-        meta = [r for r in balance_results if r['title'] == 'Meta'][0]
-        performance_results = self.__measure_widths(performance_results)
-        width = reduce(lambda r, p: r + p['width'], performance_results, 0)
-        balance_results = self.__measure_widths([r for r in balance_results if r['title'] != 'Meta'])
-        return '\n'.join([
-            self.__to_table_header(meta['start_date'], meta['end_date'], width + len(performance_results) + 1),
-            self.__to_table(balance_results),
-            self.__to_table(performance_results)
-        ])
-
-    def __to_table_header(self, start_date, end_date, width):
+    def __header(self, start_date, end_date, width):
         """
         Return table header as a string
 
@@ -100,43 +78,6 @@ class Report:
         :return:            string
         """
         return ''.join([' ', str(start_date), ' - ', str(end_date), ' ']).center(width, '=')
-
-    def __to_table(self, data):
-        """
-        Construct and return string table from data passed in
-
-        :param data:    dict to render into table
-        :return:        string representation of the table
-        """
-        buffer = ''
-        separators = 3
-        rows = max([len(d['results']) for d in data])
-        table = [[[] for _ in range(0, rows + separators + 1)] for _ in range(len(data))]
-
-        for i, d in enumerate(data):
-            w = int(d['width'])
-
-            table[i][0].append('-' * w)
-            table[i][1].append((' ' + d['title']).ljust(w, ' '))
-            table[i][2].append('-' * w)
-
-            result_items = d['results'].items()
-            for row in range(3, rows + separators):
-                content = ' ' * w
-                if len(result_items) > row - separators:
-                    item = result_items[row - separators]
-                    content = (' %s: %s' % (item[0], '{:-,.2f}'.format(item[1]))).ljust(w, ' ')
-                table[i][row].append(content)
-
-            table[i][rows + separators].append('-' * w)
-
-        for row in range(0, rows + separators + 1):
-            line = ['']
-            for i, column in enumerate(table):
-                line.append(column[row][0])
-            buffer += ('+' if row == 0 or row == 2 or row == (rows + separators) else '|').join(line + ['\n'])
-
-        return buffer[:-1]
 
     def __results(self, start_date, end_date, interval):
         """
