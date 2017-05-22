@@ -15,14 +15,8 @@ def trading_models():
     return cursor.fetchall()
 
 
-def investment_universe_id(name):
-    cursor = mysql_connection.cursor()
-    cursor.execute("SELECT id FROM `investment_universe` WHERE name = '%s'" % name)
-    return cursor.fetchone()[0]
-
-
 def insert_simulations(values):
-    columns = ['name', 'params', 'trading_model_id', 'trading_params', 'studies', 'roll_strategy_id', 'investment_universe_id']
+    columns = ['name', 'params', 'trading_model_id', 'trading_params', 'studies', 'roll_strategy_id', 'investment_universe']
     command = 'INSERT INTO `simulation` (%s) VALUES(%s)' % (', '.join(columns), ('%s, ' * len(columns))[:-2])
 
     with mysql_connection:
@@ -60,7 +54,7 @@ def simulation_params(initial_balance, risk_factor):
     }
 
 
-def simulations(investment_universe_name):
+def simulations():
     trading_model_id, trading_model_name = trading_models()[0]
     trading_params = {
         'short_window': 50,
@@ -85,7 +79,7 @@ def simulations(investment_universe_name):
         json.dumps(trading_params),
         json.dumps(study_map),
         0,
-        investment_universe_id(investment_universe_name)
+        '25Y'
     )]
 
 
@@ -101,4 +95,4 @@ if __name__ == '__main__':
         'Highest-high and Lowest-low breakout with Moving Average trend filter and ATR volatility based exit stops'
     )]
     # insert_trading_models(trading_model_data)
-    insert_simulations(simulations('25Y'))
+    insert_simulations(simulations())
