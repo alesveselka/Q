@@ -10,7 +10,7 @@ from broker import Broker
 from enum import Currency
 from enum import Table
 from investment_universe import InvestmentUniverse
-from trading_model import TradingModel
+from trading_model import BreakoutMAFilterATRStop
 from data_series import DataSeries
 from simulate import Simulate
 from decimal import Decimal, getcontext
@@ -19,48 +19,57 @@ from decimal import Decimal, getcontext
 class Initialize:
 
     def __init__(self, simulation_name):
-        self.__connection = mysql.connect(
+        connection = mysql.connect(
             os.environ['DB_HOST'],
             os.environ['DB_USER'],
             os.environ['DB_PASS'],
             os.environ['DB_NAME']
         )
-        self.__simulation = self.__simulation(simulation_name)
-        params = json.loads(self.__simulation[Table.Simulation.PARAMS])
-        trading_model = self.__simulation[Table.Simulation.TRADING_MODEL]
-        roll_strategy = self.__simulation[Table.Simulation.ROLL_STRATEGY_ID]
+        simulation = self.__simulation(simulation_name, connection)
+        params = json.loads(simulation[Table.Simulation.PARAMS])
+        roll_strategy = simulation[Table.Simulation.ROLL_STRATEGY_ID]
 
         precision = getcontext().prec
         risk_position_sizing = Decimal('%s' % params['risk_factor']).quantize(Decimal('1.' + ('0' * precision)))
         commission = (params['commission'], params['commission_currency'])
         interest_minimums = params['interest_minimums']
 
-        investment_universe = InvestmentUniverse(self.__simulation[Table.Simulation.INVESTMENT_UNIVERSE], self.__connection)
+        investment_universe = InvestmentUniverse(simulation[Table.Simulation.INVESTMENT_UNIVERSE], connection)
         investment_universe.load_data()
-        self.__start_date = investment_universe.start_data_date()
 
-        data_series = DataSeries(investment_universe, self.__connection, self.__simulation[Table.Simulation.STUDIES])
-        self.__futures = data_series.futures(params['slippage_map'])
+        data_series = DataSeries(investment_universe, connection, simulation[Table.Simulation.STUDIES])
+        futures = data_series.futures(params['slippage_map'])
         currency_pairs = data_series.currency_pairs()
         interest_rates = data_series.interest_rates()
 
-        self.__account = Account(Decimal(params['initial_balance']), Currency.EUR, currency_pairs)
-        self.__portfolio = Portfolio()
+        account = Account(Decimal(params['initial_balance']), Currency.EUR, currency_pairs)
+        broker = Broker(account, commission, currency_pairs, interest_rates, interest_minimums)
+        trading_model = self.__trading_model(simulation[Table.Simulation.TRADING_MODEL])(
+            futures,
+            json.loads(simulation[Table.Simulation.TRADING_PARAMS])
+        )
 
-        risk = Risk(risk_position_sizing, self.__account)
+        risk = Risk(risk_position_sizing, account)
+        Simulate(data_series, risk, account, broker, Portfolio(), trading_model)
 
-        self.__broker = Broker(self.__account, commission, currency_pairs, interest_rates, interest_minimums)
-        trading_model = TradingModel(self.__futures, risk, json.loads(self.__simulation[Table.Simulation.TRADING_PARAMS]))
-
-        Simulate(data_series, risk, self.__account, self.__broker, self.__portfolio, trading_model)
-
-    def __simulation(self, name):
+    def __simulation(self, name, connection):
         """
         Fetches simulation data based on simulation name passed in
         
         :param name:    name of simulation data to return
         :return:        tuple representing record of requested simulation data
         """
-        cursor = self.__connection.cursor()
+        cursor = connection.cursor()
         cursor.execute("SELECT * FROM `simulation` WHERE name = '%s'" % name)
         return cursor.fetchone()
+
+    def __trading_model(self, name):
+        """
+        Find trend model class in the map by name and returns it
+        
+        :param name:    Name of the trading model
+        :return:        Class of the treding model
+        """
+        return {
+            'breakout_with_MA_filter_and_ATR_stop': BreakoutMAFilterATRStop
+        }[name]
