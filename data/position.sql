@@ -2,6 +2,7 @@ DROP TABLE IF EXISTS `position`;
 
 CREATE TABLE `position`(
   `id` int NOT NULL AUTO_INCREMENT,
+  `simulation_id` int NOT NULL,
   `market_id` int NOT NULL,
   `direction` varchar(8) NOT NULL,
   `enter_date` date NOT NULL,
