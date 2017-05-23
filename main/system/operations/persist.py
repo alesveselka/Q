@@ -20,14 +20,13 @@ class Persist:
             os.environ['DB_NAME']
         )
 
-        # TODO include simulation info!
-        # self.__save_orders(order_results)
+        self.__save_orders(simulation_id, order_results)
         # self.__save_transactions(account.transactions(start_date, end_date))
         # self.__save_positions(portfolio)
         # self.__save_studies(data_series.futures(None), data_series.study_parameters())
-        self.__save_equity(simulation_id, account, start_date, end_date)
+        # self.__save_equity(simulation_id, account, start_date, end_date)
 
-    def __save_orders(self, order_results):
+    def __save_orders(self, simulation_id, order_results):
         """
         Serialize and insert Order instances into DB
 
@@ -38,17 +37,18 @@ class Persist:
         precision = 10
         self.__insert_values(
             'order',
-            ['market_id', 'type', 'signal_type', 'date', 'price', 'quantity', 'result_type', 'result_price'],
-            [
-                (o.order().market().id(),
-                 o.order().type(),
-                 o.order().signal_type(),
-                 o.order().date(),
-                 self.__round(o.order().price(), precision),
-                 o.order().quantity(),
-                 o.type(),
-                 self.__round(o.price(), precision)
-                 ) for o in order_results]
+            ['simulation_id', 'market_id', 'type', 'signal_type', 'date', 'price', 'quantity', 'result_type', 'result_price'],
+            [(
+                simulation_id,
+                o.order().market().id(),
+                o.order().type(),
+                o.order().signal_type(),
+                o.order().date(),
+                self.__round(o.order().price(), precision),
+                o.order().quantity(),
+                o.type(),
+                self.__round(o.price(), precision)
+            ) for o in order_results]
         )
 
     def __save_transactions(self, transactions):
