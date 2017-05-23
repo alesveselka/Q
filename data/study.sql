@@ -2,6 +2,7 @@ DROP TABLE IF EXISTS `study`;
 
 CREATE TABLE `study`(
   `id` int NOT NULL AUTO_INCREMENT,
+  `simulation_id` int NOT NULL,
   `name` varchar(32) NOT NULL,
   `market_id` int NOT NULL,
   `market_code` varchar(8) NOT NULL,
