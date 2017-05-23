@@ -49,7 +49,7 @@ class Initialize:
         )
 
         risk = Risk(risk_position_sizing, account)
-        Simulate(data_series, risk, account, broker, Portfolio(), trading_model)
+        Simulate(simulation[Table.Simulation.ID], data_series, risk, account, broker, Portfolio(), trading_model)
 
     def __simulation(self, name, connection):
         """

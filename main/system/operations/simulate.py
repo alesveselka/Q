@@ -12,11 +12,13 @@ from report import Report
 from order import Order
 from timer import Timer
 from order_result import OrderResult
+from persist import Persist
 
 
 class Simulate:
 
-    def __init__(self, data_series, risk, account, broker, portfolio, trading_model):
+    def __init__(self, id, data_series, risk, account, broker, portfolio, trading_model):
+        self.__id = id
         self.__data_series = data_series
         self.__risk = risk
         self.__account = account
@@ -29,8 +31,8 @@ class Simulate:
 
         now = dt.datetime.now()
         # end_date = dt.date(now.year, now.month, now.day)
-        # end_date = dt.date(1992, 6, 10)
-        end_date = dt.date(2015, 12, 31)
+        end_date = dt.date(1992, 6, 10)
+        # end_date = dt.date(2015, 12, 31)
 
         self.__data_series.load_and_calculate_data(end_date)
         self.__subscribe()
@@ -61,21 +63,20 @@ class Simulate:
 
         :param date:    date of the complete event
         """
-        # Persist(
-        #     self.__connection,
-        #     self.__start_date,
-        #     date,
-        #     self.__broker.order_results(),
-        #     self.__account,
-        #     self.__portfolio,
-        #     self.__futures,
-        #     self.__study_parameters()
-        # )
-
         start_date = self.__data_series.start_date()
+        Persist(
+            self.__id,
+            start_date,
+            date,
+            self.__order_results,
+            self.__account,
+            self.__portfolio,
+            self.__data_series
+        )
+
         report = Report(self.__account)
         # print '\n'.join(report.transactions(start_date, date))
-        print '\n'.join(report.to_lists(start_date, date, Interval.YEARLY))
+        # print '\n'.join(report.to_lists(start_date, date, Interval.MONTHLY))
         # report.to_lists(start_date, date, Interval.MONTHLY)
         print '\n'.join(report.to_lists(start_date, date))
 

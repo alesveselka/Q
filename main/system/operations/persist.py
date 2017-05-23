@@ -1,22 +1,31 @@
 #!/usr/bin/python
 
+import os
 import sys
 import json
+import MySQLdb as mysql
 from timer import Timer
 from enum import Table
+from enum import TransactionType
 from decimal import Decimal, InvalidOperation
 
 
 class Persist:
 
-    def __init__(self, connection, start_date, end_date, order_results, account, portfolio, markets, study_parameters):
-        self.__connection = connection
+    def __init__(self, simulation_id, start_date, end_date, order_results, account, portfolio, data_series):
+        self.__connection = mysql.connect(
+            os.environ['DB_HOST'],
+            os.environ['DB_USER'],
+            os.environ['DB_PASS'],
+            os.environ['DB_NAME']
+        )
 
+        # TODO include simulation info!
         # self.__save_orders(order_results)
         # self.__save_transactions(account.transactions(start_date, end_date))
         # self.__save_positions(portfolio)
-        # self.__save_studies(markets, study_parameters)
-        # self.__save_equity(account, start_date, end_date)
+        # self.__save_studies(data_series.futures(None), data_series.study_parameters())
+        self.__save_equity(simulation_id, account, start_date, end_date)
 
     def __save_orders(self, order_results):
         """
@@ -109,6 +118,7 @@ class Persist:
         for i, m in enumerate(markets_with_data):
             self.__log('Saving studies', i, length)
 
+            # TODO refactor reflecting new study structure
             for p in study_parameters:
                 study_data = m.study(p['name'])
                 study_name = '_'.join([p['name'].split('_')[0], str(p['window'])])
@@ -126,18 +136,31 @@ class Persist:
 
         self.__insert_values('study', ['name', 'market_id', 'market_code', 'date', 'value', 'value_2'], values)
 
-    def __save_equity(self, account, start_date, end_date):
+    def __save_equity(self, simulation_id, account, start_date, end_date):
         """
         Calculates equity, balances and margins and insert the values into DB
 
-        :param account:     Account instance
-        :param start_date:  start date to calculate from
-        :param end_date:    end date to calculate to
+        :param simulation_id:   ID of the simulation
+        :param account:         Account instance
+        :param start_date:      start date to calculate from
+        :param end_date:        end date to calculate to
         """
         self.__log('Saving equity')
 
-        base_currency = account.base_currency()
-        columns = ['base_currency', 'date', 'equity', 'balances', 'margins', 'margin_ratio']
+        columns = [
+            'simulation_id',
+            'date',
+            'equity',
+            'available_funds',
+            'balances',
+            'margins',
+            'marked_to_market',
+            'commissions',
+            'fx_translations',
+            'margin_interest',
+            'balance_interest',
+            'margin_ratio'
+        ]
         values = []
         date_range = Timer.daily_date_range(start_date, end_date)
         length = float(len(date_range))
@@ -146,21 +169,43 @@ class Persist:
             self.__log('Saving equity', i, length)
 
             equity = account.equity(date)
+            funds = account.available_funds(date)
             margins = account.margin_loan_balances(date)
             total_margin = sum([account.base_value(v, k, date) for k, v in margins.items()])
 
+            marked_to_market = account.aggregate(date, date, [TransactionType.MTM_TRANSACTION, TransactionType.MTM_POSITION])
+            commissions = account.aggregate(date, date, [TransactionType.COMMISSION])
+            fx_translations = account.aggregate(date, date, [TransactionType.FX_BALANCE_TRANSLATION])
+            margin_interest = account.aggregate(date, date, [TransactionType.MARGIN_INTEREST])
+            balance_interest = account.aggregate(date, date, [TransactionType.BALANCE_INTEREST])
+
             values.append((
-                base_currency,
+                simulation_id,
                 date,
                 self.__round(equity, 28),
-                json.dumps({k: str(v) for k, v in account.fx_balances(date).items()}),
-                json.dumps({k: str(v) for k, v in margins.items()}) if len(margins) else None,
+                self.__round(funds, 28),
+                self.__json(account.fx_balances(date)),
+                self.__json(margins),
+                self.__json(marked_to_market),
+                self.__json(commissions),
+                self.__json(fx_translations),
+                self.__json(margin_interest),
+                self.__json(balance_interest),
                 self.__round(total_margin / equity, 10) if total_margin else None
             ))
 
         self.__insert_values('equity', columns, values)
 
         self.__log('Saving equity', complete=True)
+
+    def __json(self, dictionary):
+        """
+        Serialize dicts into JSON
+        
+        :param dictionary:  dict to serialize
+        :return:            JSON
+        """
+        return json.dumps({k: str(v) for k, v in dictionary.items()}) if len(dictionary) else None
 
     def __insert_values(self, table_name, columns, values):
         """
