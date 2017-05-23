@@ -25,6 +25,7 @@ def studies(data):
 def simulation_params(initial_balance, risk_factor):
     return {
         'initial_balance': initial_balance,
+        'base_currency': 'EUR',
         'risk_factor': risk_factor,
         'commission': 10.0,
         'commission_currency': 'USD',

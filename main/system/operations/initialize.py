@@ -4,7 +4,6 @@ import os
 import json
 import MySQLdb as mysql
 from decimal import Decimal, getcontext
-from enum import Currency
 from enum import Table
 from account import Account
 from broker import Broker
@@ -42,7 +41,7 @@ class Initialize:
         currency_pairs = data_series.currency_pairs()
         interest_rates = data_series.interest_rates()
 
-        account = Account(Decimal(params['initial_balance']), Currency.EUR, currency_pairs)
+        account = Account(Decimal(params['initial_balance']), params['base_currency'], currency_pairs)
         broker = Broker(account, commission, currency_pairs, interest_rates, interest_minimums)
         trading_model = self.__trading_model(simulation[Table.Simulation.TRADING_MODEL])(
             futures,
