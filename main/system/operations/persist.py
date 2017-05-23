@@ -20,8 +20,8 @@ class Persist:
             os.environ['DB_NAME']
         )
 
-        self.__save_orders(simulation_id, order_results)
-        # self.__save_transactions(account.transactions(start_date, end_date))
+        # self.__save_orders(simulation_id, order_results)
+        self.__save_transactions(simulation_id, account.transactions(start_date, end_date))
         # self.__save_positions(portfolio)
         # self.__save_studies(data_series.futures(None), data_series.study_parameters())
         # self.__save_equity(simulation_id, account, start_date, end_date)
@@ -51,7 +51,7 @@ class Persist:
             ) for o in order_results]
         )
 
-    def __save_transactions(self, transactions):
+    def __save_transactions(self, simulation_id, transactions):
         """
         Serialize and insert Transaction instances into DB
 
@@ -62,8 +62,8 @@ class Persist:
         precision = 28
         self.__insert_values(
             'transaction',
-            ['type', 'account_action', 'date', 'amount', 'currency', 'context'],
-            [(t.type(), t.account_action(), t.date(), self.__round(t.amount(), precision), t.currency(), t.context_json())
+            ['simulation_id', 'type', 'account_action', 'date', 'amount', 'currency', 'context'],
+            [(simulation_id, t.type(), t.account_action(), t.date(), self.__round(t.amount(), precision), t.currency(), t.context_json())
              for t in transactions]
         )
 
