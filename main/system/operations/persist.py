@@ -21,8 +21,8 @@ class Persist:
         )
 
         # self.__save_orders(simulation_id, order_results)
-        self.__save_transactions(simulation_id, account.transactions(start_date, end_date))
-        # self.__save_positions(portfolio)
+        # self.__save_transactions(simulation_id, account.transactions(start_date, end_date))
+        self.__save_positions(simulation_id, portfolio)
         # self.__save_studies(data_series.futures(None), data_series.study_parameters())
         # self.__save_equity(simulation_id, account, start_date, end_date)
 
@@ -67,7 +67,7 @@ class Persist:
              for t in transactions]
         )
 
-    def __save_positions(self, portfolio):
+    def __save_positions(self, simulation_id, portfolio):
         """
         Serialize and insert Position instances into DB
 
@@ -79,6 +79,7 @@ class Persist:
         self.__insert_values(
             'position',
             [
+                'simulation_id',
                 'market_id',
                 'direction',
                 'enter_date',
@@ -90,6 +91,7 @@ class Persist:
                 'commissions'
             ],
             [(
+                 simulation_id,
                  p.market().id(),
                  p.direction(),
                  p.enter_date(),
