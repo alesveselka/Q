@@ -22,14 +22,15 @@ class Persist:
 
         # self.__save_orders(simulation_id, order_results)
         # self.__save_transactions(simulation_id, account.transactions(start_date, end_date))
-        self.__save_positions(simulation_id, portfolio)
-        # self.__save_studies(data_series.futures(None), data_series.study_parameters())
+        # self.__save_positions(simulation_id, portfolio)
+        # self.__save_studies(simulation_id, data_series.futures(None), data_series.study_parameters())
         # self.__save_equity(simulation_id, account, start_date, end_date)
 
     def __save_orders(self, simulation_id, order_results):
         """
         Serialize and insert Order instances into DB
 
+        :param simulation_id:   ID of the simulation
         :param order_results:   list of OrderResult objects
         """
         self.__log('Saving orders')
@@ -55,6 +56,7 @@ class Persist:
         """
         Serialize and insert Transaction instances into DB
 
+        :param simulation_id:   ID of the simulation
         :param transactions:    list of Transaction objects
         """
         self.__log('Saving transactions')
@@ -104,10 +106,11 @@ class Persist:
              ) for p in portfolio.closed_positions() + portfolio.open_positions()]
         )
 
-    def __save_studies(self, markets, study_parameters):
+    def __save_studies(self, simulation_id, markets, study_parameters):
         """
         Insert Study data into DB
 
+        :param simulation_id:       ID of the simulation
         :param markets:             list of Market objects
         :param study_parameters:    list of Study parameters
         """
@@ -120,14 +123,14 @@ class Persist:
         for i, m in enumerate(markets_with_data):
             self.__log('Saving studies', i, length)
 
-            # TODO refactor reflecting new study structure
             for p in study_parameters:
-                study_data = m.study(p['name'])
-                study_name = '_'.join([p['name'].split('_')[0], str(p['window'])])
+                study_name = p['name']
+                study_data = m.study(study_name)
                 market_id = m.id()
                 market_code = m.code()
                 for d in study_data:
                     values.append((
+                        simulation_id,
                         study_name,
                         market_id,
                         market_code,
@@ -136,7 +139,7 @@ class Persist:
                         self.__round(d[Table.Study.VALUE_2], precision) if len(d) > 2 else None
                     ))
 
-        self.__insert_values('study', ['name', 'market_id', 'market_code', 'date', 'value', 'value_2'], values)
+        self.__insert_values('study', ['simulation_id', 'name', 'market_id', 'market_code', 'date', 'value', 'value_2'], values)
 
     def __save_equity(self, simulation_id, account, start_date, end_date):
         """
