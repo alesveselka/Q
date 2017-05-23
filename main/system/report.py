@@ -4,12 +4,9 @@ import sys
 import datetime as dt
 from timer import Timer
 from enum import TransactionType
-from enum import AccountAction
 from enum import Interval
-from collections import defaultdict
-from decimal import Decimal
 
-# TODO also calculate Drawdowns, Sharpe, etc.
+
 class Report:
 
     def __init__(self, account):
@@ -143,42 +140,17 @@ class Report:
         :param end_date:    End date to include transactions until
         :return:            dict of dict of performance results
         """
-        types = [
-            TransactionType.MTM_POSITION,
-            TransactionType.MTM_TRANSACTION,
-            TransactionType.COMMISSION,
-            TransactionType.FX_BALANCE_TRANSLATION,
-            TransactionType.MARGIN_INTEREST,
-            TransactionType.BALANCE_INTEREST
-        ]
-        results = {k: defaultdict(Decimal) for k in types}
-
-        for t in [tr for tr in self.__account.transactions(start_date, end_date) if tr.type() in types]:
-            sign = 1 if t.account_action() == AccountAction.CREDIT else -1
-            results[t.type()][t.currency()] += t.amount() * sign
-
-        performance_map = [
-            {'title': 'Mark-to-Market', 'types': [TransactionType.MTM_POSITION, TransactionType.MTM_TRANSACTION], 'results': defaultdict(Decimal)},
-            {'title': 'Commission', 'types': [TransactionType.COMMISSION], 'results': defaultdict(Decimal)},
-            {'title': 'Fx Translation', 'types': [TransactionType.FX_BALANCE_TRANSLATION], 'results': defaultdict(Decimal)},
-            {'title': 'Interest on Margin', 'types': [TransactionType.MARGIN_INTEREST], 'results': defaultdict(Decimal)},
-            {'title': 'Interest on base Balance', 'types': [TransactionType.BALANCE_INTEREST], 'results': defaultdict(Decimal), 'base': True},
-            {'title': 'Interest on non-base Balance', 'types': [TransactionType.BALANCE_INTEREST], 'results': defaultdict(Decimal)}
-        ]
-
+        fn = self.__account.aggregate
         base_currency = self.__account.base_currency()
-        for p in performance_map:
-            for transaction_type in [k for k in results.keys() if k in p['types']]:
-                for currency in results[transaction_type].keys():
-                    if transaction_type == TransactionType.BALANCE_INTEREST:
-                        if p.get('base', False) and currency == base_currency:
-                            p['results'][currency] += results[transaction_type][currency]
-                        elif not p.get('base', False) and currency != base_currency:
-                            p['results'][currency] += results[transaction_type][currency]
-                    else:
-                        p['results'][currency] += results[transaction_type][currency]
-
-        return performance_map
+        balance_interest = fn(start_date, end_date, [TransactionType.BALANCE_INTEREST])
+        return [
+            {'title': 'Mark-to-Market', 'results': fn(start_date, end_date, [TransactionType.MTM_TRANSACTION, TransactionType.MTM_POSITION])},
+            {'title': 'Commission', 'results': fn(start_date, end_date, [TransactionType.COMMISSION])},
+            {'title': 'Fx Translation', 'results': fn(start_date, end_date, [TransactionType.FX_BALANCE_TRANSLATION])},
+            {'title': 'Interest on Margin', 'results': fn(start_date, end_date, [TransactionType.MARGIN_INTEREST])},
+            {'title': 'Interest on base Balance', 'results': {k: v for k, v in balance_interest.items() if k == base_currency}},
+            {'title': 'Interest on non-base Balance', 'results': {k: v for k, v in balance_interest.items() if k != base_currency}}
+        ]
 
     def __returns(self, results, initial_balance, base_currency):
         """
