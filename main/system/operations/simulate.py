@@ -34,6 +34,7 @@ class Simulate:
         end_date = dt.date(1992, 6, 10)
         # end_date = dt.date(2015, 12, 31)
 
+        # TODO parallelize
         self.__data_series.load_and_calculate_data(end_date)
         self.__subscribe()
 
@@ -76,7 +77,7 @@ class Simulate:
 
         report = Report(self.__account)
         # print '\n'.join(report.transactions(start_date, date))
-        # print '\n'.join(report.to_lists(start_date, date, Interval.MONTHLY))
+        print '\n'.join(report.to_lists(start_date, date, Interval.YEARLY))
         # report.to_lists(start_date, date, Interval.MONTHLY)
         print '\n'.join(report.to_lists(start_date, date))
 
