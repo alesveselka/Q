@@ -6,5 +6,6 @@ CREATE TABLE `investment_universe`(
   `contract_start_date` date NOT NULL,
   `data_start_date` date NOT NULL,
   `market_ids` varchar(255) NOT NULL,
-  PRIMARY KEY (`id`)
+  PRIMARY KEY (`id`),
+  UNIQUE KEY (`name`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;

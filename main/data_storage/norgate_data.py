@@ -464,10 +464,13 @@ def populate_investment_universe(schema):
     contract_dates = reduce(lambda d, l: dates(d, l, 'first_contract_date'), lines, defaultdict(list))
     data_dates = reduce(lambda d, l: dates(d, l, 'first_data_date'), lines, defaultdict(list))
 
-    insert_values(
-        query(schema, 'name, contract_start_date, data_start_date, market_ids', "%s, %s, %s, %s"),
-        [[k, max(contract_dates[k]), max(data_dates[k]), ','.join(universes[k])] for k in universes.keys()]
-    )
+    if all([len(universes[k]) == len(set(universes[k])) for k in universes.keys()]):
+        insert_values(
+            query(schema, 'name, contract_start_date, data_start_date, market_ids', "%s, %s, %s, %s"),
+            [[k, max(contract_dates[k]), max(data_dates[k]), ','.join(universes[k])] for k in universes.keys()]
+        )
+    else:
+        print 'Not all markets in investment universe are unique'
 
 
 if __name__ == '__main__':
