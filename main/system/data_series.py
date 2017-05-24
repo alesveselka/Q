@@ -1,25 +1,38 @@
 #!/usr/bin/python
 
+import sys
+import json
 from market import Market
+from enum import Table
 from currency_pair import CurrencyPair
 from interest_rate import InterestRate
 
 
 class DataSeries:
 
-    def __init__(self, investment_universe, connection):
+    def __init__(self, investment_universe, connection, studies):
 
         self.__investment_universe = investment_universe
         self.__connection = connection
+        self.__studies = studies
         self.__futures = None
         self.__currency_pairs = None
         self.__interest_rates = None
+        self.__study_parameters = []
 
-    def futures(self):
+    def start_date(self):
+        """
+        Return data's start data date
+        :return:    date
+        """
+        return self.__investment_universe.start_data_date()
+
+    def futures(self, slippage_map):
         """
         Load futures data if not already loaded
 
-        :return:    list of Market objects
+        :param slippage_map:    list of dicts, each representing volume range to arrive at slippage estimate
+        :return:                list of Market objects
         """
         if self.__futures is None:
             cursor = self.__connection.cursor()
@@ -39,10 +52,10 @@ class DataSeries:
             """
             start_data_date = self.__investment_universe.start_data_date()
             self.__futures = []
-            # for market_id in [int(self.__investment_universe.market_ids()[37])]:  # JY = 37@25Y, W = 16@25Y, ES = 74@15Y
+
             for market_id in self.__investment_universe.market_ids():
                 cursor.execute(market_query % market_id)
-                self.__futures.append(Market(start_data_date, market_id, *cursor.fetchone()))
+                self.__futures.append(Market(start_data_date, market_id, slippage_map, *cursor.fetchone()))
 
         return self.__futures
 
@@ -81,3 +94,62 @@ class DataSeries:
             self.__interest_rates = [InterestRate(start_data_date, *r) for r in cursor.fetchall()]
 
         return self.__interest_rates
+
+    def load_and_calculate_data(self, end_date):
+        """
+        Load data and calculate studies
+
+        :param end_date:        last date to load data
+        """
+        message = 'Loading Futures data ...'
+        length = float(len(self.__futures))
+        map(lambda i: self.__log(message, i[1].code(), i[0], length) and i[1].load_data(self.__connection, end_date),
+            enumerate(self.__futures))
+        self.__log(message, complete=True)
+
+        message = 'Calculating Futures studies ...'
+        self.__study_parameters = json.loads(self.__studies)
+        for s in self.__study_parameters:
+            s['study'] = getattr(sys.modules['study'], s['study'])
+            s['columns'] = [Table.Market.__dict__[c.upper()] for c in s['columns']]
+
+        map(lambda i: self.__log(message, i[1].code(), i[0], length) and i[1].calculate_studies(self.__study_parameters),
+            enumerate(self.__futures))
+        self.__log(message, complete=True)
+
+        message = 'Loading currency pairs data ...'
+        length = float(len(self.__currency_pairs))
+        map(lambda i: self.__log(message, i[1].code(), i[0], length) and i[1].load_data(self.__connection, end_date),
+            enumerate(self.__currency_pairs))
+        self.__log(message, complete=True)
+
+        message = 'Loading interest rates data ...'
+        length = float(len(self.__interest_rates))
+        map(lambda i: self.__log(message, i[1].code(), i[0], length) and i[1].load_data(self.__connection, end_date),
+            enumerate(self.__interest_rates))
+        self.__log(message, complete=True)
+
+    def study_parameters(self):
+        """
+        Return Studies' parameters
+        :return: 
+        """
+        return self.__study_parameters
+
+    def __log(self, message, code='', index=0, length=0.0, complete=False):
+        """
+        Print message and percentage progress to console
+
+        :param message:     Message to print
+        :param index:       Index of the item being processed
+        :param length:      Length of the whole range
+        :param complete:    Flag indicating if the progress is complete
+        :return:            boolean
+        """
+        sys.stdout.write('%s\r' % (' ' * 80))
+        if complete:
+            sys.stdout.write('%s complete\r\n' % message)
+        else:
+            sys.stdout.write('%s %s (%d of %d) [%d %%]\r' % (message, code, index, length, index / length * 100))
+        sys.stdout.flush()
+        return True

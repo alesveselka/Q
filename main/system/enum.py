@@ -12,8 +12,8 @@ class Study:
     ATR_LONG = 'atr_long'
     ATR_SHORT = 'atr_short'
     VOL_SHORT = 'vol_short'
-    SMA_LONG = 'sma_long'
-    SMA_SHORT = 'sma_short'
+    MA_LONG = 'ma_long'
+    MA_SHORT = 'ma_short'
     HHLL_LONG = 'hhll_long'
     HHLL_SHORT = 'hhll_short'
 
@@ -106,3 +106,13 @@ class Table:
         DATE = 0
         VALUE = 1
         VALUE_2 = 2
+
+    class Simulation:
+        ID = 0
+        NAME = 1
+        PARAMS = 2
+        TRADING_MODEL = 3
+        TRADING_PARAMS = 4
+        STUDIES = 5
+        ROLL_STRATEGY_ID = 6
+        INVESTMENT_UNIVERSE = 7

@@ -3,7 +3,6 @@
 from enum import OrderType
 from enum import OrderResultType
 from enum import TransactionType
-from enum import EventType
 from enum import Table
 from transaction import Transaction
 from order_result import OrderResult
@@ -14,58 +13,43 @@ import operator as op
 
 class Broker(object):
 
-    def __init__(self, timer, account, portfolio, commission, currency_pairs, interest_rates, minimums):
-        self.__timer = timer
+    def __init__(self, account, commission, currency_pairs, interest_rates, minimums):
         self.__account = account
-        self.__portfolio = portfolio
         self.__commission = commission
         self.__currency_pairs = currency_pairs
         self.__interest_rates = interest_rates
         self.__minimums = minimums
-        self.__order_results = []
 
-    def subscribe(self):
-        """
-        Subscribe to listen timer's events
-        """
-        self.__timer.on(EventType.MARKET_CLOSE, self.__on_market_close)
-
-    def order_results(self):
-        """
-        Return OrderResults
-
-        :return:    list of OrderResult objects
-        """
-        return self.__order_results
-
-    def __on_market_close(self, date, previous_date):
+    def update_account(self, date, previous_date, open_positions):
         """
         Market Close event handler
 
         :param date:            date for the market open
         :param previous_date:   previous market date
+        :param open_positions:  list of open positions
         """
         # TODO also check if there is market data for this date, same as in trading systems (AND set previous date accordingly? - different than market date)
         # TODO do I need to do all these if there is no position open?
 
-        self.__mark_to_market(date)
+        self.__mark_to_market(date, open_positions)
         self.__translate_fx_balances(date, previous_date)
         self.__charge_interest(date, previous_date)
         self.__pay_interest(date, previous_date)
-        self.__update_margin_loans(date)
+        self.__update_margin_loans(date, open_positions)
 
-        if not self.__portfolio.open_positions():
+        if not open_positions:
             self.__sweep_fx_funds(date)
 
         # TODO Fx hedge
         # TODO cash management (3Mo IR?)
 
-    def transfer(self, order):
+    def transfer(self, order, open_positions):
         """
         Create Transactions from Orders and transfer them for execution
 
-        :param order:   an Order instance to transfer
-        :return:        OrderResult instance
+        :param order:           an Order instance to transfer
+        :param open_positions:  list of open positions
+        :return:                OrderResult instance
         """
         market = order.market()
         date = order.date()
@@ -75,7 +59,7 @@ class Broker(object):
         previous_date = market.data(end_date=date)[-2][Table.Market.PRICE_DATE]
         margin = market.margin(previous_date) * Decimal(order.quantity())
         price = self.__slipped_price(order, order_type)
-        order_result = OrderResult(OrderResultType.REJECTED, order, price, margin, commissions)
+        order_result = OrderResult(OrderResultType.REJECTED, order, 0, 0, 0)
 
         if order_type == OrderType.BTO or order_type == OrderType.STO:
             if self.__account.available_funds(date) > self.__account.base_value(margin + commissions, currency, date):
@@ -84,7 +68,7 @@ class Broker(object):
 
                 order_result = OrderResult(OrderResultType.FILLED, order, price, margin, commissions)
         else:
-            position = self.__portfolio.market_position(market)
+            position = [p for p in open_positions if p.market() == market][0]
             mtm = position.mark_to_market(order.date(), price) * Decimal(position.quantity()) * market.point_value()
 
             self.__add_transaction(TransactionType.MTM_TRANSACTION, date, mtm, currency, (market, price))
@@ -93,7 +77,6 @@ class Broker(object):
 
             order_result = OrderResult(OrderResultType.FILLED, order, price, margin, commissions)
 
-        self.__order_results.append(order_result)
         return order_result
 
     def __slipped_price(self, order, order_type):
@@ -144,13 +127,13 @@ class Broker(object):
                     self.__add_transaction(TransactionType.INTERNAL_FUND_TRANSFER, date, amount, base_currency)
                     self.__add_transaction(TransactionType.INTERNAL_FUND_TRANSFER, date, -balance, currency)
 
-    def __mark_to_market(self, date):
+    def __mark_to_market(self, date, open_positions):
         """
         Mark open positions to market values
 
         :param date:    date to which mark the positions
         """
-        for p in self.__portfolio.open_positions():
+        for p in open_positions:
             market = p.market()
 
             if market.has_data(date):
@@ -180,17 +163,18 @@ class Broker(object):
                 context = (balance, currency, rate, prior_rate)
                 self.__add_transaction(TransactionType.FX_BALANCE_TRANSLATION, date, translation, base_currency, context)
 
-    def __update_margin_loans(self, date):
+    def __update_margin_loans(self, date, open_positions):
         """
         Update margin loans with data on the date passed in
 
-        :param date:    date of the data to use for margin calculation
+        :param date:            date of the data to use for margin calculation
+        :param open_positions:  list of open positions
         """
-        if len(self.__portfolio.open_positions()):
+        if len(open_positions):
             to_open = defaultdict(Decimal)
             to_close = defaultdict(Decimal)
 
-            for p in self.__portfolio.open_positions():
+            for p in open_positions:
                 if date > p.enter_date():
                     market = p.market()
 

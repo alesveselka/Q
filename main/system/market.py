@@ -13,6 +13,7 @@ class Market(object):  # TODO rename to Future?
     def __init__(self,
                  start_data_date,
                  market_id,
+                 slippage_map,
                  name,
                  code,
                  data_codes,
@@ -25,6 +26,7 @@ class Market(object):  # TODO rename to Future?
 
         self.__start_data_date = start_data_date
         self.__id = market_id
+        self.__slippage_map = slippage_map
         self.__name = name
         self.__market_code = code
         self.__instrument_code = ''.join([code, '2']) if 'C' in data_codes else code
@@ -38,6 +40,7 @@ class Market(object):  # TODO rename to Future?
         self.__margin_multiple = 0.0
         self.__data = []
         self.__studies = {}
+        self.__first_study_date = dt.date(9999, 12, 31)
 
     def id(self):
         return self.__id
@@ -50,6 +53,9 @@ class Market(object):  # TODO rename to Future?
 
     def point_value(self):
         return self.__point_value
+
+    def first_study_date(self):
+        return self.__first_study_date
 
     def data(self, start_date=dt.date(1900, 1, 1), end_date=dt.date(9999, 12, 31)):
         """
@@ -87,19 +93,11 @@ class Market(object):  # TODO rename to Future?
         :param date:    date on which to calculate the slippage
         :return:        Number representing slippage in market points
         """
-        # TODO remove hard-coded slippage-map (pass in as dependency)
         # TODO factor in quantity?
         atr = self.study(Study.ATR_SHORT, date)[-1][Table.Study.VALUE]
         volume = self.study(Study.VOL_SHORT, date)[-1][Table.Study.VALUE]
-        slippage_atr = filter(lambda s: s.get('min') <= volume < s.get('max'), [
-            {'atr': 2, 'min': 0, 'max': 100},
-            {'atr': 1, 'min': 100, 'max': 1000},
-            {'atr': 0.25, 'min': 1000, 'max': 10000},
-            {'atr': 0.1, 'min': 10000, 'max': 50000},
-            {'atr': 0.05, 'min': 50000, 'max': 200000},
-            {'atr': 0.01, 'min': 200000, 'max': 1e9}
-        ])[0].get('atr')
-        slippage_value = Decimal(slippage_atr) * atr
+        atr_multiple = [s for s in self.__slippage_map if s['min'] <= volume < s['max']][0].get('atr')
+        slippage_value = Decimal(atr_multiple) * atr
         return (Decimal(ceil(slippage_value / self.__tick_value)) * self.__tick_value) / self.__point_value
 
     def study(self, study_name, date=dt.date(9999, 12, 31)):
@@ -124,6 +122,8 @@ class Market(object):  # TODO rename to Future?
                     [tuple(map(lambda c: d[c], params['columns'])) for d in self.__data],
                     params['window']
                 )
+
+            self.__first_study_date = max([self.__studies[k][0][0] for k in self.__studies.keys()])
 
             margin = self.__margin if self.__margin else self.__data[-1][Table.Market.SETTLE_PRICE] * self.__point_value * 0.1
             self.__margin_multiple = margin / self.study(Study.ATR_SHORT)[-1][Table.Study.VALUE]
@@ -161,6 +161,7 @@ class Market(object):  # TODO rename to Future?
 
         :return:    string
         """
+        # TODO External 'Entity'?
         columns = {
             'code': Table.Market.CODE,
             'price_date': Table.Market.PRICE_DATE,

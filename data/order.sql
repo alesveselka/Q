@@ -2,6 +2,7 @@ DROP TABLE IF EXISTS `order`;
 
 CREATE TABLE `order`(
   `id` int NOT NULL AUTO_INCREMENT,
+  `simulation_id` int NOT NULL,
   `market_id` int NOT NULL,
   `type` varchar(8) NOT NULL,
   `signal_type` varchar(16) NOT NULL,
