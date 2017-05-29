@@ -56,8 +56,7 @@ class BreakoutMAFilterATRStop(TradingModel):
                     # TODO REBALANCE (during rolls?)!
                     # Naive contract roll implementation (end of each month)
                     if date.month != previous_date.month and len([s for s in signals if s.market() == market]) == 0:
-                        opposite_direction = Direction.LONG if direction == Direction.SHORT else Direction.LONG
-                        signals.append(Signal(market, SignalType.ROLL_EXIT, opposite_direction, date, settle_price))
+                        signals.append(Signal(market, SignalType.ROLL_EXIT, direction, date, settle_price))
                         signals.append(Signal(market, SignalType.ROLL_ENTER, direction, date, settle_price))
 
                 # TODO pass-in rules
