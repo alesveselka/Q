@@ -16,9 +16,9 @@ class Order(object):
         self.__signal_type = signal.type()
         self.__type = {
             SignalType.ENTER: {Direction.LONG: OrderType.BTO, Direction.SHORT: OrderType.STO},
-            SignalType.EXIT: {Direction.LONG: OrderType.BTC, Direction.SHORT: OrderType.STC},
+            SignalType.EXIT: {Direction.LONG: OrderType.STC, Direction.SHORT: OrderType.BTC},
             SignalType.ROLL_ENTER: {Direction.LONG: OrderType.BTO, Direction.SHORT: OrderType.STO},
-            SignalType.ROLL_EXIT: {Direction.LONG: OrderType.BTC, Direction.SHORT: OrderType.STC}
+            SignalType.ROLL_EXIT: {Direction.LONG: OrderType.STC, Direction.SHORT: OrderType.BTC}
         }.get(self.__signal_type).get(signal.direction())
 
     def market(self):
