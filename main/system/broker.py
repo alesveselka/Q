@@ -59,7 +59,7 @@ class Broker(object):
         previous_date = market.data(end_date=date)[-2][Table.Market.PRICE_DATE]
         margin = market.margin(previous_date) * Decimal(order.quantity())
         price = self.__slipped_price(order, order_type)
-        order_result = OrderResult(OrderResultType.REJECTED, order, 0, 0, 0)
+        order_result = OrderResult(OrderResultType.REJECTED, order, price, margin, commissions)
 
         if order_type == OrderType.BTO or order_type == OrderType.STO:
             if self.__account.available_funds(date) > self.__account.base_value(margin + commissions, currency, date):
