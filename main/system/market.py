@@ -38,7 +38,8 @@ class Market(object):  # TODO rename to Future?
         self.__point_value = point_value
         self.__margin = margin
         self.__margin_multiple = 0.0
-        self.__data = []
+        self.__adjusted_data = []
+        self.__spliced_data = []
         self.__studies = {}
         self.__first_study_date = dt.date(9999, 12, 31)
 
@@ -65,7 +66,7 @@ class Market(object):  # TODO rename to Future?
         :param end_date:    Date of last date of the data range
         :return:            List of market data records
         """
-        return [d for d in self.__data if start_date <= d[Table.Market.PRICE_DATE] <= end_date]
+        return [d for d in self.__adjusted_data if start_date <= d[Table.Market.PRICE_DATE] <= end_date]
 
     def has_data(self, date):
         """
@@ -116,16 +117,17 @@ class Market(object):  # TODO rename to Future?
 
         :param study_parameters:    List of dictionaries with parameters for each study to calculate
         """
-        if len(self.__data):
+        if len(self.__adjusted_data) and len(self.__spliced_data):
             for params in study_parameters:
+                data = self.__adjusted_data if params['adjusted_series'] else self.__spliced_data
                 self.__studies[params['name']] = params['study'](
-                    [tuple(map(lambda c: d[c], params['columns'])) for d in self.__data],
+                    [tuple(map(lambda c: d[c], params['columns'])) for d in data],
                     params['window']
                 )
 
             self.__first_study_date = max([self.__studies[k][0][0] for k in self.__studies.keys()])
 
-            margin = self.__margin if self.__margin else self.__data[-1][Table.Market.SETTLE_PRICE] * self.__point_value * 0.1
+            margin = self.__margin if self.__margin else self.__adjusted_data[-1][Table.Market.SETTLE_PRICE] * self.__point_value * 0.1
             self.__margin_multiple = margin / self.study(Study.ATR_SHORT)[-1][Table.Study.VALUE]
 
     def load_data(self, connection, end_date):
@@ -138,7 +140,7 @@ class Market(object):  # TODO rename to Future?
         cursor = connection.cursor()
         sql = """
             SELECT %s
-            FROM continuous_back_adjusted
+            FROM %s
             WHERE market_id = '%s'
             AND code = '%s'
             AND DATE(price_date) >= '%s'
@@ -146,12 +148,23 @@ class Market(object):  # TODO rename to Future?
         """
         cursor.execute(sql % (
             self.__column_names(),
+            'continuous_back_adjusted',
             self.__id,
             self.__instrument_code,
             self.__start_data_date.strftime('%Y-%m-%d'),
             end_date.strftime('%Y-%m-%d')
         ))
-        self.__data = cursor.fetchall()
+        self.__adjusted_data = cursor.fetchall()
+
+        cursor.execute(sql % (
+            self.__column_names(),
+            'continuous_spliced',
+            self.__id,
+            self.__instrument_code,
+            self.__start_data_date.strftime('%Y-%m-%d'),
+            end_date.strftime('%Y-%m-%d')
+        ))
+        self.__spliced_data = cursor.fetchall()
 
         return True
 
