@@ -6,6 +6,7 @@ from study import *
 from enum import Study
 from enum import Table
 from operator import itemgetter
+from math import floor, log10
 
 
 class Market(object):  # TODO rename to Future?
@@ -86,20 +87,22 @@ class Market(object):  # TODO rename to Future?
         """
         return Decimal(ceil(self.__margin_multiple * self.study(Study.ATR_SHORT, date)[-1][Table.Study.VALUE]))
 
-    def slippage(self, date):
+    def slippage(self, date, quantity):
         """
         Calculates and returns 'slippage' in points
         (At minimum 1 tick)
 
-        :param date:    date on which to calculate the slippage
-        :return:        Number representing slippage in market points
+        :param date:        date on which to calculate the slippage
+        :param quantity:    number of contracts to open
+        :return:            Number representing slippage in market points
         """
-        # TODO factor in quantity?
         atr = self.study(Study.ATR_SHORT, date)[-1][Table.Study.VALUE]
         volume = self.study(Study.VOL_SHORT, date)[-1][Table.Study.VALUE]
         atr_multiple = [s for s in self.__slippage_map if s['min'] <= volume < s['max']][0].get('atr')
+        quantity_factor = Decimal(2 ** floor(log10(quantity)))
         slippage_value = Decimal(atr_multiple) * atr
-        return (Decimal(ceil(slippage_value / self.__tick_value)) * self.__tick_value) / self.__point_value
+        result = (Decimal(ceil(slippage_value / self.__tick_value)) * self.__tick_value) / self.__point_value
+        return result * quantity_factor
 
     def study(self, study_name, date=dt.date(9999, 12, 31)):
         """

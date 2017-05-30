@@ -87,7 +87,7 @@ class Broker(object):
         :return:        number representing final price
         """
         price = order.price()
-        slippage = Decimal(order.market().slippage(order.date()))
+        slippage = Decimal(order.market().slippage(order.date(), order.quantity()))
         return (price + slippage) if (order_type == OrderType.BTO or order_type == OrderType.BTC) else (price - slippage)
 
     def __commissions(self, quantity, currency, date):
