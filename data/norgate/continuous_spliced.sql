@@ -3,6 +3,7 @@ DROP TABLE IF EXISTS `continuous_spliced`;
 CREATE TABLE `continuous_spliced`(
   `id` int NOT NULL AUTO_INCREMENT,
   `market_id` int NOT NULL,
+  `roll_strategy_id` int NOT NULL,
   `code` varchar(8) NOT NULL,
   `price_date` date NOT NULL,
   `open_price` decimal(20,10) NULL,

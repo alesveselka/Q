@@ -3,8 +3,8 @@ DROP TABLE IF EXISTS `continuous_adjusted`;
 CREATE TABLE `continuous_adjusted`(
   `id` int NOT NULL AUTO_INCREMENT,
   `market_id` int NOT NULL,
+  `roll_strategy_id` int NOT NULL,
   `code` varchar(8) NOT NULL,
-  `roll_strategy` varchar(255) NULL,
   `price_date` date NOT NULL,
   `open_price` decimal(20,10) NULL,
   `high_price` decimal(20,10) NULL,
