@@ -340,12 +340,15 @@ def populate_continuous(schema, dir_path):
     data_codes = dict(cursor.fetchall())
     cursor.execute("SELECT id, code, data_codes FROM `market`")
     codes = cursor.fetchall()
+    cursor.execute("SELECT id, name FROM `roll_strategy` WHERE name = 'norgate'")
+    roll_strategy_id = cursor.fetchone()[0]
     dir_list = [d.split('.')[0] for d in os.listdir(dir_path)]
     now = dt.datetime.now()
     all_codes = reduce(lambda result, c: result + map(lambda d: (c[0], c[1] + data_codes[d]), c[2]), codes, [])
     matching_codes = filter(lambda c: c[1] in dir_list, all_codes)
     columns = [
         'market_id',
+        'roll_strategy_id',
         'code',
         'price_date',
         'open_price',
@@ -362,7 +365,7 @@ def populate_continuous(schema, dir_path):
 
     def values(code):
         rows = csv_lines(''.join([dir_path, code[1], '.csv']), exclude_header=False)
-        return [[code[0], code[1], r[0], r[1], r[2], r[3], r[4], r[4], r[5], r[6], now, now] for r in rows]
+        return [[code[0], roll_strategy_id, code[1], r[0], r[1], r[2], r[3], r[4], r[4], r[5], r[6], now, now] for r in rows]
 
     map(lambda c: insert_values(q, values(c)), matching_codes)
 
