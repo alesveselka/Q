@@ -4,6 +4,7 @@ import os
 import re
 import csv
 import sys
+import json
 import datetime as dt
 import MySQLdb as mysql
 from collections import defaultdict
@@ -22,9 +23,9 @@ def out(message):
     return True
 
 
-def csv_lines(path, exclude_header=True):
+def csv_lines(path, exclude_header=True, filter_index=0):
     reader = csv.reader(open(path), delimiter=',', quotechar='"')
-    rows = [row for row in reader if re.match('^[a-zA-Z0-9]', row[0])]
+    rows = [row for row in reader if re.match('^[a-zA-Z0-9]', row[filter_index])]
     return rows[1:] if exclude_header else rows
 
 
@@ -303,6 +304,7 @@ def populate_symbol(now, code, dir_path, delivery_months, q):
 
     def values(file_name):
         delivery = file_name[5:10]
+        # TODO use last date in a month, instead of first (1)
         delivery_date = dt.date(int(delivery[:-1]), index(delivery[-1], delivery_months), 1)
         rows = csv_lines(''.join([dir_path, code[1], '/', file_name]), exclude_header=False)
         return [[
@@ -473,6 +475,46 @@ def populate_investment_universe(schema):
         print 'Not all markets in investment universe are unique'
 
 
+def populate_standard_roll_schedule(schema):
+    cursor = mysql_connection.cursor()
+    cursor.execute("SELECT code, id FROM `market`")
+    codes = cursor.fetchall()
+    lines = csv_lines('./data/%s.csv' % schema, True, 2)
+    columns = [
+        'name',
+        'market_id',
+        'roll_out_month',
+        'roll_in_month',
+        'month',
+        'day'
+    ]
+
+    values = []
+    roll_out_month = 2
+    roll_in_month = 3
+    month = 4
+    day = 5
+    schedule_name = lines[0][0]
+    code = lines[0][1]
+    for l in lines:
+        schedule_name = l[0] or schedule_name
+        code = l[1] or code
+        market_id = [c[1] for c in codes if c[0] == code][0]
+        values.append((schedule_name, market_id, l[roll_out_month], l[roll_in_month], l[month], l[day]))
+
+    insert_values(query(schema, ','.join(columns), ("%s, " * len(columns))[:-2]), values)
+
+
+def populate_roll_strategy(schema):
+    insert_values(
+        query(schema, 'name, type, params', '%s, %s, %s'),
+        [
+            ('norgate', 'standard_roll', None),
+            ('standard_roll_1', 'standard_roll', json.dumps({'schedule': 'norgate'}))
+        ]
+    )
+
+
 if __name__ == '__main__':
     if len(sys.argv) == 2 and len(sys.argv[1]):
         schema = sys.argv[1]
@@ -483,6 +525,8 @@ if __name__ == '__main__':
             ('group', populate_group_table),
             ('market', populate_market),
             ('contract', populate_contracts),
+            ('standard_roll_schedule', populate_standard_roll_schedule),
+            ('roll_strategy', populate_roll_strategy),
             ('continuous_adjusted', populate_continuous_adjusted),
             ('continuous_spliced', populate_continuous_spliced),
             ('spot_market', populate_spot_market),
