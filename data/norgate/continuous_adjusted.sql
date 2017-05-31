@@ -1,6 +1,6 @@
-DROP TABLE IF EXISTS `continuous_back_adjusted`;
+DROP TABLE IF EXISTS `continuous_adjusted`;
 
-CREATE TABLE `continuous_back_adjusted`(
+CREATE TABLE `continuous_adjusted`(
   `id` int NOT NULL AUTO_INCREMENT,
   `market_id` int NOT NULL,
   `code` varchar(8) NOT NULL,

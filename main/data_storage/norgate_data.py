@@ -318,7 +318,7 @@ def populate_symbol(now, code, dir_path, delivery_months, q):
     map(lambda f: insert_values(q, values(f)), files)
 
 
-def populate_continuous_back_adjusted(schema):
+def populate_continuous_adjusted(schema):
     populate_continuous(
         schema,
         './resources/Norgate/data/Futures/Continuous Contracts/Back Adjusted/Text/'
@@ -483,7 +483,7 @@ if __name__ == '__main__':
             ('group', populate_group_table),
             ('market', populate_market),
             ('contract', populate_contracts),
-            ('continuous_back_adjusted', populate_continuous_back_adjusted),
+            ('continuous_adjusted', populate_continuous_adjusted),
             ('continuous_spliced', populate_continuous_spliced),
             ('spot_market', populate_spot_market),
             ('spot', populate_spot),

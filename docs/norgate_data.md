@@ -92,7 +92,7 @@
 #####Continuous Back_adjusted contract
 ```
 +-------------------------------+
-| continuous_back_adjusted      |
+| continuous_adjusted           |
 +-------------------------------+
 | id                            |
 | market_id                     |
