@@ -32,7 +32,7 @@ class Simulate:
         now = dt.datetime.now()
         # end_date = dt.date(now.year, now.month, now.day)
         # end_date = dt.date(1992, 6, 10)
-        end_date = dt.date(1993, 12, 31)
+        end_date = dt.date(2015, 12, 31)
 
         # TODO parallelize
         self.__data_series.load_and_calculate_data(end_date)
@@ -76,7 +76,7 @@ class Simulate:
         )
 
         report = Report(self.__account)
-        print '\n'.join(report.transactions(start_date, date))
+        # print '\n'.join(report.transactions(start_date, date))
         # print '\n'.join(report.to_lists(start_date, date, Interval.YEARLY))
         # report.to_lists(start_date, date, Interval.MONTHLY)
         print '\n'.join(report.to_lists(start_date, date))
@@ -106,7 +106,7 @@ class Simulate:
         :param date:            date for the market open
         :param previous_date:   previous market date
         """
-        self.__trading_signals = self.__trading_model.signals(date, self.__portfolio.open_positions())
+        self.__trading_signals += self.__trading_model.signals(date, self.__portfolio.open_positions())
 
     def __transfer_orders(self, orders):
         """
@@ -142,6 +142,7 @@ class Simulate:
         :param date:    date for the market open
         """
         orders = []
+        signals_to_remove = []
 
         for signal in self.__trading_signals:
             market = signal.market()
@@ -161,5 +162,10 @@ class Simulate:
                 if market_position is None and signal in enter_signals:
                     quantity = self.__risk.position_size(market.point_value(), market.currency(), atr_long, date)
                     orders.append(Order(market, signal, date, open_price, quantity))
+
+                signals_to_remove.append(signal)
+
+        for signal in signals_to_remove:
+            self.__trading_signals.remove(signal)
 
         return orders

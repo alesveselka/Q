@@ -48,10 +48,10 @@ class BreakoutMAFilterATRStop(TradingModel):
                     direction = market_position.direction()
                     if direction == Direction.LONG:
                         if settle_price <= self.__stop_loss(date, market_position):
-                            signals.append(Signal(market, SignalType.EXIT, Direction.SHORT, date, settle_price))
+                            signals.append(Signal(market, SignalType.EXIT, direction, date, settle_price))
                     elif direction == Direction.SHORT:
                         if settle_price >= self.__stop_loss(date, market_position):
-                            signals.append(Signal(market, SignalType.EXIT, Direction.LONG, date, settle_price))
+                            signals.append(Signal(market, SignalType.EXIT, direction, date, settle_price))
 
                     # TODO REBALANCE (during rolls?)!
                     # Naive contract roll implementation (end of each month)
