@@ -140,13 +140,11 @@ def populate_symbol(now, code, roll_strategy_id, roll_schedule, dir_path, delive
 
     # map(lambda f: insert_values(q, values(f)), files)
 
-    # filter the file names by the delivery months in roll schedule
     price_date = 0
     continuous = []
     schedule_months = [s[0] for s in roll_schedule]
     file_names = [f for f in files if month_abbrs[index(f[-5], delivery_months, 0)] in schedule_months]
-    for f in file_names:
-        # TODO do not iterate, but actually find the roll-in contract
+    for f in sorted(file_names):
         span = contract_span(f, roll_schedule, delivery_months, month_abbrs)
         rows = csv_lines(''.join([dir_path, code[1], '/', f]), exclude_header=False)
         contract_rows = [r for r in rows if span[0] <= date(r[price_date]) < span[1]]
