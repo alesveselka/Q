@@ -91,12 +91,14 @@ def populate_market(schema):
         'currency': 14,
         'first_contract': 15,
         'first_data_date': 16,
-        'last_trading_day': 17,
-        'first_notice_day': 18,
-        'intraday_initial_margin': 19,
-        'intraday_maintenance_margin': 20,
-        'overnight_initial_margin': 21,
-        'overnight_maintenance_margin': 22
+        'volume_offset': 17,
+        'oi_offset': 18,
+        'last_trading_day': 19,
+        'first_notice_day': 20,
+        'intraday_initial_margin': 21,
+        'intraday_maintenance_margin': 22,
+        'overnight_initial_margin': 23,
+        'overnight_maintenance_margin': 24
     }
     IB_columns = {
         'underlying': 2,
