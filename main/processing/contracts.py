@@ -85,6 +85,7 @@ def construct_continuous():
         now,
         (37L, 'ES', 0, -1),
         # (106L, 'WT', 0, -1),
+        # (76L, 'WT', 0, -1),
         roll_strategy_id,
         [(r[roll_out_month], r[roll_in_month], r[month], r[day]) for r in roll_schedule if r[market_id] == 37],
         dir_path,
@@ -98,7 +99,7 @@ def construct_continuous():
 
 
 def populate_symbol(now, code, roll_strategy_id, roll_schedule, dir_path, delivery_months, q, month_abbrs):
-    files = os.listdir(''.join([dir_path, code[1]]))
+    files = os.listdir(''.join([dir_path, code[1]]))[:30]
 
     def index(key, data, position=0):
         return reduce(lambda i, d: i + 1 if d[position] <= key else i, data, 0)
@@ -141,30 +142,44 @@ def populate_symbol(now, code, roll_strategy_id, roll_schedule, dir_path, delive
 
     # filter the file names by the delivery months in roll schedule
     price_date = 0
-    open_price = 1
-    high_price = 2
-    low_price = 3
-    last_price = 4
-    settle_price = 4
-    volume = 5
-    open_interest = 6
     continuous = []
     schedule_months = [s[0] for s in roll_schedule]
     file_names = [f for f in files if month_abbrs[index(f[-5], delivery_months, 0)] in schedule_months]
     for f in file_names:
-        roll = roll_in_info(f, roll_schedule, delivery_months, month_abbrs)
-        roll_in_file = roll[0]
-        if roll_in_file in file_names:
-            roll_in_rows = csv_lines(''.join([dir_path, code[1], '/', roll_in_file]), exclude_header=False)
-            # continuous += [r for r in roll_in_rows if date(r[price_date]) < ]
+        # TODO do not iterate, but actually find the roll-in contract
+        span = contract_span(f, roll_schedule, delivery_months, month_abbrs)
+        rows = csv_lines(''.join([dir_path, code[1], '/', f]), exclude_header=False)
+        contract_rows = [r for r in rows if span[0] <= date(r[price_date]) < span[1]]
+        continuous = continuous + contract_rows if len(contract_rows) else continuous
 
-
-        print f, roll
+    for c in continuous:
+        print c
 
     print roll_strategy_id
 
     for s in roll_schedule:
         print s
+
+
+def contract_span(contract_file, roll_schedule, delivery_months, month_abbrs):
+    contract_year = int(contract_file[5:9])
+    contract_month_code = contract_file[-5]
+    contract_month_index = index(contract_month_code, delivery_months, 0) + 1
+    contract_month = month_abbrs[contract_month_index]
+
+    in_roll = [s for s in roll_schedule if s[1] == contract_month][0]
+    in_month = in_roll[2]
+    in_month_code = [m for m in delivery_months if m[2] == in_month][0][0]
+    in_month_index = index(in_month_code, delivery_months, 0) + 1
+    in_year = contract_year if contract_month_index - in_month_index > -1 else contract_year - 1
+
+    out_roll = [s for s in roll_schedule if s[0] == contract_month][0]
+    out_month = out_roll[2]
+    out_month_code = [m for m in delivery_months if m[2] == out_month][0][0]
+    out_month_index = index(out_month_code, delivery_months, 0) + 1
+    out_year = contract_year if contract_month_index - out_month_index > -1 else contract_year - 1
+
+    return dt.date(in_year, in_month_index, in_roll[3]), dt.date(out_year, out_month_index, out_roll[3])
 
 
 def roll_in_info(roll_out_file, roll_schedule, delivery_months, month_abbrs):
@@ -190,7 +205,7 @@ def index(item, sequence, item_filter):
 
 
 def date(d):
-    return dt.date(int(d[:4]), int(d[4:6]), int(d[:6]))
+    return dt.date(int(d[:4]), int(d[4:6]), int(d[6:]))
 
 
 def populate_continuous_adjusted(schema):
@@ -237,9 +252,6 @@ def populate_continuous(schema, dir_path):
 
 
 if __name__ == '__main__':
-    # if len(sys.argv) == 2 and len(sys.argv[1]):
-    #     schema = sys.argv[1]
-
     mysql_connection = mysql.connect(
         os.environ['DB_HOST'],
         os.environ['DB_USER'],
