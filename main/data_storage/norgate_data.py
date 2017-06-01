@@ -52,7 +52,7 @@ def populate_exchange_table(schema):
 
 def populate_delivery_month_table(schema):
     insert_values(
-        query(schema, 'code, name', "%s, %s"),
+        query(schema, 'code, name, short_name', "%s, %s, %s"),
         csv_lines(norgate_dir_template % schema)
     )
 
