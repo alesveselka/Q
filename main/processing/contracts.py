@@ -83,11 +83,14 @@ def construct_continuous():
     day = 4
     month_abbrs = [m for m in calendar.month_abbr]
 
+    # market_code = (37L, 'ES')
+    market_code = (33L, 'W2')
+    # market_code = (106L, 'WT')
+
     contracts, rolls = contracts_data(
-        (37L, 'ES'),
-        # (106L, 'WT'),
+        market_code,
         roll_strategy_id,
-        [(r[roll_out_month], r[roll_in_month], r[month], r[day]) for r in roll_schedule if r[market_id] == 37],
+        [(r[roll_out_month], r[roll_in_month], r[month], r[day]) for r in roll_schedule if r[market_id] == market_code[0]],
         dir_path,
         delivery_months,
         q,
@@ -98,10 +101,17 @@ def construct_continuous():
     spliced = construct_spliced(contracts, sorted_rolls)
     adjusted = construct_adjusted(contracts, rolls)
 
-    print 'compare spliced', different_to_norgate(spliced, 'continuous_spliced', 37)
+    different = different_to_norgate([s for s in spliced if date(s[0]) >= dt.date(1979, 11, 23)], 'continuous_spliced', market_code[0])
+    print 'compare spliced', different
+    # print 'compare adjusted', different_to_norgate(adjusted, 'continuous_adjusted', market_code[0])
 
-    for r in sorted_rolls:
-        print r
+    # for k in contracts.keys():
+    #     print ''
+    #     for c in contracts[k]:
+    #         print c
+
+    # for r in sorted_rolls:
+    #     print r
 
     #
     # for a in adjusted:
@@ -124,12 +134,18 @@ def different_to_norgate(series, table, market_id):
         norgate_id
     ))
     norgate_series = cursor.fetchall()
-
-    return len(norgate_series) == len(series) \
-           and all([compare_rows(series[i[0]], norgate_series[i[0]]) for i in enumerate(norgate_series)])
+    print len(norgate_series), len(series)
+    print norgate_series[0][0], norgate_series[-1][0], series[0][0], series[-1][0]
+    # return len(norgate_series) == len(series) \
+    #        and all([compare_rows(series[i[0]], norgate_series[i[0]]) for i in enumerate(series)])
+    return all([compare_rows(series[i[0]], norgate_series[i[0]]) for i in enumerate(series)])
 
 
 def compare_rows(constructed, norgate):
+    d1 = Decimal(constructed[1])
+    d2 = norgate[1]
+    if d1 != d2:
+        print date(constructed[0]), d1, d2, d1 == d2
     return date(constructed[0]) == norgate[0] \
         and Decimal(constructed[1]) == norgate[1] \
         and Decimal(constructed[2]) == norgate[2] \
@@ -159,6 +175,8 @@ def construct_adjusted(contracts, rolls):
 
 def adjust_prices(row, price):
     prices = range(1, 5)
+    # print 'ROW:', row
+    # print 'NEW:', map(lambda i: Decimal(i[1]) + price if i[0] in prices else i[1], enumerate(row))
     return map(lambda i: Decimal(i[1]) + price if i[0] in prices else i[1], enumerate(row))
 
 
@@ -171,19 +189,21 @@ def contracts_data(code, roll_strategy_id, roll_schedule, dir_path, delivery_mon
     continuous = {}
     schedule_months = [s[0] for s in roll_schedule]
     files = os.listdir(''.join([dir_path, code[1]]))
-    file_names = [f for f in files if month_abbrs[index(f[-5], delivery_months)] in schedule_months]
+    file_names = [f for f in files if month_abbrs[index(f[-5].upper(), delivery_months)] in schedule_months]
     for f in sorted(file_names):
         contract_code = f[5:10]
         span = contract_span(f, roll_schedule, delivery_months, month_abbrs)
         rows = csv_lines(''.join([dir_path, code[1], '/', f]), exclude_header=False)
-        contract_rows = [r for r in rows if span[0] < date(r[price_date]) <= span[1]]
+        contract_rows = [r for r in rows if span[0] <= date(r[price_date]) <= span[1]]
         if len(contract_rows):
             gap = Decimal(contract_rows[0][last_price]) - Decimal(last_contract_price) if last_contract_price else 0
-            rolls.append((code[0], roll_strategy_id, date(contract_rows[0][price_date]), gap, last_contract_code, contract_code))
-            last_contract_code = contract_code
+            rolls.append((code[0], roll_strategy_id, date(contract_rows[0][price_date]), gap, last_contract_code, contract_code.upper()))
+            continuous[contract_code.upper()] = contract_rows[1:] \
+                if last_contract_code and date(continuous[last_contract_code][-1][0]) == date(contract_rows[0][0]) \
+                else contract_rows
+            last_contract_code = contract_code.upper()
             contract_roll_row = [r for r in rows if date(r[price_date]) >= span[1]]
             last_contract_price = contract_roll_row[0][last_price] if len(contract_roll_row) else 0
-            continuous[contract_code] = contract_rows
 
     return continuous, rolls
 
@@ -192,7 +212,7 @@ def contract_span(contract_file, roll_schedule, delivery_months, month_abbrs):
     code_column = 0
     contract_year = int(contract_file[5:9])
     contract_month_code = contract_file[-5]
-    contract_month_index = index(contract_month_code, delivery_months)
+    contract_month_index = index(contract_month_code.upper(), delivery_months)
     contract_month = month_abbrs[contract_month_index]
 
     in_roll = [s for s in roll_schedule if s[1] == contract_month][0]
