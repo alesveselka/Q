@@ -7,6 +7,7 @@ import json
 import calendar
 import datetime as dt
 import MySQLdb as mysql
+from decimal import Decimal
 from operator import itemgetter
 
 
@@ -39,15 +40,10 @@ def construct_continuous():
     roll_strategy = cursor.fetchone()
     roll_strategy_id = roll_strategy[0]
     roll_strategy_params = json.loads(roll_strategy[2])
-    cursor.execute("""
-        SELECT 
-            market_id, 
-            roll_out_month, 
-            roll_in_month, 
-            month, 
-            day 
-        FROM `standard_roll_schedule` 
-        WHERE name = '%s'""" % roll_strategy_params['schedule'])
+    cursor.execute(
+        "SELECT market_id, roll_out_month, roll_in_month, month, day FROM `standard_roll_schedule` WHERE name = '%s'" \
+        % roll_strategy_params['schedule']
+    )
     roll_schedule = cursor.fetchall()
     dir_path = './resources/Norgate/data/Futures/Contracts/_Text/'
     dir_list = os.listdir(dir_path)
@@ -79,11 +75,9 @@ def construct_continuous():
     day = 4
     month_abbrs = [m for m in calendar.month_abbr]
 
-    # print sorted(matching_codes, key=itemgetter(1))
-
     populate_symbol(
         now,
-        (37L, 'ES', 'I', 0, -1),
+        (37L, 'ES', 'I', 0, -1),  # TODO don't need the offsets
         # (106L, 'WT', 'I', 0, -1),
         roll_strategy_id,
         [(r[roll_out_month], r[roll_in_month], r[month], r[day]) for r in roll_schedule if r[market_id] == 37],
@@ -98,7 +92,7 @@ def construct_continuous():
 
 
 def populate_symbol(now, code, roll_strategy_id, roll_schedule, dir_path, delivery_months, q, month_abbrs):
-    files = os.listdir(''.join([dir_path, code[1]]))[:30]
+    files = os.listdir(''.join([dir_path, code[1]]))
 
     def values(file_name):
         delivery = file_name[5:10]
@@ -137,45 +131,38 @@ def populate_symbol(now, code, roll_strategy_id, roll_schedule, dir_path, delive
     # map(lambda f: insert_values(q, values(f)), files)
 
     price_date = 0
+    last_price = 4
+    last_contract_price = 0
+    last_contract_code = None
+    contract_code = None
+    rolls = []
     continuous = []
     schedule_months = [s[0] for s in roll_schedule]
     file_names = [f for f in files if month_abbrs[index(f[-5], delivery_months)] in schedule_months]
-    volume_offset = code[3]
-    oi_offset = code[4]
     for f in sorted(file_names):
+        contract_code = f[5:10]
         span = contract_span(f, roll_schedule, delivery_months, month_abbrs)
         rows = csv_lines(''.join([dir_path, code[1], '/', f]), exclude_header=False)
         contract_rows = [r for r in rows if span[0] <= date(r[price_date]) < span[1]]
-        continuous = continuous + contract_rows if len(contract_rows) else continuous
+        if len(contract_rows):
+            gap = Decimal(contract_rows[0][last_price]) - Decimal(last_contract_price) if last_contract_price else 0
+            rolls.append((code[0], roll_strategy_id, contract_rows[0][price_date], gap, last_contract_code, contract_code))
+            last_contract_code = contract_code
+            contract_roll_row = [r for r in rows if date(r[price_date]) >= span[1]]
+            last_contract_price = contract_roll_row[0][last_price] if len(contract_roll_row) else 0
+            continuous += contract_rows
 
-    for c in continuous:
-        print c
+    # for c in continuous:
+    #     print c
 
-    print roll_strategy_id
+    for r in rolls:
+        print r
 
     for s in roll_schedule:
         print s
 
 
-def update_liquidity(volume_offset, oi_offset, rows):
-    price_date = 0
-    open_price = 1
-    high_price = 2
-    low_price = 3
-    last_price = 4
-    volume = 5
-    open_interest = 6
-    result = []
-    if volume_offset or oi_offset:
-        l = len(rows)
-        for i, r in enumerate(rows):
-            v = rows[i-volume_offset][volume] if i - volume_offset < l else r[volume]
-            oi = rows[i-oi_offset][open_interest] if i - oi_offset < l else r[open_interest]
-            result.append((r[price_date], r[open_price], r[high_price], r[low_price], r[last_price], v, oi))
-    else:
-        result = rows
-
-    return result
+# def compare_continuous()
 
 
 def contract_span(contract_file, roll_schedule, delivery_months, month_abbrs):
@@ -197,24 +184,6 @@ def contract_span(contract_file, roll_schedule, delivery_months, month_abbrs):
     out_year = contract_year if contract_month_index - out_month_index > -1 else contract_year - 1
 
     return dt.date(in_year, in_month_index, in_roll[3]), dt.date(out_year, out_month_index, out_roll[3])
-
-
-# def roll_in_info(roll_out_file, roll_schedule, delivery_months, month_abbrs):
-#     out_year = int(roll_out_file[5:9])
-#     out_month_code = roll_out_file[-5]
-#     out_month_index = index(out_month_code, delivery_months, 0)
-#     out_month = month_abbrs[out_month_index]
-#     roll = [s for s in roll_schedule if s[0] == out_month][0]
-#     in_month = roll[1]
-#     in_month_code = [m for m in delivery_months if m[2] == in_month][0][0]
-#     in_month_index = index(in_month_code, delivery_months, 0)
-#     in_year = out_year if in_month_index > out_month_index else int(out_year) + 1
-#     roll_day = roll[3]
-#     roll_month = roll[2]
-#     roll_month_index = index(roll_month, delivery_months, 2)
-#     roll_year = out_year if out_month_index - roll_month_index > -1 else out_year - 1
-#     in_file = roll_out_file.replace(str(out_year), str(in_year)).replace(out_month_code, in_month_code)
-#     return in_file, roll_year, roll_month, roll_day
 
 
 def index(key, data, position=0):
