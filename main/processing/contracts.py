@@ -35,7 +35,7 @@ def insert_values(operation, values):
         cursor.executemany(operation, values)
 
 
-def construct_continuous(schema, roll_strategy_name):
+def construct_continuous(roll_strategy_name):
     cursor = mysql_connection.cursor()
     cursor.execute("SELECT code, appendix FROM `data_codes`")
     data_codes = dict(cursor.fetchall())
@@ -57,7 +57,7 @@ def construct_continuous(schema, roll_strategy_name):
     now = dt.datetime.now()
     all_codes = reduce(lambda result, c: result + map(lambda d: (c[0], c[1] + data_codes[d]), c[2]), codes, [])
     matching_codes = filter(lambda c: c[1] in dir_list, all_codes)
-    columns = [
+    continuous_columns = [
         'market_id',
         'roll_strategy_id',
         'code',
@@ -72,6 +72,14 @@ def construct_continuous(schema, roll_strategy_name):
         'created_date',
         'last_updated_date'
     ]
+    roll_columns = [
+        'market_id',
+        'roll_strategy_id',
+        'date',
+        'gap',
+        'roll_out_contract',
+        'roll_in_contract',
+    ]
 
     market_id = 0
     roll_out_month = 1
@@ -79,30 +87,35 @@ def construct_continuous(schema, roll_strategy_name):
     month = 3
     day = 4
     month_abbrs = [m for m in calendar.month_abbr]
-    q = query(schema, ','.join(columns), ("%s, " * len(columns))[:-2])
-    fn = {
-        'continuous_adjusted': construct_adjusted,
-        'continuous_spliced': construct_spliced
-    }[schema]
+    spliced_query = query('continuous_spliced', ','.join(continuous_columns), ("%s, " * len(continuous_columns))[:-2])
+    adjusted_query = query('continuous_adjusted', ','.join(continuous_columns), ("%s, " * len(continuous_columns))[:-2])
+    roll_query = query('contract_roll', ','.join(roll_columns), ("%s, " * len(roll_columns))[:-2])
 
-    def values(code):
+    for code in matching_codes:
         contracts, rolls = contracts_data(
             code,
             roll_strategy_id,
             [(r[roll_out_month], r[roll_in_month], r[month], r[day]) for r in roll_schedule if r[market_id] == code[0]],
             dir_path,
             delivery_months,
-            q,
             month_abbrs
         )
-        data = fn(contracts, rolls)
+        spliced = construct_spliced(contracts, rolls)
+        adjusted = construct_adjusted(contracts, rolls)
 
         # diff = identical_to_norgate(data, schema, code[0])
         # print 'identical_to_norgate', diff
 
-        return [[code[0], roll_strategy_id, code[1], d[0], d[1], d[2], d[3], d[4], d[4], d[5], d[6], now, now] for d in data]
+        insert_values(
+            spliced_query,
+            [[code[0], roll_strategy_id, code[1], d[0], d[1], d[2], d[3], d[4], d[4], d[5], d[6], now, now] for d in spliced]
+        )
+        insert_values(
+            adjusted_query,
+            [[code[0], roll_strategy_id, code[1], d[0], d[1], d[2], d[3], d[4], d[4], d[5], d[6], now, now] for d in adjusted]
+        )
+        insert_values(roll_query, rolls)
 
-    map(lambda c: insert_values(q, values(c)), matching_codes)
     # values((5, 'JY'))
 
 
@@ -157,7 +170,7 @@ def adjust_prices(row, price):
     return map(lambda i: Decimal(i[1]) + price if i[0] in prices else i[1], enumerate(row))
 
 
-def contracts_data(code, roll_strategy_id, roll_schedule, dir_path, delivery_months, q, month_abbrs):
+def contracts_data(code, roll_strategy_id, roll_schedule, dir_path, delivery_months, month_abbrs):
     price_date = 0
     last_price = 4
     last_contract_price = 0
@@ -215,5 +228,4 @@ if __name__ == '__main__':
         os.environ['DB_NAME']
     )
 
-    # construct_continuous('continuous_spliced', 'standard_roll_1')
-    # construct_continuous('continuous_adjusted', 'standard_roll_1')
+    # construct_continuous('standard_roll_1')
