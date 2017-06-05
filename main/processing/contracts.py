@@ -35,8 +35,7 @@ def insert_values(operation, values):
         cursor.executemany(operation, values)
 
 
-def construct_continuous():
-    roll_strategy_name = 'standard_roll_1'
+def construct_continuous(schema, roll_strategy_name):
     cursor = mysql_connection.cursor()
     cursor.execute("SELECT code, appendix FROM `data_codes`")
     data_codes = dict(cursor.fetchall())
@@ -61,8 +60,6 @@ def construct_continuous():
     columns = [
         'market_id',
         'roll_strategy_id',
-        'delivery_date',
-        'expiration_date',
         'code',
         'price_date',
         'open_price',
@@ -75,51 +72,34 @@ def construct_continuous():
         'created_date',
         'last_updated_date'
     ]
-    q = query('continuous_adjusted', ','.join(columns), ("%s, " * len(columns))[:-2])
+
     market_id = 0
     roll_out_month = 1
     roll_in_month = 2
     month = 3
     day = 4
     month_abbrs = [m for m in calendar.month_abbr]
+    q = query(schema, ','.join(columns), ("%s, " * len(columns))[:-2])
+    fn = {
+        'continuous_adjusted': construct_adjusted,
+        'continuous_spliced': construct_spliced
+    }[schema]
 
-    # market_code = (37L, 'ES')
-    market_code = (33L, 'W2')
-    # market_code = (106L, 'WT')
+    def values(code):
+        contracts, rolls = contracts_data(
+            code,
+            roll_strategy_id,
+            [(r[roll_out_month], r[roll_in_month], r[month], r[day]) for r in roll_schedule if r[market_id] == code[0]],
+            dir_path,
+            delivery_months,
+            q,
+            month_abbrs
+        )
+        data = fn(contracts, rolls)
 
-    contracts, rolls = contracts_data(
-        market_code,
-        roll_strategy_id,
-        [(r[roll_out_month], r[roll_in_month], r[month], r[day]) for r in roll_schedule if r[market_id] == market_code[0]],
-        dir_path,
-        delivery_months,
-        q,
-        month_abbrs
-    )
+        return [[code[0], roll_strategy_id, code[1], d[0], d[1], d[2], d[3], d[4], d[4], d[5], d[6], now, now] for d in data]
 
-    sorted_rolls = sorted(rolls, key=itemgetter(2))
-    spliced = construct_spliced(contracts, sorted_rolls)
-    adjusted = construct_adjusted(contracts, rolls)
-
-    different = different_to_norgate([s for s in spliced if date(s[0]) >= dt.date(1979, 11, 23)], 'continuous_spliced', market_code[0])
-    print 'compare spliced', different
-    # print 'compare adjusted', different_to_norgate(adjusted, 'continuous_adjusted', market_code[0])
-
-    # for k in contracts.keys():
-    #     print ''
-    #     for c in contracts[k]:
-    #         print c
-
-    # for r in sorted_rolls:
-    #     print r
-
-    #
-    # for a in adjusted:
-    #     print a
-    # print len(adjusted)
-
-    # for code in matching_codes:
-    #     populate_symbol(now, code, dir_path, delivery_months, q)
+    map(lambda c: insert_values(q, values(c)), matching_codes)
 
 
 def different_to_norgate(series, table, market_id):
@@ -134,18 +114,11 @@ def different_to_norgate(series, table, market_id):
         norgate_id
     ))
     norgate_series = cursor.fetchall()
-    print len(norgate_series), len(series)
-    print norgate_series[0][0], norgate_series[-1][0], series[0][0], series[-1][0]
-    # return len(norgate_series) == len(series) \
-    #        and all([compare_rows(series[i[0]], norgate_series[i[0]]) for i in enumerate(series)])
-    return all([compare_rows(series[i[0]], norgate_series[i[0]]) for i in enumerate(series)])
+    return len(norgate_series) == len(series) \
+           and all([compare_rows(series[i[0]], norgate_series[i[0]]) for i in enumerate(series)])
 
 
 def compare_rows(constructed, norgate):
-    d1 = Decimal(constructed[1])
-    d2 = norgate[1]
-    if d1 != d2:
-        print date(constructed[0]), d1, d2, d1 == d2
     return date(constructed[0]) == norgate[0] \
         and Decimal(constructed[1]) == norgate[1] \
         and Decimal(constructed[2]) == norgate[2] \
@@ -175,8 +148,6 @@ def construct_adjusted(contracts, rolls):
 
 def adjust_prices(row, price):
     prices = range(1, 5)
-    # print 'ROW:', row
-    # print 'NEW:', map(lambda i: Decimal(i[1]) + price if i[0] in prices else i[1], enumerate(row))
     return map(lambda i: Decimal(i[1]) + price if i[0] in prices else i[1], enumerate(row))
 
 
@@ -205,7 +176,7 @@ def contracts_data(code, roll_strategy_id, roll_schedule, dir_path, delivery_mon
             contract_roll_row = [r for r in rows if date(r[price_date]) >= span[1]]
             last_contract_price = contract_roll_row[0][last_price] if len(contract_roll_row) else 0
 
-    return continuous, rolls
+    return continuous, sorted(rolls, key=itemgetter(2))
 
 
 def contract_span(contract_file, roll_schedule, delivery_months, month_abbrs):
@@ -238,4 +209,5 @@ if __name__ == '__main__':
         os.environ['DB_NAME']
     )
 
-    construct_continuous()
+    # construct_continuous('continuous_spliced', 'standard_roll_1')
+    # construct_continuous('continuous_adjusted', 'standard_roll_1')
