@@ -97,12 +97,16 @@ def construct_continuous(schema, roll_strategy_name):
         )
         data = fn(contracts, rolls)
 
+        # diff = identical_to_norgate(data, schema, code[0])
+        # print 'identical_to_norgate', diff
+
         return [[code[0], roll_strategy_id, code[1], d[0], d[1], d[2], d[3], d[4], d[4], d[5], d[6], now, now] for d in data]
 
     map(lambda c: insert_values(q, values(c)), matching_codes)
+    # values((5, 'JY'))
 
 
-def different_to_norgate(series, table, market_id):
+def identical_to_norgate(series, table, market_id):
     columns = 'price_date, open_price, high_price, low_price, last_price, settle_price, volume, open_interest'
     cursor = mysql_connection.cursor()
     cursor.execute("SELECT id FROM `roll_strategy` WHERE name = 'norgate'")
@@ -119,6 +123,8 @@ def different_to_norgate(series, table, market_id):
 
 
 def compare_rows(constructed, norgate):
+    if Decimal(constructed[4]) != norgate[4]:
+        print 'Wrong Data', date(constructed[0]), constructed[4], norgate[0], norgate[4]
     return date(constructed[0]) == norgate[0] \
         and Decimal(constructed[1]) == norgate[1] \
         and Decimal(constructed[2]) == norgate[2] \
