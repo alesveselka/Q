@@ -74,9 +74,6 @@ def simulations():
         ('hhll', 'short', 'HHLL', 50, ['price_date', 'settle_price'], True)
     ])
 
-    # print roll_strategy_id('norgate')
-    # print roll_strategy_id('standard_roll_1')
-
     return [(
         '%s_1' % trading_model_name,
         json.dumps(simulation_params(1e6, 0.002)),
@@ -84,6 +81,14 @@ def simulations():
         json.dumps(trading_params),
         json.dumps(study_map),
         roll_strategy_id('norgate'),
+        '25Y'
+    ), (
+        '%s_2' % trading_model_name,
+        json.dumps(simulation_params(1e6, 0.002)),
+        trading_model_name,
+        json.dumps(trading_params),
+        json.dumps(study_map),
+        roll_strategy_id('standard_roll_1'),
         '25Y'
     )]
 
