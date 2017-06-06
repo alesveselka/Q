@@ -4,6 +4,7 @@ CREATE TABLE `order`(
   `id` int NOT NULL AUTO_INCREMENT,
   `simulation_id` int NOT NULL,
   `market_id` int NOT NULL,
+  `contract` varchar(32) NULL,
   `type` varchar(8) NOT NULL,
   `signal_type` varchar(16) NOT NULL,
   `date` date NOT NULL,
