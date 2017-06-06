@@ -151,7 +151,7 @@ class Market(object):  # TODO rename to Future?
         """
         cursor.execute(sql % (
             self.__column_names(),
-            'continuous_back_adjusted',
+            'continuous_adjusted',
             self.__id,
             self.__instrument_code,
             self.__start_data_date.strftime('%Y-%m-%d'),

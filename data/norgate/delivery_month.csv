@@ -1,13 +1,13 @@
-code,name
-F,January
-G,February
-H,March
-J,April
-K,May
-M,June
-N,July
-Q,August
-U,September
-V,October
-X,November
-Z,December
+code,name,short name
+F,January,Jan
+G,February,Feb
+H,March,Mar
+J,April,Apr
+K,May,May
+M,June,Jun
+N,July,Jul
+Q,August,Aug
+U,September,Sep
+V,October,Oct
+X,November,Nov
+Z,December,Dec
