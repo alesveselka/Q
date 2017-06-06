@@ -120,6 +120,15 @@ class Market(object):  # TODO rename to Future?
 
         return contract_roll[Table.ContractRoll.ROLL_IN_CONTRACT]
 
+    def contract_roll(self, current_contract):
+        """
+        Find and return contract roll based on current contract passed in
+        
+        :param current_contract:    string representing current contract
+        :return:                    tuple(date, gap, roll-out-contract, roll-in-contract)
+        """
+        return [r for r in self.__contract_rolls if r[Table.ContractRoll.ROLL_OUT_CONTRACT] == current_contract][0]
+
     def study(self, study_name, date=dt.date(9999, 12, 31)):
         """
         Return data of the study to the date passed in
