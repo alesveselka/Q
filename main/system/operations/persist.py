@@ -23,7 +23,7 @@ class Persist:
         # self.__save_orders(simulation_id, order_results)
         # self.__save_transactions(simulation_id, account.transactions(start_date, end_date))
         # self.__save_positions(simulation_id, portfolio)
-        # self.__save_studies(simulation_id, data_series.futures(None), data_series.study_parameters())
+        # self.__save_studies(simulation_id, data_series.futures(None, None), data_series.study_parameters())
         # self.__save_equity(simulation_id, account, start_date, end_date)
 
     def __save_orders(self, simulation_id, order_results):
