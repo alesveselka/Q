@@ -115,10 +115,10 @@ class Market(object):  # TODO rename to Future?
         :return:        string representing the contract delivery
         """
         contract_rolls = [r for r in zip(self.__contract_rolls, self.__contract_rolls[1:])
-                         if r[0][Table.ContractRoll.DATE] <= date < r[1][Table.ContractRoll.DATE]]
+                         if r[0][Table.ContractRoll.DATE] < date <= r[1][Table.ContractRoll.DATE]]
         contract_roll = contract_rolls[0][0] if len(contract_rolls) == 1 else self.__contract_rolls[-1]
 
-        return contract_roll[Table.ContractRoll.ROLL_OUT_CONTRACT]
+        return contract_roll[Table.ContractRoll.ROLL_IN_CONTRACT]
 
     def study(self, study_name, date=dt.date(9999, 12, 31)):
         """
