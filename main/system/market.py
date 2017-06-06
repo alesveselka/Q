@@ -107,6 +107,19 @@ class Market(object):  # TODO rename to Future?
         result = (Decimal(ceil(slippage_value / self.__tick_value)) * self.__tick_value) / self.__point_value
         return result * quantity_factor
 
+    def contract(self, date):
+        """
+        Find and return contract to be in on the date passed in
+        
+        :param date:    date of the contract
+        :return:        string representing the contract delivery
+        """
+        contract_rolls = [r for r in zip(self.__contract_rolls, self.__contract_rolls[1:])
+                         if r[0][Table.ContractRoll.DATE] <= date < r[1][Table.ContractRoll.DATE]]
+        contract_roll = contract_rolls[0][0] if len(contract_rolls) == 1 else self.__contract_rolls[-1]
+
+        return contract_roll[Table.ContractRoll.ROLL_OUT_CONTRACT]
+
     def study(self, study_name, date=dt.date(9999, 12, 31)):
         """
         Return data of the study to the date passed in
@@ -180,15 +193,9 @@ class Market(object):  # TODO rename to Future?
             FROM contract_roll
             WHERE market_id = '%s'
             AND roll_strategy_id = '%s'
-            AND DATE(date) >= '%s'
-            AND DATE(date) <= '%s';
+            ORDER BY date;
         """
-        cursor.execute(roll_query % (
-            self.__id,
-            self.__roll_strategy_id,
-            self.__start_data_date.strftime('%Y-%m-%d'),
-            end_date.strftime('%Y-%m-%d')
-        ))
+        cursor.execute(roll_query % (self.__id, self.__roll_strategy_id))
         self.__contract_rolls = cursor.fetchall()
 
         return True
