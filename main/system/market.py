@@ -205,7 +205,8 @@ class Market(object):  # TODO rename to Future?
             ORDER BY date;
         """
         cursor.execute(roll_query % (self.__id, self.__roll_strategy_id))
-        self.__contract_rolls = cursor.fetchall()
+        contract_rolls = cursor.fetchall()
+        self.__contract_rolls = contract_rolls if len(contract_rolls) else [(None, 0, None, None)]
 
         return True
 
