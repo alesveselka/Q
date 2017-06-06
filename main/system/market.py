@@ -43,6 +43,7 @@ class Market(object):  # TODO rename to Future?
         self.__margin_multiple = 0.0
         self.__adjusted_data = []
         self.__spliced_data = []
+        self.__contract_rolls = []
         self.__studies = {}
         self.__first_study_date = dt.date(9999, 12, 31)
 
@@ -143,7 +144,7 @@ class Market(object):  # TODO rename to Future?
         :param end_date:    Last date to fetch data to
         """
         cursor = connection.cursor()
-        sql = """
+        continuous_query = """
             SELECT %s
             FROM %s
             WHERE market_id = '%s'
@@ -152,7 +153,7 @@ class Market(object):  # TODO rename to Future?
             AND DATE(price_date) >= '%s'
             AND DATE(price_date) <= '%s';
         """
-        cursor.execute(sql % (
+        cursor.execute(continuous_query % (
             self.__column_names(),
             'continuous_adjusted',
             self.__id,
@@ -163,7 +164,7 @@ class Market(object):  # TODO rename to Future?
         ))
         self.__adjusted_data = cursor.fetchall()
 
-        cursor.execute(sql % (
+        cursor.execute(continuous_query % (
             self.__column_names(),
             'continuous_spliced',
             self.__id,
@@ -173,6 +174,22 @@ class Market(object):  # TODO rename to Future?
             end_date.strftime('%Y-%m-%d')
         ))
         self.__spliced_data = cursor.fetchall()
+
+        roll_query = """
+            SELECT date, gap, roll_out_contract, roll_in_contract
+            FROM contract_roll
+            WHERE market_id = '%s'
+            AND roll_strategy_id = '%s'
+            AND DATE(date) >= '%s'
+            AND DATE(date) <= '%s';
+        """
+        cursor.execute(roll_query % (
+            self.__id,
+            self.__roll_strategy_id,
+            self.__start_data_date.strftime('%Y-%m-%d'),
+            end_date.strftime('%Y-%m-%d')
+        ))
+        self.__contract_rolls = cursor.fetchall()
 
         return True
 
