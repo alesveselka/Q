@@ -7,6 +7,7 @@ import MySQLdb as mysql
 from timer import Timer
 from enum import Table
 from enum import TransactionType
+from enum import SignalType
 from decimal import Decimal, InvalidOperation
 
 
@@ -36,21 +37,43 @@ class Persist:
         self.__log('Saving orders')
 
         precision = 10
+        values = []
+        for result in order_results:
+            order = result.order()
+            date = order.date()
+            market = order.market()
+            contract = market.contract(date)
+            if order.signal_type() == SignalType.ROLL_ENTER:
+                contract = market.contract_roll(contract)[Table.ContractRoll.ROLL_IN_CONTRACT]
+
+            values.append((
+                simulation_id,
+                market.id(),
+                contract,
+                order.type(),
+                order.signal_type(),
+                date,
+                self.__round(order.price(), precision),
+                order.quantity(),
+                result.type(),
+                self.__round(result.price(), precision)
+            ))
+
         self.__insert_values(
             'order',
             simulation_id,
-            ['simulation_id', 'market_id', 'type', 'signal_type', 'date', 'price', 'quantity', 'result_type', 'result_price'],
-            [(
-                simulation_id,
-                o.order().market().id(),
-                o.order().type(),
-                o.order().signal_type(),
-                o.order().date(),
-                self.__round(o.order().price(), precision),
-                o.order().quantity(),
-                o.type(),
-                self.__round(o.price(), precision)
-            ) for o in order_results]
+            [
+                'simulation_id',
+                'market_id',
+                'contract',
+                'type',
+                'signal_type',
+                'date',
+                'price',
+                'quantity',
+                'result_type',
+                'result_price'
+            ], values
         )
 
     def __save_transactions(self, simulation_id, transactions):
