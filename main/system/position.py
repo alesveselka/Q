@@ -63,6 +63,15 @@ class Position(object):
     def add_margin(self, date, margin):
         self.__margins.append((date, margin))
 
+    def contract(self):
+        """
+        Find and return contract the position is currently open in
+        
+        :return:    string representing the futures contract
+        """
+        last_open_order = self.__open_order_results()[-1].order()
+        return last_open_order.market().contract(last_open_order.date())
+
     def mark_to_market(self, date, price):
         """
         Calculates and saves P/L for the date and price passed in
