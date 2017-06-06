@@ -38,6 +38,7 @@ class Persist:
         precision = 10
         self.__insert_values(
             'order',
+            simulation_id,
             ['simulation_id', 'market_id', 'type', 'signal_type', 'date', 'price', 'quantity', 'result_type', 'result_price'],
             [(
                 simulation_id,
@@ -64,6 +65,7 @@ class Persist:
         precision = 28
         self.__insert_values(
             'transaction',
+            simulation_id,
             ['simulation_id', 'type', 'account_action', 'date', 'amount', 'currency', 'context'],
             [(simulation_id, t.type(), t.account_action(), t.date(), self.__round(t.amount(), precision), t.currency(), t.context_json())
              for t in transactions]
@@ -80,6 +82,7 @@ class Persist:
         precision = 10
         self.__insert_values(
             'position',
+            simulation_id,
             [
                 'simulation_id',
                 'market_id',
@@ -139,7 +142,12 @@ class Persist:
                         self.__round(d[Table.Study.VALUE_2], precision) if len(d) > 2 else None
                     ))
 
-        self.__insert_values('study', ['simulation_id', 'name', 'market_id', 'market_code', 'date', 'value', 'value_2'], values)
+        self.__insert_values(
+            'study',
+            simulation_id,
+            ['simulation_id', 'name', 'market_id', 'market_code', 'date', 'value', 'value_2'],
+            values
+        )
 
     def __save_equity(self, simulation_id, account, start_date, end_date):
         """
@@ -199,7 +207,7 @@ class Persist:
                 self.__round(total_margin / equity, 10) if total_margin else None
             ))
 
-        self.__insert_values('equity', columns, values)
+        self.__insert_values('equity', simulation_id, columns, values)
 
         self.__log('Saving equity', complete=True)
 
@@ -212,15 +220,16 @@ class Persist:
         """
         return json.dumps({k: str(v) for k, v in dictionary.items()}) if len(dictionary) else None
 
-    def __insert_values(self, table_name, columns, values):
+    def __insert_values(self, table_name, simulation_id, columns, values):
         """
         Insert values to the schema of name and columns passed in
 
-        :param table_name:  Name of the table to insert data into
-        :param columns:     list of column names to insert value into
-        :param values:      list of values to insert
+        :param table_name:      Name of the table to insert data into
+        :param simulation_id:   ID of the related simulation
+        :param columns:         list of column names to insert value into
+        :param values:          list of values to insert
         """
-        self.__connection.cursor().execute('DELETE FROM `%s`' % table_name)
+        self.__connection.cursor().execute("DELETE FROM `%s` WHERE simulation_id = '%s'" % (table_name, simulation_id))
         with self.__connection:
             cursor = self.__connection.cursor()
             cursor.executemany(
