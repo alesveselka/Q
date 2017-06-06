@@ -66,8 +66,8 @@ def simulations():
         'stop_window': 50
     }
     study_map = studies([
-        ('atr', 'long', 'ATR', 100, ['price_date', 'high_price', 'low_price', 'settle_price'], False),
-        ('atr', 'short', 'ATR', 50, ['price_date', 'high_price', 'low_price', 'settle_price'], False),
+        ('atr', 'long', 'ATR', 100, ['price_date', 'high_price', 'low_price', 'settle_price'], True),
+        ('atr', 'short', 'ATR', 50, ['price_date', 'high_price', 'low_price', 'settle_price'], True),
         ('ma', 'long', 'SMA', 100, ['price_date', 'settle_price'], True),
         ('ma', 'short', 'SMA', 50, ['price_date', 'settle_price'], True),
         ('vol', 'short', 'SMA', 50, ['price_date', 'volume'], False),
