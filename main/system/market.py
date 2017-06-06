@@ -14,6 +14,7 @@ class Market(object):  # TODO rename to Future?
     def __init__(self,
                  start_data_date,
                  market_id,
+                 roll_strategy_id,
                  slippage_map,
                  name,
                  code,
@@ -27,6 +28,7 @@ class Market(object):  # TODO rename to Future?
 
         self.__start_data_date = start_data_date
         self.__id = market_id
+        self.__roll_strategy_id = roll_strategy_id
         self.__slippage_map = slippage_map
         self.__name = name
         self.__market_code = code
@@ -145,7 +147,8 @@ class Market(object):  # TODO rename to Future?
             SELECT %s
             FROM %s
             WHERE market_id = '%s'
-            AND code = '%s'
+            AND code = '%s' 
+            AND roll_strategy_id = '%s'
             AND DATE(price_date) >= '%s'
             AND DATE(price_date) <= '%s';
         """
@@ -154,6 +157,7 @@ class Market(object):  # TODO rename to Future?
             'continuous_adjusted',
             self.__id,
             self.__instrument_code,
+            self.__roll_strategy_id,
             self.__start_data_date.strftime('%Y-%m-%d'),
             end_date.strftime('%Y-%m-%d')
         ))
@@ -164,6 +168,7 @@ class Market(object):  # TODO rename to Future?
             'continuous_spliced',
             self.__id,
             self.__instrument_code,
+            self.__roll_strategy_id,
             self.__start_data_date.strftime('%Y-%m-%d'),
             end_date.strftime('%Y-%m-%d')
         ))

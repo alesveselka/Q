@@ -22,6 +22,12 @@ def studies(data):
     return [{'name': '%s_%s' % (d[0], d[1]), 'study': d[2], 'window': d[3], 'columns': d[4], 'adjusted_series': d[5]} for d in data]
 
 
+def roll_strategy_id(roll_strategy_name):
+    cursor = mysql_connection.cursor()
+    cursor.execute("""SELECT id, name FROM roll_strategy;""")
+    return [r for r in cursor.fetchall() if r[1] == roll_strategy_name][0][0]
+
+
 def simulation_params(initial_balance, risk_factor):
     return {
         'initial_balance': initial_balance,
@@ -60,20 +66,29 @@ def simulations():
         'stop_window': 50
     }
     study_map = studies([
-        ('atr', 'long', 'ATR', 100, ['price_date', 'high_price', 'low_price', 'settle_price'], False),
-        ('atr', 'short', 'ATR', 50, ['price_date', 'high_price', 'low_price', 'settle_price'], False),
+        ('atr', 'long', 'ATR', 100, ['price_date', 'high_price', 'low_price', 'settle_price'], True),
+        ('atr', 'short', 'ATR', 50, ['price_date', 'high_price', 'low_price', 'settle_price'], True),
         ('ma', 'long', 'SMA', 100, ['price_date', 'settle_price'], True),
         ('ma', 'short', 'SMA', 50, ['price_date', 'settle_price'], True),
         ('vol', 'short', 'SMA', 50, ['price_date', 'volume'], False),
         ('hhll', 'short', 'HHLL', 50, ['price_date', 'settle_price'], True)
     ])
+
     return [(
         '%s_1' % trading_model_name,
         json.dumps(simulation_params(1e6, 0.002)),
         trading_model_name,
         json.dumps(trading_params),
         json.dumps(study_map),
-        0,
+        roll_strategy_id('norgate'),
+        '25Y'
+    ), (
+        '%s_2' % trading_model_name,
+        json.dumps(simulation_params(1e6, 0.002)),
+        trading_model_name,
+        json.dumps(trading_params),
+        json.dumps(study_map),
+        roll_strategy_id('standard_roll_1'),
         '25Y'
     )]
 

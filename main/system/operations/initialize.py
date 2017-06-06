@@ -26,7 +26,6 @@ class Initialize:
         )
         simulation = self.__simulation(simulation_name, connection)
         params = json.loads(simulation[Table.Simulation.PARAMS])
-        roll_strategy = simulation[Table.Simulation.ROLL_STRATEGY_ID]
 
         precision = getcontext().prec
         risk_position_sizing = Decimal('%s' % params['risk_factor']).quantize(Decimal('1.' + ('0' * precision)))
@@ -37,7 +36,7 @@ class Initialize:
         investment_universe.load_data()
 
         data_series = DataSeries(investment_universe, connection, simulation[Table.Simulation.STUDIES])
-        futures = data_series.futures(params['slippage_map'])
+        futures = data_series.futures(simulation[Table.Simulation.ROLL_STRATEGY_ID], params['slippage_map'])
         currency_pairs = data_series.currency_pairs()
         interest_rates = data_series.interest_rates()
 

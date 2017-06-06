@@ -27,12 +27,13 @@ class DataSeries:
         """
         return self.__investment_universe.start_data_date()
 
-    def futures(self, slippage_map):
+    def futures(self, roll_strategy_id, slippage_map):
         """
         Load futures data if not already loaded
 
-        :param slippage_map:    list of dicts, each representing volume range to arrive at slippage estimate
-        :return:                list of Market objects
+        :param roll_strategy_id:    ID of the roll strategy used to connect contract data
+        :param slippage_map:        list of dicts, each representing volume range to arrive at slippage estimate
+        :return:                    list of Market objects
         """
         if self.__futures is None:
             cursor = self.__connection.cursor()
@@ -55,7 +56,13 @@ class DataSeries:
 
             for market_id in self.__investment_universe.market_ids():
                 cursor.execute(market_query % market_id)
-                self.__futures.append(Market(start_data_date, market_id, slippage_map, *cursor.fetchone()))
+                self.__futures.append(Market(
+                    start_data_date,
+                    market_id,
+                    roll_strategy_id,
+                    slippage_map,
+                    *cursor.fetchone())
+                )
 
         return self.__futures
 
