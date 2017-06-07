@@ -67,6 +67,20 @@ def holiday_exchanges():
     return set(exchanges)
 
 
+def matching_exchanges(distinct_holiday_exchanges):
+    """
+    Find and return matching exchanges from 'exchange' table and holidays exchange set pass in
+    
+    :param distinct_holiday_exchanges:  set of exchanges from holidays table
+    :return:                            list of matching exchanges
+    """
+    query = "SELECT code, ex_code, country FROM exchange"
+    cursor = mysql_connection.cursor()
+    cursor.execute(query)
+    exchange_data = cursor.fetchall()
+    return [e for e in exchange_data if e[0] in distinct_holiday_exchanges or e[1] in distinct_holiday_exchanges]
+
+
 if __name__ == '__main__':
     mysql_connection = mysql.connect(
         os.environ['DB_HOST'],
@@ -75,4 +89,6 @@ if __name__ == '__main__':
         os.environ['DB_NAME']
     )
     # scrape_holidays()
-    print holiday_exchanges()
+    # holiday_exchanges()
+    for e in sorted(matching_exchanges(holiday_exchanges())):
+        print e
