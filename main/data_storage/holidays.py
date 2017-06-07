@@ -51,6 +51,22 @@ def scrape_holidays():
             cursor = mysql_connection.cursor()
             cursor.executemany(sql, [values(holiday) for holiday in soup.find_all('holiday')])
 
+
+def holiday_exchanges():
+    """
+    Fetch and return all exchange codes from holidays table
+    
+    :return: set of exchange codes
+    """
+    query = "SELECT exchanges FROM holidays"
+    cursor = mysql_connection.cursor()
+    cursor.execute(query)
+    exchange_data = cursor.fetchall()
+    exchanges = reduce(lambda r, e: r + list(e[0].split(',') if e[0] else []), exchange_data, [])
+
+    return set(exchanges)
+
+
 if __name__ == '__main__':
     mysql_connection = mysql.connect(
         os.environ['DB_HOST'],
@@ -59,3 +75,4 @@ if __name__ == '__main__':
         os.environ['DB_NAME']
     )
     # scrape_holidays()
+    print holiday_exchanges()
