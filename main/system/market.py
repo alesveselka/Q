@@ -43,6 +43,7 @@ class Market(object):  # TODO rename to Future?
         self.__margin_multiple = 0.0
         self.__adjusted_data = []
         self.__spliced_data = []
+        self.__contract_rolls = []
         self.__studies = {}
         self.__first_study_date = dt.date(9999, 12, 31)
 
@@ -106,6 +107,28 @@ class Market(object):  # TODO rename to Future?
         result = (Decimal(ceil(slippage_value / self.__tick_value)) * self.__tick_value) / self.__point_value
         return result * quantity_factor
 
+    def contract(self, date):
+        """
+        Find and return contract to be in on the date passed in
+        
+        :param date:    date of the contract
+        :return:        string representing the contract delivery
+        """
+        contract_rolls = [r for r in zip(self.__contract_rolls, self.__contract_rolls[1:])
+                         if r[0][Table.ContractRoll.DATE] < date <= r[1][Table.ContractRoll.DATE]]
+        contract_roll = contract_rolls[0][0] if len(contract_rolls) == 1 else self.__contract_rolls[-1]
+
+        return contract_roll[Table.ContractRoll.ROLL_IN_CONTRACT]
+
+    def contract_roll(self, current_contract):
+        """
+        Find and return contract roll based on current contract passed in
+        
+        :param current_contract:    string representing current contract
+        :return:                    tuple(date, gap, roll-out-contract, roll-in-contract)
+        """
+        return [r for r in self.__contract_rolls if r[Table.ContractRoll.ROLL_OUT_CONTRACT] == current_contract][0]
+
     def study(self, study_name, date=dt.date(9999, 12, 31)):
         """
         Return data of the study to the date passed in
@@ -143,7 +166,7 @@ class Market(object):  # TODO rename to Future?
         :param end_date:    Last date to fetch data to
         """
         cursor = connection.cursor()
-        sql = """
+        continuous_query = """
             SELECT %s
             FROM %s
             WHERE market_id = '%s'
@@ -152,7 +175,7 @@ class Market(object):  # TODO rename to Future?
             AND DATE(price_date) >= '%s'
             AND DATE(price_date) <= '%s';
         """
-        cursor.execute(sql % (
+        cursor.execute(continuous_query % (
             self.__column_names(),
             'continuous_adjusted',
             self.__id,
@@ -163,7 +186,7 @@ class Market(object):  # TODO rename to Future?
         ))
         self.__adjusted_data = cursor.fetchall()
 
-        cursor.execute(sql % (
+        cursor.execute(continuous_query % (
             self.__column_names(),
             'continuous_spliced',
             self.__id,
@@ -173,6 +196,17 @@ class Market(object):  # TODO rename to Future?
             end_date.strftime('%Y-%m-%d')
         ))
         self.__spliced_data = cursor.fetchall()
+
+        roll_query = """
+            SELECT date, gap, roll_out_contract, roll_in_contract
+            FROM contract_roll
+            WHERE market_id = '%s'
+            AND roll_strategy_id = '%s'
+            ORDER BY date;
+        """
+        cursor.execute(roll_query % (self.__id, self.__roll_strategy_id))
+        contract_rolls = cursor.fetchall()
+        self.__contract_rolls = contract_rolls if len(contract_rolls) else [(None, 0, None, None)]
 
         return True
 

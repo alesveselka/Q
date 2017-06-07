@@ -116,3 +116,9 @@ class Table:
         STUDIES = 5
         ROLL_STRATEGY_ID = 6
         INVESTMENT_UNIVERSE = 7
+
+    class ContractRoll:
+        DATE = 0
+        GAP = 1
+        ROLL_OUT_CONTRACT = 2
+        ROLL_IN_CONTRACT = 3
