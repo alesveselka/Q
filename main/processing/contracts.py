@@ -18,24 +18,57 @@ def csv_lines(path, exclude_header=True, filter_index=0):
 
 
 def index(key, data, position=0):
+    """
+    Find and return index of the key in the data passed in
+    
+    :param key:         key to find
+    :param data:        date to search in
+    :param position:    position of the item field
+    :return:            number indicating the found index
+    """
     return reduce(lambda i, d: i + 1 if d[position] <= key else i, data, 0)
 
 
 def date(d):
+    """
+    Return python date from string YYYYmmdd
+    
+    :param d:   string representing the date to parse 
+    :return:    date
+    """
     return dt.date(int(d[:4]), int(d[4:6]), int(d[6:]))
 
 
 def query(table, columns, placeholders):
+    """
+    Construct MySQL query from table and columns passed in
+    
+    :param table:           table of the query
+    :param columns:         columns of the table
+    :param placeholders:    placeholders to be replaced with values
+    :return:                string representing the final query
+    """
     return 'INSERT INTO `%s` (%s) VALUES (%s)' % (table, columns, placeholders)
 
 
 def insert_values(operation, values):
+    """
+    Execute operation with the values passed in
+    
+    :param operation:   MySQL operation to execute
+    :param values:      values to insert
+    """
     with mysql_connection:
         cursor = mysql_connection.cursor()
         cursor.executemany(operation, values)
 
 
 def construct_continuous(roll_strategy_name):
+    """
+    Construct continuous contract by the roll strategy passed in
+    
+    :param roll_strategy_name:  name of the roll strategy
+    """
     cursor = mysql_connection.cursor()
     cursor.execute("SELECT code, appendix FROM `data_codes`")
     data_codes = dict(cursor.fetchall())
@@ -116,10 +149,16 @@ def construct_continuous(roll_strategy_name):
         )
         insert_values(roll_query, rolls)
 
-    # values((5, 'JY'))
-
 
 def identical_to_norgate(series, table, market_id):
+    """
+    Check whether norgate series is same as the one in passed-in table
+     
+    :param series:      series to compare
+    :param table:       table of the data series
+    :param market_id:   ID of the market to compare
+    :return: 
+    """
     columns = 'price_date, open_price, high_price, low_price, last_price, settle_price, volume, open_interest'
     cursor = mysql_connection.cursor()
     cursor.execute("SELECT id FROM `roll_strategy` WHERE name = 'norgate'")
@@ -136,6 +175,13 @@ def identical_to_norgate(series, table, market_id):
 
 
 def compare_rows(constructed, norgate):
+    """
+    Compare generated series with the norgate one
+    
+    :param constructed:     series of constructed data
+    :param norgate:         series of Norgate data
+    :return:                Boolean indicating whether the series have same data
+    """
     if Decimal(constructed[4]) != norgate[4]:
         print 'Wrong Data', date(constructed[0]), constructed[4], norgate[0], norgate[4]
     return date(constructed[0]) == norgate[0] \
@@ -149,11 +195,25 @@ def compare_rows(constructed, norgate):
 
 
 def construct_spliced(contracts, rolls):
+    """
+    Construct spliced continuous contract
+    
+    :param contracts:   dict of contract files
+    :param rolls:       list of roll data
+    :return:            list of continuous price time-series
+    """
     roll_in_code = 5
     return reduce(lambda spliced, roll: spliced + contracts[roll[roll_in_code]], rolls, [])
 
 
 def construct_adjusted(contracts, rolls):
+    """
+    Construct back-adjusted continuous contract
+    
+    :param contracts:   dict of contract files
+    :param rolls:       list of roll data
+    :return:            list of continuous price time-series
+    """
     roll_in_code = 5
     gap_column = 3
     gap = 0
@@ -166,11 +226,37 @@ def construct_adjusted(contracts, rolls):
 
 
 def adjust_prices(row, price):
+    """
+    Adjust price fields of the row by the price passed in
+    
+    :param row:     tuple of fields to adjust
+    :param price:   price by which to adjust
+    :return:        adjusted row
+    """
     prices = range(1, 5)
     return map(lambda i: Decimal(i[1]) + price if i[0] in prices else i[1], enumerate(row))
 
 
 def contracts_data(code, roll_strategy_id, roll_schedule, dir_path, delivery_months, month_abbrs):
+    """
+    Construct map of contracts data from files i the directory specified
+    The keys of the map are contract codes (YYYYm) with values being the actual contract data
+    
+    :param code:                market code - tuple(id, code, data_codes)
+    :param roll_strategy_id:    ID of the roll strategy
+    :param roll_schedule:       table with the rolling schedule
+    :param dir_path:            path of the directory containing contract files
+    :param delivery_months:     list of tuples(code, name short_name) representing delivery months
+    :param month_abbrs:         list of short names of calendar months
+    :return:                    tuple, first item being dict of contracts (contract-code: contract-data), 
+                                second one is list of rolls [(
+                                    code, 
+                                    roll_strategy_id, 
+                                    date of roll, 
+                                    roll-out contract, 
+                                    roll-in contract
+                                )]
+    """
     price_date = 0
     last_price = 4
     last_contract_price = 0
@@ -199,6 +285,15 @@ def contracts_data(code, roll_strategy_id, roll_schedule, dir_path, delivery_mon
 
 
 def contract_span(contract_file, roll_schedule, delivery_months, month_abbrs):
+    """
+    Create starting and ending date of the contract data based on the schedule passed in
+    
+    :param contract_file:       file with the data
+    :param roll_schedule:       schedule to use to determine the edges
+    :param delivery_months:     list of tuples(code, name short_name) representing delivery months
+    :param month_abbrs:         list of short names of calendar months
+    :return:                    tuple(starting date, ending date)
+    """
     code_column = 0
     contract_year = int(contract_file[5:9])
     contract_month_code = contract_file[-5]
