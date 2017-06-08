@@ -42,7 +42,6 @@ class Market(object):  # TODO rename to Future?
         self.__margin = margin
         self.__margin_multiple = 0.0
         self.__adjusted_data = []
-        self.__spliced_data = []
         self.__contract_rolls = []
         self.__studies = {}
         self.__first_study_date = dt.date(9999, 12, 31)
@@ -145,11 +144,10 @@ class Market(object):  # TODO rename to Future?
 
         :param study_parameters:    List of dictionaries with parameters for each study to calculate
         """
-        if len(self.__adjusted_data) and len(self.__spliced_data):
+        if len(self.__adjusted_data):
             for params in study_parameters:
-                data = self.__adjusted_data if params['adjusted_series'] else self.__spliced_data
                 self.__studies[params['name']] = params['study'](
-                    [tuple(map(lambda c: d[c], params['columns'])) for d in data],
+                    [tuple(map(lambda c: d[c], params['columns'])) for d in self.__adjusted_data],
                     params['window']
                 )
 
@@ -185,17 +183,6 @@ class Market(object):  # TODO rename to Future?
             end_date.strftime('%Y-%m-%d')
         ))
         self.__adjusted_data = cursor.fetchall()
-
-        cursor.execute(continuous_query % (
-            self.__column_names(),
-            'continuous_spliced',
-            self.__id,
-            self.__instrument_code,
-            self.__roll_strategy_id,
-            self.__start_data_date.strftime('%Y-%m-%d'),
-            end_date.strftime('%Y-%m-%d')
-        ))
-        self.__spliced_data = cursor.fetchall()
 
         roll_query = """
             SELECT date, gap, roll_out_contract, roll_in_contract
