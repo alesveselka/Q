@@ -89,6 +89,7 @@ class Table:
         LOW_PRICE = 4
         SETTLE_PRICE = 5
         VOLUME = 6
+        LAST_TRADING_DAY = 7
 
     class CurrencyPair:
         PRICE_DATE = 0
