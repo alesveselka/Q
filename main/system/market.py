@@ -7,6 +7,7 @@ from enum import Study
 from enum import Table
 from operator import itemgetter
 from math import floor, log10
+from collections import defaultdict
 
 
 class Market(object):  # TODO rename to Future?
@@ -42,7 +43,7 @@ class Market(object):  # TODO rename to Future?
         self.__margin = margin
         self.__margin_multiple = 0.0
         self.__adjusted_data = []
-        self.__contracts = []
+        self.__contracts = defaultdict(list)
         self.__contract_rolls = []
         self.__studies = {}
         self.__first_study_date = dt.date(9999, 12, 31)
@@ -129,6 +130,8 @@ class Market(object):  # TODO rename to Future?
         """
         return [r for r in self.__contract_rolls if r[Table.ContractRoll.ROLL_OUT_CONTRACT] == current_contract][0]
 
+    # def roll_yield(self, date)
+
     def study(self, study_name, date=dt.date(9999, 12, 31)):
         """
         Return data of the study to the date passed in
@@ -189,19 +192,19 @@ class Market(object):  # TODO rename to Future?
             SELECT %s
             FROM %s
             WHERE market_id = '%s'
-            AND code = '%s' 
             AND DATE(price_date) >= '%s'
-            AND DATE(price_date) <= '%s';
+            AND DATE(price_date) <= '%s'
+            ORDER BY price_date;
         """
         cursor.execute(contracts_query % (
             self.__column_names() + ', last_trading_day',
             'contract',
             self.__id,
-            self.__instrument_code,
             self.__start_data_date.strftime('%Y-%m-%d'),
             end_date.strftime('%Y-%m-%d')
         ))
-        self.__contracts = cursor.fetchall()
+        for c in cursor.fetchall():
+            self.__contracts[c[Table.Market.CODE]].append(c)
 
         roll_query = """
             SELECT date, gap, roll_out_contract, roll_in_contract
