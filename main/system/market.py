@@ -130,7 +130,14 @@ class Market(object):  # TODO rename to Future?
         """
         return [r for r in self.__contract_rolls if r[Table.ContractRoll.ROLL_OUT_CONTRACT] == current_contract][0]
 
-    # def roll_yield(self, date)
+    def roll_yield(self, date):
+        current_contract_code = self.contract(date)
+        current_contract = [c for c in self.__contracts[current_contract_code] if c[Table.Market.PRICE_DATE] <= date][-1]
+        next_contract_code = self.contract_roll(current_contract_code)[Table.ContractRoll.ROLL_IN_CONTRACT]
+        next_contract = [c for c in self.__contracts[next_contract_code] if c[Table.Market.PRICE_DATE] <= date][-1]
+        days = (next_contract[Table.Market.LAST_TRADING_DAY] - date).days
+        implied_yield = (next_contract[Table.Market.SETTLE_PRICE] / current_contract[Table.Market.SETTLE_PRICE]) ** Decimal(365. / days) - 1
+        return implied_yield
 
     def study(self, study_name, date=dt.date(9999, 12, 31)):
         """
@@ -204,7 +211,7 @@ class Market(object):  # TODO rename to Future?
             end_date.strftime('%Y-%m-%d')
         ))
         for c in cursor.fetchall():
-            self.__contracts[c[Table.Market.CODE]].append(c)
+            self.__contracts[c[Table.Market.CODE][-5:].upper()].append(c)
 
         roll_query = """
             SELECT date, gap, roll_out_contract, roll_in_contract
