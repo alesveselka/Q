@@ -19,7 +19,7 @@ def insert_simulations(values):
 
 
 def studies(data):
-    return [{'name': '%s_%s' % (d[0], d[1]), 'study': d[2], 'window': d[3], 'columns': d[4], 'adjusted_series': d[5]} for d in data]
+    return [{'name': '%s_%s' % (d[0], d[1]), 'study': d[2], 'window': d[3], 'columns': d[4]} for d in data]
 
 
 def roll_strategy_id(roll_strategy_name):
@@ -66,12 +66,12 @@ def simulations():
         'stop_window': 50
     }
     study_map = studies([
-        ('atr', 'long', 'ATR', 100, ['price_date', 'high_price', 'low_price', 'settle_price'], True),
-        ('atr', 'short', 'ATR', 50, ['price_date', 'high_price', 'low_price', 'settle_price'], True),
-        ('ma', 'long', 'SMA', 100, ['price_date', 'settle_price'], True),
-        ('ma', 'short', 'SMA', 50, ['price_date', 'settle_price'], True),
-        ('vol', 'short', 'SMA', 50, ['price_date', 'volume'], False),
-        ('hhll', 'short', 'HHLL', 50, ['price_date', 'settle_price'], True)
+        ('atr', 'long', 'ATR', 100, ['price_date', 'high_price', 'low_price', 'settle_price']),
+        ('atr', 'short', 'ATR', 50, ['price_date', 'high_price', 'low_price', 'settle_price']),
+        ('ma', 'long', 'SMA', 100, ['price_date', 'settle_price']),
+        ('ma', 'short', 'SMA', 50, ['price_date', 'settle_price']),
+        ('vol', 'short', 'SMA', 50, ['price_date', 'volume']),
+        ('hhll', 'short', 'HHLL', 50, ['price_date', 'settle_price'])
     ])
 
     return [(
