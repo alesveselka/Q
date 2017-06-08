@@ -5,6 +5,7 @@ import re
 import csv
 import sys
 import json
+import calendar
 import datetime as dt
 import MySQLdb as mysql
 from collections import defaultdict
@@ -278,7 +279,6 @@ def populate_contracts(schema):
     # TODO use 'Entity' that will hold the structure description and generalize the SQL insertion
     columns = [
         'market_id',
-        'delivery_date',
         'expiration_date',
         'code',
         'price_date',
@@ -289,6 +289,7 @@ def populate_contracts(schema):
         'settle_price',
         'volume',
         'open_interest',
+        'last_trading_day',
         'created_date',
         'last_updated_date'
     ]
@@ -300,24 +301,44 @@ def populate_contracts(schema):
 
 def populate_symbol(now, code, dir_path, delivery_months, q):
     files = os.listdir(''.join([dir_path, code[1]]))
+    file_path = ''.join([dir_path, code[1], '/%s'])
+    deliveries = defaultdict(list)
+
+    def date(d):
+        return dt.date(int(d[:4]), int(d[4:6]), int(d[6:]))
 
     def index(key, data, position=0):
         return reduce(lambda i, d: i + 1 if d[position] <= key else i, data, 0)
 
     def values(file_name):
         delivery = file_name[5:10]
-        # TODO use last date in a month, instead of first (1)
-        delivery_date = dt.date(int(delivery[:-1]), index(delivery[-1], delivery_months), 1)
-        rows = csv_lines(''.join([dir_path, code[1], '/', file_name]), exclude_header=False)
+        expiration_date = dt.date(int(delivery[:-1]), index(delivery[-1], delivery_months), 1)
+        rows = csv_lines(file_path % file_name, exclude_header=False)
+        last_date = date(rows[-1][0])
+        last_trading_date = last_date
+
+        # TODO calculate actual expiration date properly
+        if last_date < last_data_date:
+            deliveries[delivery[-1]].append(last_date)
+        else:
+            delivery_dates = deliveries[delivery[-1]]
+            month = max(delivery_dates).month if len(delivery_dates) else None
+            year = int(delivery[:-1])
+            dates = [d for d in deliveries[delivery[-1]] if d.month == month]
+            day = int(round(sum([d.day for d in dates]) / len(dates))) if len(delivery_dates) else 1
+            last_trading_date = dt.date(year, month, min(calendar.monthrange(year, month)[1], day)) if month else None
+
         return [[
              code[0],
-             delivery_date,
-             delivery_date,
+             expiration_date,
              code[1] + delivery,
              r[0], r[1], r[2], r[3], r[4], r[4], r[5], r[6],
+             last_trading_date,
              now,
              now
          ] for r in rows]
+
+    last_data_date = date(csv_lines(file_path % sorted(files)[-1], exclude_header=False)[-1][0])
 
     map(lambda f: insert_values(q, values(f)), files)
 

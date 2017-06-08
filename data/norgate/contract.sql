@@ -3,7 +3,6 @@ DROP TABLE IF EXISTS `contract`;
 CREATE TABLE `contract`(
   `id` int NOT NULL AUTO_INCREMENT,
   `market_id` int NOT NULL,
-  `delivery_date` date NOT NULL,
   `expiration_date` date NULL,
   `code` varchar(32) NOT NULL,
   `price_date` date NOT NULL,
