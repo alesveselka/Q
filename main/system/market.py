@@ -42,6 +42,7 @@ class Market(object):  # TODO rename to Future?
         self.__margin = margin
         self.__margin_multiple = 0.0
         self.__adjusted_data = []
+        self.__contracts = []
         self.__contract_rolls = []
         self.__studies = {}
         self.__first_study_date = dt.date(9999, 12, 31)
@@ -183,6 +184,24 @@ class Market(object):  # TODO rename to Future?
             end_date.strftime('%Y-%m-%d')
         ))
         self.__adjusted_data = cursor.fetchall()
+
+        contracts_query = """
+            SELECT %s
+            FROM %s
+            WHERE market_id = '%s'
+            AND code = '%s' 
+            AND DATE(price_date) >= '%s'
+            AND DATE(price_date) <= '%s';
+        """
+        cursor.execute(contracts_query % (
+            self.__column_names() + ', last_trading_day',
+            'contract',
+            self.__id,
+            self.__instrument_code,
+            self.__start_data_date.strftime('%Y-%m-%d'),
+            end_date.strftime('%Y-%m-%d')
+        ))
+        self.__contracts = cursor.fetchall()
 
         roll_query = """
             SELECT date, gap, roll_out_contract, roll_in_contract
