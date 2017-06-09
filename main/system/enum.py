@@ -123,3 +123,11 @@ class Table:
         GAP = 1
         ROLL_OUT_CONTRACT = 2
         ROLL_IN_CONTRACT = 3
+
+
+class YieldCurve:
+    CODE = 0
+    PRICE = 1
+    VOLUME = 2
+    YIELD = 3
+    PRICE_DIFF = 4
