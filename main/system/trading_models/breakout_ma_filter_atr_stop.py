@@ -4,6 +4,7 @@ from enum import Study
 from enum import Direction
 from enum import SignalType
 from enum import Table
+from enum import YieldCurve
 from strategy_signal import Signal
 from trading_models.trading_model import TradingModel
 
@@ -58,15 +59,41 @@ class BreakoutMAFilterATRStop(TradingModel):
                         signals.append(Signal(market, SignalType.ROLL_ENTER, direction, date, settle_price))
 
                 # TODO pass-in rules
+                yield_threshold = 0.03
                 if ma_short > ma_long:
                     if settle_price > hhll_short[Table.Study.VALUE]:
+                        print 'LONG', date, self.__contract(date, market, Direction.LONG)
                         signals.append(Signal(market, SignalType.ENTER, Direction.LONG, date, settle_price))
 
                 elif ma_short < ma_long:
                     if settle_price < hhll_short[Table.Study.VALUE_2]:
+                        print 'SHORT', date, self.__contract(date, market, Direction.SHORT)
                         signals.append(Signal(market, SignalType.ENTER, Direction.SHORT, date, settle_price))
 
         return signals
+
+    def __contract(self, date, market, direction):
+        """
+        Find 'optimal' contract to trade
+        
+        :param date:        date of the signal
+        :param market:      market to trade
+        :param direction:   direction of trade signal
+        :return:            string representing code of contract to trade
+        """
+        min_volume = 1000
+        yield_curve = market.yield_curve(date)
+        current = [y for y in yield_curve if y[YieldCurve.YIELD] is None]
+        candidates = [y for y in yield_curve if y[YieldCurve.YIELD] is not None and y[YieldCurve.VOLUME] >= min_volume]
+        optimal = current[0]
+
+        if len(candidates):
+            fn = max if direction == Direction.SHORT else min
+            best = fn([c[YieldCurve.YIELD] for c in candidates])
+            optimal = [c for c in candidates if c[YieldCurve.YIELD] == best][0]
+
+        # return optimal[0]
+        return current[0][0]
 
     def __should_roll(self, date, previous_date, market, position, signals):
         """
