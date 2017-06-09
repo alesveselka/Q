@@ -44,7 +44,6 @@ class BreakoutMAFilterATRStop(TradingModel):
                 settle_price = market_data[-1][Table.Market.SETTLE_PRICE]
                 market_position = self.__market_position(positions, market)
 
-                # TODO pass in rules
                 if market_position:
                     direction = market_position.direction()
                     position_contract = market_position.contract()
@@ -60,7 +59,6 @@ class BreakoutMAFilterATRStop(TradingModel):
                         signals.append(Signal(market, SignalType.ROLL_EXIT, direction, date, settle_price, position_contract))
                         signals.append(Signal(market, SignalType.ROLL_ENTER, direction, date, settle_price, contract))
 
-                # TODO pass-in rules
                 if ma_short > ma_long:
                     if settle_price > hhll_short[Table.Study.VALUE]:
                         contract = self.__contract(date, market, Direction.LONG)
