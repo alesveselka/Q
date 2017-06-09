@@ -135,14 +135,13 @@ class Market(object):  # TODO rename to Future?
         Calculate yield curve relative to the date passed in
         
         :param date:    date to which relate the yield curve
-        :return:        list of tuples(price, volume, yield, relative-price-difference)
+        :return:        list of tuples(code, price, volume, yield, relative-price-difference))
         """
         current_contract_code = self.contract(date)
         current_contract = [c for c in self.__contracts[current_contract_code] if c[Table.Market.PRICE_DATE] <= date][-1]
         contract_codes = [k for k in sorted(self.__contracts.keys()) if k > current_contract_code]
         previous_price = current_contract[Table.Market.SETTLE_PRICE]
-        curve = defaultdict(tuple)
-        curve[current_contract_code] = current_contract[Table.Market.SETTLE_PRICE]
+        curve = [(current_contract_code, current_contract[Table.Market.SETTLE_PRICE], current_contract[Table.Market.VOLUME], None, None)]
 
         # TODO also calculate average volatility of each contract
         for code in contract_codes:
@@ -154,7 +153,7 @@ class Market(object):  # TODO rename to Future?
                 implied_yield = (price / current_contract[Table.Market.SETTLE_PRICE]) ** Decimal(365. / days) - 1
                 price_difference = price - previous_price
                 previous_price = price
-                curve[code] = price, next_contract[Table.Market.VOLUME], implied_yield, price_difference
+                curve.append((code, price, next_contract[Table.Market.VOLUME], implied_yield, price_difference))
 
         return curve
 
