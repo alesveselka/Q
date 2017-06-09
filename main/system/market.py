@@ -108,19 +108,6 @@ class Market(object):  # TODO rename to Future?
         result = (Decimal(ceil(slippage_value / self.__tick_value)) * self.__tick_value) / self.__point_value
         return result * quantity_factor
 
-    def contract(self, date):
-        """
-        Find and return contract to be in on the date passed in
-        
-        :param date:    date of the contract
-        :return:        string representing the contract delivery
-        """
-        contract_rolls = [r for r in zip(self.__contract_rolls, self.__contract_rolls[1:])
-                         if r[0][Table.ContractRoll.DATE] < date <= r[1][Table.ContractRoll.DATE]]
-        contract_roll = contract_rolls[0][0] if len(contract_rolls) == 1 else self.__contract_rolls[-1]
-
-        return contract_roll[Table.ContractRoll.ROLL_IN_CONTRACT]
-
     def contract_roll(self, current_contract):
         """
         Find and return contract roll based on current contract passed in
@@ -137,7 +124,7 @@ class Market(object):  # TODO rename to Future?
         :param date:    date to which relate the yield curve
         :return:        list of tuples(code, price, volume, yield, relative-price-difference))
         """
-        current_contract_code = self.contract(date)
+        current_contract_code = self.__contract(date)
         current_contract = [c for c in self.__contracts[current_contract_code] if c[Table.Market.PRICE_DATE] <= date][-1]
         contract_codes = [k for k in sorted(self.__contracts.keys()) if k > current_contract_code]
         previous_price = current_contract[Table.Market.SETTLE_PRICE]
@@ -156,6 +143,19 @@ class Market(object):  # TODO rename to Future?
                 curve.append((code, price, next_contract[Table.Market.VOLUME], implied_yield, price_difference))
 
         return curve
+
+    def __contract(self, date):
+        """
+        Find and return contract to be in on the date passed in
+        
+        :param date:    date of the contract
+        :return:        string representing the contract delivery
+        """
+        contract_rolls = [r for r in zip(self.__contract_rolls, self.__contract_rolls[1:])
+                          if r[0][Table.ContractRoll.DATE] < date <= r[1][Table.ContractRoll.DATE]]
+        contract_roll = contract_rolls[0][0] if len(contract_rolls) == 1 else self.__contract_rolls[-1]
+
+        return contract_roll[Table.ContractRoll.ROLL_IN_CONTRACT]
 
     def study(self, study_name, date=dt.date(9999, 12, 31)):
         """
