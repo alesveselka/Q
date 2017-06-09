@@ -47,28 +47,29 @@ class BreakoutMAFilterATRStop(TradingModel):
                 # TODO pass in rules
                 if market_position:
                     direction = market_position.direction()
+                    position_contract = market_position.contract()
                     if direction == Direction.LONG:
                         if settle_price <= self.__stop_loss(date, market_position):
-                            signals.append(Signal(market, SignalType.EXIT, direction, date, settle_price))
+                            signals.append(Signal(market, SignalType.EXIT, direction, date, settle_price, position_contract))
                     elif direction == Direction.SHORT:
                         if settle_price >= self.__stop_loss(date, market_position):
-                            signals.append(Signal(market, SignalType.EXIT, direction, date, settle_price))
+                            signals.append(Signal(market, SignalType.EXIT, direction, date, settle_price, position_contract))
 
                     if self.__should_roll(date, previous_date, market, market_position, signals):
-                        signals.append(Signal(market, SignalType.ROLL_EXIT, direction, date, settle_price))
-                        signals.append(Signal(market, SignalType.ROLL_ENTER, direction, date, settle_price))
+                        contract = self.__contract(date, market, direction)
+                        signals.append(Signal(market, SignalType.ROLL_EXIT, direction, date, settle_price, position_contract))
+                        signals.append(Signal(market, SignalType.ROLL_ENTER, direction, date, settle_price, contract))
 
                 # TODO pass-in rules
-                yield_threshold = 0.03
                 if ma_short > ma_long:
                     if settle_price > hhll_short[Table.Study.VALUE]:
-                        print 'LONG', date, self.__contract(date, market, Direction.LONG)
-                        signals.append(Signal(market, SignalType.ENTER, Direction.LONG, date, settle_price))
+                        contract = self.__contract(date, market, Direction.LONG)
+                        signals.append(Signal(market, SignalType.ENTER, Direction.LONG, date, settle_price, contract))
 
                 elif ma_short < ma_long:
                     if settle_price < hhll_short[Table.Study.VALUE_2]:
-                        print 'SHORT', date, self.__contract(date, market, Direction.SHORT)
-                        signals.append(Signal(market, SignalType.ENTER, Direction.SHORT, date, settle_price))
+                        contract = self.__contract(date, market, Direction.SHORT)
+                        signals.append(Signal(market, SignalType.ENTER, Direction.SHORT, date, settle_price, contract))
 
         return signals
 
@@ -81,6 +82,7 @@ class BreakoutMAFilterATRStop(TradingModel):
         :param direction:   direction of trade signal
         :return:            string representing code of contract to trade
         """
+        # TODO no contract for Norgate continuous!
         min_volume = 1000
         yield_curve = market.yield_curve(date)
         current = [y for y in yield_curve if y[YieldCurve.YIELD] is None]
