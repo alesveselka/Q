@@ -1,10 +1,12 @@
 #!/usr/bin/python
 
+import calendar
 import datetime as dt
 from math import ceil
 from study import *
 from enum import Study
 from enum import Table
+from enum import RollSchedule
 from operator import itemgetter
 from math import floor, log10
 from collections import defaultdict
@@ -152,6 +154,28 @@ class Market(object):  # TODO rename to Future?
 
         return curve
 
+    def scheduled_roll_date(self, contract):
+        """
+        Return market's next scheduled roll date based on contract passed in
+        
+        :return:    date of scheduled roll
+        """
+        months = [m for m in calendar.month_abbr]
+
+        contract_year = int(contract[:4])
+        contract_month_code = contract[-1]
+        contract_month_index = reduce(
+            lambda i, d: i + 1 if d[0] <= contract_month_code.upper() else i,
+            [d.split(':') for d in 'F:Jan,G:Feb,H:Mar,J:Apr,K:May,M:Jun,N:Jul,Q:Aug,U:Sep,V:Oct,X:Nov,Z:Dec'.split(',')],
+            0
+        )
+        contract_month = months[contract_month_index]
+
+        roll_schedule = [r for r in self.__roll_schedule if r[RollSchedule.ROLL_OUT_MONTH] == contract_month][0]
+        roll_month_index = [i[0] for i in enumerate(months) if i[1] == roll_schedule[RollSchedule.MONTH]][0]
+        roll_year = contract_year if contract_month_index - roll_month_index > -1 else contract_year - 1
+        return dt.date(roll_year, roll_month_index, int(roll_schedule[RollSchedule.DAY]))
+
     def __contract(self, date):
         """
         Find and return contract to be in on the date passed in
@@ -208,7 +232,8 @@ class Market(object):  # TODO rename to Future?
             AND code = '%s' 
             AND roll_strategy_id = '%s'
             AND DATE(price_date) >= '%s'
-            AND DATE(price_date) <= '%s';
+            AND DATE(price_date) <= '%s'
+            ORDER BY price_date;
         """
         cursor.execute(continuous_query % (
             self.__column_names(),
