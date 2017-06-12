@@ -56,11 +56,7 @@ class BreakoutMAFilterATRStop(TradingModel):
 
                     if self.__should_roll(date, previous_date, market, market_position, signals):
                         signals.append(Signal(market, SignalType.ROLL_EXIT, direction, date, settle_price, position_contract))
-                        # TODO use this function, but check days before last_trading_day ...
-                        # TODO ... use 'roll schedule' - the actual contract roll doesn't have to be available
-                        # contract = self.__contract(date, market, direction)
-                        self.__contract(date, market, direction)
-                        contract = market.contract_roll(position_contract)[Table.ContractRoll.ROLL_IN_CONTRACT]
+                        contract = self.__roll_in_contract(market, position_contract)
                         signals.append(Signal(market, SignalType.ROLL_ENTER, direction, date, settle_price, contract))
 
                 if ma_short > ma_long:
@@ -89,7 +85,7 @@ class BreakoutMAFilterATRStop(TradingModel):
         yield_curve = market.yield_curve(date)
         current = [y for y in yield_curve if y[YieldCurve.YIELD] is None]
         candidates = [y for y in yield_curve if y[YieldCurve.YIELD] is not None and y[YieldCurve.VOLUME] >= min_volume]
-        optimal = current[0] if len(current) else None
+        optimal = current[0]
         # print direction, date, current
         if len(candidates):
             fn = max if direction == Direction.SHORT else min
@@ -101,7 +97,17 @@ class BreakoutMAFilterATRStop(TradingModel):
             #     print '\t',c
         # print 'optimal: ', optimal
         # return optimal[0]
-        return current[0][0] if len(current) else None
+        return current[0][0]
+
+    def __roll_in_contract(self, market, contract):
+        """
+        Find and retun roll-in contract
+        
+        :param market:      contract's market
+        :param contract:    current 'roll out' contract
+        :return:            contract to roll in
+        """
+        return market.contract_roll(contract)[Table.ContractRoll.ROLL_IN_CONTRACT]
 
     def __should_roll(self, date, previous_date, market, position, signals):
         """
