@@ -45,6 +45,7 @@ class Market(object):  # TODO rename to Future?
         self.__adjusted_data = []
         self.__contracts = defaultdict(list)
         self.__contract_rolls = []
+        self.__roll_schedule = []
         self.__studies = {}
         self.__first_study_date = dt.date(9999, 12, 31)
 
@@ -128,7 +129,14 @@ class Market(object):  # TODO rename to Future?
         current_contract = [c for c in self.__contracts[current_contract_code] if c[Table.Market.PRICE_DATE] <= date][-1]
         contract_codes = [k for k in sorted(self.__contracts.keys()) if k > current_contract_code]
         previous_price = current_contract[Table.Market.SETTLE_PRICE]
-        curve = [(current_contract_code, current_contract[Table.Market.SETTLE_PRICE], current_contract[Table.Market.VOLUME], None, None)]
+        curve = [(
+            current_contract_code,
+            current_contract[Table.Market.SETTLE_PRICE],
+            current_contract[Table.Market.VOLUME],
+            None,
+            None,
+            (current_contract[Table.Market.LAST_TRADING_DAY] - date).days
+        )]
 
         # TODO also calculate average volatility of each contract
         for code in contract_codes:
@@ -140,7 +148,7 @@ class Market(object):  # TODO rename to Future?
                 implied_yield = (price / current_contract[Table.Market.SETTLE_PRICE]) ** Decimal(365. / days) - 1
                 price_difference = price - previous_price
                 previous_price = price
-                curve.append((code, price, next_contract[Table.Market.VOLUME], implied_yield, price_difference))
+                curve.append((code, price, next_contract[Table.Market.VOLUME], implied_yield, price_difference, days))
 
         return curve
 
@@ -231,16 +239,25 @@ class Market(object):  # TODO rename to Future?
         for c in cursor.fetchall():
             self.__contracts[c[Table.Market.CODE][-5:].upper()].append(c)
 
-        roll_query = """
+        contract_roll_query = """
             SELECT date, gap, roll_out_contract, roll_in_contract
             FROM contract_roll
             WHERE market_id = '%s'
             AND roll_strategy_id = '%s'
             ORDER BY date;
         """
-        cursor.execute(roll_query % (self.__id, self.__roll_strategy_id))
+        cursor.execute(contract_roll_query % (self.__id, self.__roll_strategy_id))
         contract_rolls = cursor.fetchall()
         self.__contract_rolls = contract_rolls if len(contract_rolls) else [(None, 0, None, None)]
+
+        roll_schedule_query = """
+            SELECT roll_out_month, roll_in_month, month, day 
+            FROM standard_roll_schedule 
+            WHERE market_id = '%s' 
+            AND name = 'norgate';
+        """
+        cursor.execute(roll_schedule_query % self.__id)
+        self.__roll_schedule = cursor.fetchall()
 
         return True
 
