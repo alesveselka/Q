@@ -131,3 +131,10 @@ class YieldCurve:
     VOLUME = 2
     YIELD = 3
     PRICE_DIFF = 4
+
+
+class RollSchedule:
+    ROLL_OUT_MONTH = 0
+    ROLL_IN_MONTH = 1
+    MONTH = 2
+    DAY = 3
