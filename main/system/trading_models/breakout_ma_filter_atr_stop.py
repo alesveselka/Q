@@ -125,9 +125,6 @@ class BreakoutMAFilterATRStop(TradingModel):
                 roll_date = market.data(end_date=contract_roll[Table.ContractRoll.DATE])[-2][Table.Market.PRICE_DATE]
                 should_roll = date == roll_date and position_contract == contract_roll[Table.ContractRoll.ROLL_OUT_CONTRACT]
 
-                # roll_date = market.data(end_date=market.scheduled_roll_date(position_contract))[-2][Table.Market.PRICE_DATE]
-                # should_roll = date == roll_date
-
         return should_roll
 
     def __stop_loss(self, date, position):
