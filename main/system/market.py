@@ -127,30 +127,32 @@ class Market(object):  # TODO rename to Future?
         :param date:    date to which relate the yield curve
         :return:        list of tuples(code, price, volume, yield, relative-price-difference))
         """
+        curve = []
         current_contract_code = self.__contract(date)
-        current_contract = [c for c in self.__contracts[current_contract_code] if c[Table.Market.PRICE_DATE] <= date][-1]
-        contract_codes = [k for k in sorted(self.__contracts.keys()) if k > current_contract_code]
-        previous_price = current_contract[Table.Market.SETTLE_PRICE]
-        curve = [(
-            current_contract_code,
-            current_contract[Table.Market.SETTLE_PRICE],
-            current_contract[Table.Market.VOLUME],
-            None,
-            None,
-            (current_contract[Table.Market.LAST_TRADING_DAY] - date).days
-        )]
+        if current_contract_code:
+            current_contract = [c for c in self.__contracts[current_contract_code] if c[Table.Market.PRICE_DATE] <= date][-1]
+            contract_codes = [k for k in sorted(self.__contracts.keys()) if k > current_contract_code]
+            previous_price = current_contract[Table.Market.SETTLE_PRICE] if current_contract else 0
+            curve = [(
+                current_contract_code,
+                current_contract[Table.Market.SETTLE_PRICE],
+                current_contract[Table.Market.VOLUME],
+                None,
+                None,
+                (current_contract[Table.Market.LAST_TRADING_DAY] - date).days
+            )]
 
-        # TODO also calculate average volatility of each contract
-        for code in contract_codes:
-            next_contract_data = [c for c in self.__contracts[code] if c[Table.Market.PRICE_DATE] <= date]
-            if len(next_contract_data):
-                next_contract = next_contract_data[-1]
-                days = (next_contract[Table.Market.LAST_TRADING_DAY] - date).days
-                price = next_contract[Table.Market.SETTLE_PRICE]
-                implied_yield = (price / current_contract[Table.Market.SETTLE_PRICE]) ** Decimal(365. / days) - 1
-                price_difference = price - previous_price
-                previous_price = price
-                curve.append((code, price, next_contract[Table.Market.VOLUME], implied_yield, price_difference, days))
+            # TODO also calculate average volatility of each contract
+            for code in contract_codes:
+                next_contract_data = [c for c in self.__contracts[code] if c[Table.Market.PRICE_DATE] <= date]
+                if len(next_contract_data):
+                    next_contract = next_contract_data[-1]
+                    days = (next_contract[Table.Market.LAST_TRADING_DAY] - date).days
+                    price = next_contract[Table.Market.SETTLE_PRICE]
+                    implied_yield = (price / current_contract[Table.Market.SETTLE_PRICE]) ** Decimal(365. / days) - 1
+                    price_difference = price - previous_price
+                    previous_price = price
+                    curve.append((code, price, next_contract[Table.Market.VOLUME], implied_yield, price_difference, days))
 
         return curve
 

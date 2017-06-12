@@ -43,7 +43,7 @@ class BreakoutMAFilterATRStop(TradingModel):
                 hhll_short = market.study(Study.HHLL_SHORT, previous_date)[-1]
                 settle_price = market_data[-1][Table.Market.SETTLE_PRICE]
                 market_position = self.__market_position(positions, market)
-
+                # TODO adjust studies and prices if trading individual contracts
                 if market_position:
                     direction = market_position.direction()
                     position_contract = market_position.contract()
@@ -55,8 +55,12 @@ class BreakoutMAFilterATRStop(TradingModel):
                             signals.append(Signal(market, SignalType.EXIT, direction, date, settle_price, position_contract))
 
                     if self.__should_roll(date, previous_date, market, market_position, signals):
-                        contract = self.__contract(date, market, direction)
                         signals.append(Signal(market, SignalType.ROLL_EXIT, direction, date, settle_price, position_contract))
+                        # TODO use this function, but check days before last_trading_day ...
+                        # TODO ... use 'roll schedule' - the actual contract roll doesn't have to be available
+                        # contract = self.__contract(date, market, direction)
+                        self.__contract(date, market, direction)
+                        contract = market.contract_roll(position_contract)[Table.ContractRoll.ROLL_IN_CONTRACT]
                         signals.append(Signal(market, SignalType.ROLL_ENTER, direction, date, settle_price, contract))
 
                 if ma_short > ma_long:
@@ -85,15 +89,19 @@ class BreakoutMAFilterATRStop(TradingModel):
         yield_curve = market.yield_curve(date)
         current = [y for y in yield_curve if y[YieldCurve.YIELD] is None]
         candidates = [y for y in yield_curve if y[YieldCurve.YIELD] is not None and y[YieldCurve.VOLUME] >= min_volume]
-        optimal = current[0]
-
+        optimal = current[0] if len(current) else None
+        # print direction, date, current
         if len(candidates):
             fn = max if direction == Direction.SHORT else min
             best = fn([c[YieldCurve.YIELD] for c in candidates])
             optimal = [c for c in candidates if c[YieldCurve.YIELD] == best][0]
 
+            # print 'candidates'
+            # for c in candidates:
+            #     print '\t',c
+        # print 'optimal: ', optimal
         # return optimal[0]
-        return current[0][0]
+        return current[0][0] if len(current) else None
 
     def __should_roll(self, date, previous_date, market, position, signals):
         """
@@ -116,6 +124,9 @@ class BreakoutMAFilterATRStop(TradingModel):
                 contract_roll = market.contract_roll(position_contract)
                 roll_date = market.data(end_date=contract_roll[Table.ContractRoll.DATE])[-2][Table.Market.PRICE_DATE]
                 should_roll = date == roll_date and position_contract == contract_roll[Table.ContractRoll.ROLL_OUT_CONTRACT]
+
+                # roll_date = market.data(end_date=market.scheduled_roll_date(position_contract))[-2][Table.Market.PRICE_DATE]
+                # should_roll = date == roll_date
 
         return should_roll
 
