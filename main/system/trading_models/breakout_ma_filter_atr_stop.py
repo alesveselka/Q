@@ -42,7 +42,7 @@ class BreakoutMAFilterATRStop(TradingModel):
                 hhll_short = market.study(Study.HHLL_SHORT, previous_date)[-1]
                 settle_price = market_data[-1][Table.Market.SETTLE_PRICE]
                 market_position = self.__market_position(positions, market)
-                # TODO adjust studies and prices if trading individual contracts
+
                 if market_position:
                     direction = market_position.direction()
                     position_contract = market_position.contract()
@@ -90,10 +90,7 @@ class BreakoutMAFilterATRStop(TradingModel):
             best = fn([c[YieldCurve.YIELD] for c in candidates])
             optimal = [c for c in candidates if c[YieldCurve.YIELD] == best][0]
 
-        return {
-            'optimal_roll': optimal,
-            'standard_roll': current
-        }.get(self.__roll_strategy[Table.RollStrategy.TYPE], current)[0]
+        return {'optimal_roll': optimal, 'standard_roll': current}.get(self.__roll_strategy[Table.RollStrategy.TYPE])[0]
 
     def __roll_in_contract(self, market, contract):
         """
