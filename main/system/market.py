@@ -142,6 +142,7 @@ class Market(object):  # TODO rename to Future?
             (current_contract[Table.Market.LAST_TRADING_DAY] - date).days
         )]
 
+        # TODO normalize with ATR
         # TODO also calculate average volatility of each contract
         for code in contract_codes:
             next_contract_data = [c for c in self.__contracts[code] if c[Table.Market.PRICE_DATE] <= date]
