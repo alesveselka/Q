@@ -90,6 +90,14 @@ def simulations():
         json.dumps(study_map),
         roll_strategy_id('standard_roll_1'),
         '25Y'
+    ), (
+        '%s_3' % trading_model_name,
+        json.dumps(simulation_params(1e6, 0.002)),
+        trading_model_name,
+        json.dumps(trading_params),
+        json.dumps(study_map),
+        roll_strategy_id('optimal_1'),
+        '25Y'
     )]
 
 
@@ -105,4 +113,4 @@ if __name__ == '__main__':
         'Highest-high and Lowest-low breakout with Moving Average trend filter and ATR volatility based exit stops'
     )]
     # insert_trading_models(trading_model_data)
-    insert_simulations(simulations())
+    insert_simulations([simulations()[-1]])
