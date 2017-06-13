@@ -324,3 +324,4 @@ if __name__ == '__main__':
     )
 
     # construct_continuous('standard_roll_1')
+    construct_continuous('optimal_1')

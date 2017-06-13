@@ -69,8 +69,7 @@ class Position(object):
         
         :return:    string representing the futures contract
         """
-        last_open_order = self.__open_order_results()[-1].order()
-        return last_open_order.market().contract(last_open_order.date())
+        return self.__open_order_results()[-1].order().contract()
 
     def mark_to_market(self, date, price):
         """

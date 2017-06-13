@@ -38,14 +38,16 @@ class Transaction(object):
         if self.__type == TransactionType.MTM_TRANSACTION or self.__type == TransactionType.MTM_POSITION:
             context_data = {
                 'market_id': self.__context_data[0].id(),
+                'contract': self.__context_data[1],
                 'instrument_code': self.__context_data[0].code(),
-                'price': str(self.__context_data[1])
+                'price': str(self.__context_data[2])
             }
         elif self.__type == TransactionType.COMMISSION:
             market = self.__context_data[0]
             order = self.__context_data[1]
             context_data = {
                 'market_id': market.id(),
+                'contract': order.contract(),
                 'instrument_code': market.code(),
                 'order_type': order.type(),
                 'quantity': order.quantity(),
@@ -73,18 +75,19 @@ class Transaction(object):
     def __str__(self):
         result = 'Transaction: '
         if self.__type == TransactionType.MTM_TRANSACTION or self.__type == TransactionType.MTM_POSITION:
-            result += '%s, %s of %.2f(%s) at %.4f (%s).' % (
+            result += '%s, %s of %.2f(%s) at %.4f (%s%s).' % (
                 self.__type,
                 self.__account_action,
                 self.__amount,
                 self.__currency,
-                self.__context_data[1],
-                self.__context_data[0].code()
+                self.__context_data[2],
+                self.__context_data[0].code(),
+                (', %s' % self.__context_data[1]) if self.__context_data[1] else ''
             )
         elif self.__type == TransactionType.COMMISSION:
             market = self.__context_data[0]
             order = self.__context_data[1]
-            result += '%s, %s of %.2f(%s): %s %d x %s at %.2f.' % (
+            result += '%s, %s of %.2f(%s): %s %d x %s%s at %.2f.' % (
                 self.__type,
                 self.__account_action,
                 self.__amount,
@@ -92,6 +95,7 @@ class Transaction(object):
                 order.type(),
                 order.quantity(),
                 market.code(),
+                (' (%s)' % order.contract()) if order.contract() else '',
                 self.__context_data[2]
             )
         elif self.__type == TransactionType.MARGIN_LOAN:

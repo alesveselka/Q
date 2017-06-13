@@ -9,7 +9,7 @@ class Order(object):
 
     def __init__(self, market, signal, date, price, quantity):
         self.__market = market
-        self.__signal = signal
+        self.__contract = signal.contract()
         self.__date = date
         self.__price = price
         self.__quantity = quantity
@@ -23,6 +23,9 @@ class Order(object):
 
     def market(self):
         return self.__market
+
+    def contract(self):
+        return self.__contract
 
     def type(self):
         return self.__type

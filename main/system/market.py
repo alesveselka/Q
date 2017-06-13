@@ -1,12 +1,15 @@
 #!/usr/bin/python
 
+import calendar
 import datetime as dt
 from math import ceil
 from study import *
 from enum import Study
 from enum import Table
+from enum import RollSchedule
 from operator import itemgetter
 from math import floor, log10
+from collections import defaultdict
 
 
 class Market(object):  # TODO rename to Future?
@@ -42,7 +45,10 @@ class Market(object):  # TODO rename to Future?
         self.__margin = margin
         self.__margin_multiple = 0.0
         self.__adjusted_data = []
+        self.__contracts = defaultdict(list)
         self.__contract_rolls = []
+        self.__roll_schedule = []
+        self.__scheduled_rolls = []
         self.__studies = {}
         self.__first_study_date = dt.date(9999, 12, 31)
 
@@ -106,19 +112,6 @@ class Market(object):  # TODO rename to Future?
         result = (Decimal(ceil(slippage_value / self.__tick_value)) * self.__tick_value) / self.__point_value
         return result * quantity_factor
 
-    def contract(self, date):
-        """
-        Find and return contract to be in on the date passed in
-        
-        :param date:    date of the contract
-        :return:        string representing the contract delivery
-        """
-        contract_rolls = [r for r in zip(self.__contract_rolls, self.__contract_rolls[1:])
-                         if r[0][Table.ContractRoll.DATE] < date <= r[1][Table.ContractRoll.DATE]]
-        contract_roll = contract_rolls[0][0] if len(contract_rolls) == 1 else self.__contract_rolls[-1]
-
-        return contract_roll[Table.ContractRoll.ROLL_IN_CONTRACT]
-
     def contract_roll(self, current_contract):
         """
         Find and return contract roll based on current contract passed in
@@ -126,7 +119,54 @@ class Market(object):  # TODO rename to Future?
         :param current_contract:    string representing current contract
         :return:                    tuple(date, gap, roll-out-contract, roll-in-contract)
         """
-        return [r for r in self.__contract_rolls if r[Table.ContractRoll.ROLL_OUT_CONTRACT] == current_contract][0]
+        rolls = self.__contract_rolls if len(self.__contract_rolls) else self.__scheduled_rolls
+        return [r for r in rolls if r[Table.ContractRoll.ROLL_OUT_CONTRACT] == current_contract][0]
+
+    def yield_curve(self, date):
+        """
+        Calculate yield curve relative to the date passed in
+        
+        :param date:    date to which relate the yield curve
+        :return:        list of tuples(code, price, volume, yield, relative-price-difference))
+        """
+        current_contract_code = self.__contract(date)
+        current_contract = [c for c in self.__contracts[current_contract_code] if c[Table.Market.PRICE_DATE] <= date][-1]
+        contract_codes = [k for k in sorted(self.__contracts.keys()) if k > current_contract_code]
+        previous_price = current_contract[Table.Market.SETTLE_PRICE] if current_contract else 0
+        curve = [(
+            current_contract_code,
+            current_contract[Table.Market.SETTLE_PRICE],
+            current_contract[Table.Market.VOLUME],
+            None,
+            None,
+            (current_contract[Table.Market.LAST_TRADING_DAY] - date).days
+        )]
+
+        # TODO also calculate average volatility of each contract
+        for code in contract_codes:
+            next_contract_data = [c for c in self.__contracts[code] if c[Table.Market.PRICE_DATE] <= date]
+            if len(next_contract_data):
+                next_contract = next_contract_data[-1]
+                days = (next_contract[Table.Market.LAST_TRADING_DAY] - date).days
+                price = next_contract[Table.Market.SETTLE_PRICE]
+                implied_yield = (price / current_contract[Table.Market.SETTLE_PRICE]) ** Decimal(365. / days) - 1
+                price_difference = price - previous_price
+                previous_price = price
+                curve.append((code, price, next_contract[Table.Market.VOLUME], implied_yield, price_difference, days))
+
+        return curve
+
+    def __contract(self, date):
+        """
+        Find and return contract to be in on the date passed in
+        
+        :param date:    date of the contract
+        :return:        string representing the contract delivery
+        """
+        rolls = self.__contract_rolls if len(self.__contract_rolls) else self.__scheduled_rolls
+        contract_rolls = [r for r in zip(rolls, rolls[1:]) if r[0][Table.ContractRoll.DATE] < date <= r[1][Table.ContractRoll.DATE]]
+        contract_roll = contract_rolls[0][0] if len(contract_rolls) == 1 else self.__contract_rolls[-1]
+        return contract_roll[Table.ContractRoll.ROLL_IN_CONTRACT]
 
     def study(self, study_name, date=dt.date(9999, 12, 31)):
         """
@@ -171,7 +211,8 @@ class Market(object):  # TODO rename to Future?
             AND code = '%s' 
             AND roll_strategy_id = '%s'
             AND DATE(price_date) >= '%s'
-            AND DATE(price_date) <= '%s';
+            AND DATE(price_date) <= '%s'
+            ORDER BY price_date;
         """
         cursor.execute(continuous_query % (
             self.__column_names(),
@@ -184,18 +225,70 @@ class Market(object):  # TODO rename to Future?
         ))
         self.__adjusted_data = cursor.fetchall()
 
-        roll_query = """
+        contracts_query = """
+            SELECT %s
+            FROM %s
+            WHERE market_id = '%s'
+            AND DATE(price_date) >= '%s'
+            AND DATE(price_date) <= '%s'
+            ORDER BY price_date;
+        """
+        cursor.execute(contracts_query % (
+            self.__column_names() + ', last_trading_day',
+            'contract',
+            self.__id,
+            self.__start_data_date.strftime('%Y-%m-%d'),
+            end_date.strftime('%Y-%m-%d')
+        ))
+        for c in cursor.fetchall():
+            self.__contracts[c[Table.Market.CODE][-5:].upper()].append(c)
+
+        contract_roll_query = """
             SELECT date, gap, roll_out_contract, roll_in_contract
             FROM contract_roll
             WHERE market_id = '%s'
             AND roll_strategy_id = '%s'
             ORDER BY date;
         """
-        cursor.execute(roll_query % (self.__id, self.__roll_strategy_id))
-        contract_rolls = cursor.fetchall()
-        self.__contract_rolls = contract_rolls if len(contract_rolls) else [(None, 0, None, None)]
+        cursor.execute(contract_roll_query % (self.__id, self.__roll_strategy_id))
+        self.__contract_rolls = cursor.fetchall()
+
+        roll_schedule_query = """
+            SELECT roll_out_month, roll_in_month, month, day 
+            FROM standard_roll_schedule 
+            WHERE market_id = '%s' 
+            AND name = 'norgate';
+        """
+        cursor.execute(roll_schedule_query % self.__id)
+        self.__roll_schedule = cursor.fetchall()
+
+        contract_codes = [k for k in sorted(self.__contracts.keys())]
+        self.__scheduled_rolls = [(self.__scheduled_roll_date(r[0]), 0, r[0], r[1])
+                                  for r in zip(contract_codes, contract_codes[1:])]
 
         return True
+
+    def __scheduled_roll_date(self, contract):
+        """
+        Return market's next scheduled roll date based on contract passed in
+        
+        :return:    date of scheduled roll
+        """
+        months = [m for m in calendar.month_abbr]
+
+        contract_year = int(contract[:4])
+        contract_month_code = contract[-1]
+        contract_month_index = reduce(
+            lambda i, d: i + 1 if d[0] <= contract_month_code.upper() else i,
+            [d.split(':') for d in 'F:Jan,G:Feb,H:Mar,J:Apr,K:May,M:Jun,N:Jul,Q:Aug,U:Sep,V:Oct,X:Nov,Z:Dec'.split(',')],
+            0
+        )
+        contract_month = months[contract_month_index]
+
+        roll_schedule = [r for r in self.__roll_schedule if r[RollSchedule.ROLL_OUT_MONTH] == contract_month][0]
+        roll_month_index = [i[0] for i in enumerate(months) if i[1] == roll_schedule[RollSchedule.MONTH]][0]
+        roll_year = contract_year if contract_month_index - roll_month_index > -1 else contract_year - 1
+        return dt.date(roll_year, roll_month_index, int(roll_schedule[RollSchedule.DAY]))
 
     def __column_names(self):
         """

@@ -4,6 +4,7 @@ from enum import Study
 from enum import Direction
 from enum import SignalType
 from enum import Table
+from enum import YieldCurve
 from strategy_signal import Signal
 from trading_models.trading_model import TradingModel
 
@@ -17,11 +18,10 @@ class BreakoutMAFilterATRStop(TradingModel):
     Exit stops are at ATR multiples.
     """
 
-    def __init__(self, markets, params):
+    def __init__(self, markets, params, roll_strategy):
         self.__markets = markets
-        self.__params = params
-
-        self.__stop_multiple = int(self.__params['stop_multiple'])
+        self.__stop_multiple = int(params['stop_multiple'])
+        self.__roll_strategy = roll_strategy
 
     def signals(self, date, positions):
         """
@@ -43,30 +43,64 @@ class BreakoutMAFilterATRStop(TradingModel):
                 settle_price = market_data[-1][Table.Market.SETTLE_PRICE]
                 market_position = self.__market_position(positions, market)
 
-                # TODO pass in rules
                 if market_position:
                     direction = market_position.direction()
+                    position_contract = market_position.contract()
                     if direction == Direction.LONG:
                         if settle_price <= self.__stop_loss(date, market_position):
-                            signals.append(Signal(market, SignalType.EXIT, direction, date, settle_price))
+                            signals.append(Signal(market, SignalType.EXIT, direction, date, settle_price, position_contract))
                     elif direction == Direction.SHORT:
                         if settle_price >= self.__stop_loss(date, market_position):
-                            signals.append(Signal(market, SignalType.EXIT, direction, date, settle_price))
+                            signals.append(Signal(market, SignalType.EXIT, direction, date, settle_price, position_contract))
 
                     if self.__should_roll(date, previous_date, market, market_position, signals):
-                        signals.append(Signal(market, SignalType.ROLL_EXIT, direction, date, settle_price))
-                        signals.append(Signal(market, SignalType.ROLL_ENTER, direction, date, settle_price))
+                        signals.append(Signal(market, SignalType.ROLL_EXIT, direction, date, settle_price, position_contract))
+                        contract = self.__roll_in_contract(market, position_contract)
+                        signals.append(Signal(market, SignalType.ROLL_ENTER, direction, date, settle_price, contract))
 
-                # TODO pass-in rules
                 if ma_short > ma_long:
                     if settle_price > hhll_short[Table.Study.VALUE]:
-                        signals.append(Signal(market, SignalType.ENTER, Direction.LONG, date, settle_price))
+                        contract = self.__contract(date, market, Direction.LONG)
+                        signals.append(Signal(market, SignalType.ENTER, Direction.LONG, date, settle_price, contract))
 
                 elif ma_short < ma_long:
                     if settle_price < hhll_short[Table.Study.VALUE_2]:
-                        signals.append(Signal(market, SignalType.ENTER, Direction.SHORT, date, settle_price))
+                        contract = self.__contract(date, market, Direction.SHORT)
+                        signals.append(Signal(market, SignalType.ENTER, Direction.SHORT, date, settle_price, contract))
 
         return signals
+
+    def __contract(self, date, market, direction):
+        """
+        Find 'optimal' contract to trade
+        
+        :param date:        date of the signal
+        :param market:      market to trade
+        :param direction:   direction of trade signal
+        :return:            string representing code of contract to trade
+        """
+        min_volume = 1000
+        yield_curve = market.yield_curve(date)
+        current = [y for y in yield_curve if y[YieldCurve.YIELD] is None][0]
+        candidates = [y for y in yield_curve if y[YieldCurve.YIELD] is not None and y[YieldCurve.VOLUME] >= min_volume]
+        optimal = current
+
+        if len(candidates):
+            fn = max if direction == Direction.SHORT else min
+            best = fn([c[YieldCurve.YIELD] for c in candidates])
+            optimal = [c for c in candidates if c[YieldCurve.YIELD] == best][0]
+
+        return {'optimal_roll': optimal, 'standard_roll': current}.get(self.__roll_strategy[Table.RollStrategy.TYPE])[0]
+
+    def __roll_in_contract(self, market, contract):
+        """
+        Find and retun roll-in contract
+        
+        :param market:      contract's market
+        :param contract:    current 'roll out' contract
+        :return:            contract to roll in
+        """
+        return market.contract_roll(contract)[Table.ContractRoll.ROLL_IN_CONTRACT]
 
     def __should_roll(self, date, previous_date, market, position, signals):
         """

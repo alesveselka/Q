@@ -71,7 +71,7 @@ class Broker(object):
             position = [p for p in open_positions if p.market() == market][0]
             mtm = position.mark_to_market(order.date(), price) * Decimal(position.quantity()) * market.point_value()
 
-            self.__add_transaction(TransactionType.MTM_TRANSACTION, date, mtm, currency, (market, price))
+            self.__add_transaction(TransactionType.MTM_TRANSACTION, date, mtm, currency, (market, position.contract(), price))
             self.__add_transaction(TransactionType.COMMISSION, date, -commissions, currency, (market, order, price))
             self.__add_transaction(TransactionType.MARGIN_LOAN, date, -margin, currency, 'remove')
 
@@ -140,7 +140,7 @@ class Broker(object):
                 price = market.data(end_date=date)[-1][Table.Market.SETTLE_PRICE]
                 mtm = p.mark_to_market(date, price) * Decimal(p.quantity()) * market.point_value()
                 mtm_type = TransactionType.MTM_TRANSACTION if p.latest_enter_date() == date else TransactionType.MTM_POSITION
-                self.__add_transaction(mtm_type, date, mtm, market.currency(), (market, price))
+                self.__add_transaction(mtm_type, date, mtm, market.currency(), (market, p.contract(), price))
 
     def __translate_fx_balances(self, date, previous_date):
         """

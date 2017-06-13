@@ -89,6 +89,7 @@ class Table:
         LOW_PRICE = 4
         SETTLE_PRICE = 5
         VOLUME = 6
+        LAST_TRADING_DAY = 7
 
     class CurrencyPair:
         PRICE_DATE = 0
@@ -122,3 +123,24 @@ class Table:
         GAP = 1
         ROLL_OUT_CONTRACT = 2
         ROLL_IN_CONTRACT = 3
+
+    class RollStrategy:
+        ID = 0
+        NAME = 1
+        TYPE = 2
+        PARAMS = 3
+
+
+class YieldCurve:
+    CODE = 0
+    PRICE = 1
+    VOLUME = 2
+    YIELD = 3
+    PRICE_DIFF = 4
+
+
+class RollSchedule:
+    ROLL_OUT_MONTH = 0
+    ROLL_IN_MONTH = 1
+    MONTH = 2
+    DAY = 3

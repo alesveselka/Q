@@ -26,6 +26,7 @@ class Initialize:
         )
         simulation = self.__simulation(simulation_name, connection)
         params = json.loads(simulation[Table.Simulation.PARAMS])
+        roll_strategy = self.__roll_strategy(simulation[Table.Simulation.ROLL_STRATEGY_ID], connection)
 
         precision = getcontext().prec
         risk_position_sizing = Decimal('%s' % params['risk_factor']).quantize(Decimal('1.' + ('0' * precision)))
@@ -36,7 +37,7 @@ class Initialize:
         investment_universe.load_data()
 
         data_series = DataSeries(investment_universe, connection, simulation[Table.Simulation.STUDIES])
-        futures = data_series.futures(simulation[Table.Simulation.ROLL_STRATEGY_ID], params['slippage_map'])
+        futures = data_series.futures(roll_strategy[Table.RollStrategy.ID], params['slippage_map'])
         currency_pairs = data_series.currency_pairs()
         interest_rates = data_series.interest_rates()
 
@@ -44,7 +45,8 @@ class Initialize:
         broker = Broker(account, commission, currency_pairs, interest_rates, interest_minimums)
         trading_model = self.__trading_model(simulation[Table.Simulation.TRADING_MODEL])(
             futures,
-            json.loads(simulation[Table.Simulation.TRADING_PARAMS])
+            json.loads(simulation[Table.Simulation.TRADING_PARAMS]),
+            roll_strategy
         )
 
         risk = Risk(risk_position_sizing, account)
@@ -59,6 +61,17 @@ class Initialize:
         """
         cursor = connection.cursor()
         cursor.execute("SELECT * FROM `simulation` WHERE name = '%s'" % name)
+        return cursor.fetchone()
+
+    def __roll_strategy(self, roll_strategy_id, connection):
+        """
+        Fetch and return roll strategy by ID passed in
+        
+        :param roll_strategy_id:    ID of the strategy to return
+        :return:                    tuple(name, type, params)
+        """
+        cursor = connection.cursor()
+        cursor.execute("SELECT * FROM `roll_strategy` WHERE id = '%s'" % roll_strategy_id)
         return cursor.fetchone()
 
     def __trading_model(self, name):
