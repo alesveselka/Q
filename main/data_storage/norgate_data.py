@@ -536,7 +536,8 @@ def populate_roll_strategy(schema):
         query(schema, 'name, type, params', '%s, %s, %s'),
         [
             ('norgate', 'standard_roll', None),
-            ('standard_roll_1', 'standard_roll', json.dumps({'schedule': 'norgate'}))
+            ('standard_roll_1', 'standard_roll', json.dumps({'schedule': 'norgate'})),
+            ('optimal_1', 'optimal_roll', json.dumps({'schedule': 'norgate'}))
         ]
     )
 
