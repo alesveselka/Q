@@ -38,14 +38,16 @@ class Transaction(object):
         if self.__type == TransactionType.MTM_TRANSACTION or self.__type == TransactionType.MTM_POSITION:
             context_data = {
                 'market_id': self.__context_data[0].id(),
+                'contract': self.__context_data[1],
                 'instrument_code': self.__context_data[0].code(),
-                'price': str(self.__context_data[1])
+                'price': str(self.__context_data[2])
             }
         elif self.__type == TransactionType.COMMISSION:
             market = self.__context_data[0]
             order = self.__context_data[1]
             context_data = {
                 'market_id': market.id(),
+                'contract': order.contract(),
                 'instrument_code': market.code(),
                 'order_type': order.type(),
                 'quantity': order.quantity(),
