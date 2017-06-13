@@ -42,9 +42,7 @@ class Persist:
             order = result.order()
             date = order.date()
             market = order.market()
-            contract = market.contract(date)
-            if order.signal_type() == SignalType.ROLL_ENTER:
-                contract = market.contract_roll(contract)[Table.ContractRoll.ROLL_IN_CONTRACT]
+            contract = order.contract()
 
             values.append((
                 simulation_id,
