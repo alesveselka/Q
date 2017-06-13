@@ -18,11 +18,10 @@ class BreakoutMAFilterATRStop(TradingModel):
     Exit stops are at ATR multiples.
     """
 
-    def __init__(self, markets, params):
+    def __init__(self, markets, params, roll_strategy):
         self.__markets = markets
-        self.__params = params
-
-        self.__stop_multiple = int(self.__params['stop_multiple'])
+        self.__stop_multiple = int(params['stop_multiple'])
+        self.__roll_strategy = roll_strategy
 
     def signals(self, date, positions):
         """
@@ -80,24 +79,21 @@ class BreakoutMAFilterATRStop(TradingModel):
         :param direction:   direction of trade signal
         :return:            string representing code of contract to trade
         """
-        # TODO no contract for Norgate continuous!
         min_volume = 1000
         yield_curve = market.yield_curve(date)
-        current = [y for y in yield_curve if y[YieldCurve.YIELD] is None]
+        current = [y for y in yield_curve if y[YieldCurve.YIELD] is None][0]
         candidates = [y for y in yield_curve if y[YieldCurve.YIELD] is not None and y[YieldCurve.VOLUME] >= min_volume]
-        optimal = current[0]
-        # print direction, date, current
+        optimal = current
+
         if len(candidates):
             fn = max if direction == Direction.SHORT else min
             best = fn([c[YieldCurve.YIELD] for c in candidates])
             optimal = [c for c in candidates if c[YieldCurve.YIELD] == best][0]
 
-            # print 'candidates'
-            # for c in candidates:
-            #     print '\t',c
-        # print 'optimal: ', optimal
-        # return optimal[0]
-        return current[0][0]
+        return {
+            'optimal_roll': optimal,
+            'standard_roll': current
+        }.get(self.__roll_strategy[Table.RollStrategy.TYPE], current)[0]
 
     def __roll_in_contract(self, market, contract):
         """
