@@ -124,6 +124,12 @@ class Table:
         ROLL_OUT_CONTRACT = 2
         ROLL_IN_CONTRACT = 3
 
+    class RollStrategy:
+        ID = 0
+        NAME = 1
+        TYPE = 2
+        PARAMS = 3
+
 
 class YieldCurve:
     CODE = 0
