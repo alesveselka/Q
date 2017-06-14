@@ -66,11 +66,12 @@ class DataSeries:
 
         return self.__futures
 
-    def currency_pairs(self):
+    def currency_pairs(self, base_currency):
         """
         Load currency_pair data if not already loaded
 
-        :return:    list of CurrencyPair objects
+        :param base_currency:   string representing base currency
+        :return:                list of CurrencyPair objects
         """
         if self.__currency_pairs is None:
             cursor = self.__connection.cursor()
@@ -80,7 +81,11 @@ class DataSeries:
                 WHERE g.name = 'Primary';
             """)
             start_data_date = self.__investment_universe.start_data_date()
-            self.__currency_pairs = [CurrencyPair(start_data_date, *c) for c in cursor.fetchall()]
+            futures_currencies = list(set([f.currency() for f in self.__futures] + [base_currency]))
+            futures_currency_pairs = ['%s%s' % (x, y) for x in futures_currencies for y in futures_currencies if x != y]
+            futures_currency_data = [c for c in cursor.fetchall() if c[1] in futures_currency_pairs]
+
+            self.__currency_pairs = [CurrencyPair(start_data_date, *c) for c in futures_currency_data]
 
         return self.__currency_pairs
 
