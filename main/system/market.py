@@ -194,15 +194,16 @@ class Market(object):  # TODO rename to Future?
 
             self.__first_study_date = max([self.__studies[k][0][0] for k in self.__studies.keys()])
 
-            margin = self.__margin if self.__margin else self.__adjusted_data[-1][Table.Market.SETTLE_PRICE] * self.__point_value * 0.1
+            margin = self.__margin if self.__margin else self.__adjusted_data[-1][Table.Market.SETTLE_PRICE] * self.__point_value * Decimal(0.1)
             self.__margin_multiple = margin / self.study(Study.ATR_SHORT)[-1][Table.Study.VALUE]
 
-    def load_data(self, connection, end_date):
+    def load_data(self, connection, end_date, delivery_months):
         """
         Load market's data
 
-        :param connection:  MySQLdb connection instance
-        :param end_date:    Last date to fetch data to
+        :param connection:      MySQLdb connection instance
+        :param end_date:        Last date to fetch data to
+        :param delivery_months: list of delivery months [(code, short-month-name)]
         """
         cursor = connection.cursor()
         continuous_query = """
@@ -263,27 +264,37 @@ class Market(object):  # TODO rename to Future?
         cursor.execute(roll_schedule_query % self.__id)
         self.__roll_schedule = cursor.fetchall()
 
-        contract_codes = [k for k in sorted(self.__contracts.keys())]
-        self.__scheduled_rolls = [(self.__scheduled_roll_date(r[0]), 0, r[0], r[1])
+        contract_codes = self.__scheduled_codes([k for k in sorted(self.__contracts.keys())], delivery_months)
+        self.__scheduled_rolls = [(self.__scheduled_roll_date(r[0], delivery_months), 0, r[0], r[1])
                                   for r in zip(contract_codes, contract_codes[1:])]
 
         return True
 
-    def __scheduled_roll_date(self, contract):
+    def __scheduled_codes(self, contract_codes, delivery_months):
+        """
+        Filter out contract codes which months are not included in scheduled rolls
+        
+        :param contract_codes:  list of contract codes
+        :param delivery_months: list of delivery months [(code, short-month-name)]
+        :return:                list of contract codes
+        """
+        scheduled_months = [r[RollSchedule.ROLL_OUT_MONTH] for r in self.__roll_schedule]
+        scheduled_codes = [m[0] for m in delivery_months if m[1] in scheduled_months]
+        return [c for c in contract_codes if c[-1].upper() in scheduled_codes]
+
+    def __scheduled_roll_date(self, contract, delivery_months):
         """
         Return market's next scheduled roll date based on contract passed in
         
-        :return:    date of scheduled roll
+        :param contract:        contract which roll date to find
+        :param delivery_months: list of delivery months [(code, short-month-name)]
+        :return:                date of scheduled roll
         """
         months = [m for m in calendar.month_abbr]
 
         contract_year = int(contract[:4])
-        contract_month_code = contract[-1]
-        contract_month_index = reduce(
-            lambda i, d: i + 1 if d[0] <= contract_month_code.upper() else i,
-            [d.split(':') for d in 'F:Jan,G:Feb,H:Mar,J:Apr,K:May,M:Jun,N:Jul,Q:Aug,U:Sep,V:Oct,X:Nov,Z:Dec'.split(',')],
-            0
-        )
+        contract_month_code = contract[-1].upper()
+        contract_month_index = reduce(lambda i, d: i + 1 if d[0] <= contract_month_code else i, delivery_months, 0)
         contract_month = months[contract_month_index]
 
         roll_schedule = [r for r in self.__roll_schedule if r[RollSchedule.ROLL_OUT_MONTH] == contract_month][0]

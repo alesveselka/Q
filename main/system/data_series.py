@@ -108,10 +108,14 @@ class DataSeries:
 
         :param end_date:        last date to load data
         """
+        cursor = self.__connection.cursor()
+        cursor.execute("SELECT code, short_name FROM `delivery_month`;")
+        delivery_months = cursor.fetchall()
+
         message = 'Loading Futures data ...'
         length = float(len(self.__futures))
-        map(lambda i: self.__log(message, i[1].code(), i[0], length) and i[1].load_data(self.__connection, end_date),
-            enumerate(self.__futures))
+        map(lambda i: self.__log(message, i[1].code(), i[0], length)
+                      and i[1].load_data(self.__connection, end_date, delivery_months), enumerate(self.__futures))
         self.__log(message, complete=True)
 
         message = 'Calculating Futures studies ...'
