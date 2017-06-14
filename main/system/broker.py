@@ -15,7 +15,8 @@ class Broker(object):
 
     def __init__(self, account, commission, currency_pairs, interest_rates, minimums):
         self.__account = account
-        self.__commission = commission
+        self.__commission = commission[0]
+        self.__commission_currency = commission[1]
         self.__currency_pairs = currency_pairs
         self.__interest_rates = interest_rates
         self.__minimums = minimums
@@ -55,16 +56,18 @@ class Broker(object):
         date = order.date()
         order_type = order.type()
         currency = market.currency()
-        commissions = self.__commissions(order.quantity(), market.currency(), date)
+        commissions = Decimal(self.__commission * order.quantity())
         previous_date = market.data(end_date=date)[-2][Table.Market.PRICE_DATE]
         margin = market.margin(previous_date) * Decimal(order.quantity())
         price = self.__slipped_price(order, order_type)
         order_result = OrderResult(OrderResultType.REJECTED, order, price, margin, commissions)
 
         if order_type == OrderType.BTO or order_type == OrderType.STO:
-            if self.__account.available_funds(date) > self.__account.base_value(margin + commissions, currency, date):
+            base_commission = self.__account.base_value(commissions, self.__commission_currency, date)
+            base_margin = self.__account.base_value(margin, currency, date)
+            if self.__account.available_funds(date) > base_margin + base_commission:
                 self.__add_transaction(TransactionType.MARGIN_LOAN, date, margin, currency, 'add')
-                self.__add_transaction(TransactionType.COMMISSION, date, -commissions, currency, (market, order, price))
+                self.__add_transaction(TransactionType.COMMISSION, date, -commissions, self.__commission_currency, (market, order, price))
 
                 order_result = OrderResult(OrderResultType.FILLED, order, price, margin, commissions)
         else:
@@ -72,7 +75,7 @@ class Broker(object):
             mtm = position.mark_to_market(order.date(), price) * Decimal(position.quantity()) * market.point_value()
 
             self.__add_transaction(TransactionType.MTM_TRANSACTION, date, mtm, currency, (market, position.contract(), price))
-            self.__add_transaction(TransactionType.COMMISSION, date, -commissions, currency, (market, order, price))
+            self.__add_transaction(TransactionType.COMMISSION, date, -commissions, self.__commission_currency, (market, order, price))
             self.__add_transaction(TransactionType.MARGIN_LOAN, date, -margin, currency, 'remove')
 
             order_result = OrderResult(OrderResultType.FILLED, order, price, margin, commissions)
@@ -89,23 +92,6 @@ class Broker(object):
         price = order.price()
         slippage = Decimal(order.market().slippage(order.date(), order.quantity()))
         return (price + slippage) if (order_type == OrderType.BTO or order_type == OrderType.BTC) else (price - slippage)
-
-    def __commissions(self, quantity, currency, date):
-        """
-        Calculate and return amount of commission
-
-        :param quantity:    Number of contracts
-        :param currency:    Currency denomination of the contract
-        :param date:        Date on which to make the commission calculation
-        :return:            Commission amount
-        """
-        commission_value = self.__commission[0]
-        if currency == self.__account.base_currency():
-            commission_value = commission_value * quantity
-        else:
-            base_commission = self.__account.base_value(commission_value * quantity, currency, date)
-            commission_value = self.__account.fx_value(base_commission, currency, date)
-        return commission_value
 
     def __sweep_fx_funds(self, date):
         """
