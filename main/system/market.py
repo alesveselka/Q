@@ -166,7 +166,9 @@ class Market(object):  # TODO rename to Future?
         """
         rolls = self.__contract_rolls if len(self.__contract_rolls) else self.__scheduled_rolls
         contract_rolls = [r for r in zip(rolls, rolls[1:]) if r[0][Table.ContractRoll.DATE] < date <= r[1][Table.ContractRoll.DATE]]
-        contract_roll = contract_rolls[0][0] if len(contract_rolls) == 1 else self.__contract_rolls[-1]
+        contract_roll = contract_rolls[0][0] if len(contract_rolls) == 1 \
+            else (rolls[0] if date < rolls[0][Table.ContractRoll.DATE] else rolls[-1])
+
         return contract_roll[Table.ContractRoll.ROLL_IN_CONTRACT]
 
     def study(self, study_name, date=dt.date(9999, 12, 31)):
