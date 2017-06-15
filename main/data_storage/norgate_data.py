@@ -311,7 +311,7 @@ def populate_symbol(now, code, dir_path, delivery_months, q):
         return reduce(lambda i, d: i + 1 if d[position] <= key else i, data, 0)
 
     def values(file_name):
-        delivery = file_name[5:10]
+        delivery = file_name[5:10].upper()
         expiration_date = dt.date(int(delivery[:-1]), index(delivery[-1], delivery_months), 1)
         rows = csv_lines(file_path % file_name, exclude_header=False)
         last_date = date(rows[-1][0])
