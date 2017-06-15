@@ -225,8 +225,10 @@ class Broker(object):
         balance = fn(currency, previous_date) - minimum
 
         if condition(balance, 0):
-            benchmark_interest = [r for r in self.__interest_rates if r.code() == currency][0]
-            rate = spread_op(benchmark_interest.immediate_rate(previous_date), spread) / 100
+            currency_rates = [r for r in self.__interest_rates if r.code() == currency]
+            benchmark_interest = currency_rates[0] if len(currency_rates) else None
+            immediate_rate = benchmark_interest.immediate_rate(previous_date) if benchmark_interest else 0
+            rate = spread_op(immediate_rate, spread) / 100
             amount = balance * rate / days
             context = (balance, benchmark_interest, rate, target)
             self.__add_transaction(transaction_type, date, amount * sign, currency, context)
