@@ -187,10 +187,10 @@ class Broker(object):
         minimums = {m: 0 for m in self.__minimums.keys()}
         spread = Decimal(2.0)
 
-        map(lambda c: self.__interest(c, minimums[c], spread, op.ne, op.add, -1, date, previous_date, 'margin'),
+        map(lambda c: self.__interest(c, minimums.get(c, 0), spread, op.ne, op.add, -1, date, previous_date, 'margin'),
             [c for c in self.__account.margin_loan_currencies() if c != self.__account.base_currency()])
 
-        map(lambda c: self.__interest(c, minimums[c], spread, op.lt, op.add, 1, date, previous_date, 'balance'),
+        map(lambda c: self.__interest(c, minimums.get(c, 0), spread, op.lt, op.add, 1, date, previous_date, 'balance'),
             [c for c in self.__account.fx_balance_currencies() if c != self.__account.base_currency()])
 
     def __pay_interest(self, date, previous_date):
@@ -202,7 +202,7 @@ class Broker(object):
         """
         spread = Decimal(0.5)
 
-        map(lambda c: self.__interest(c, self.__minimums[c], spread, op.gt, op.sub, 1, date, previous_date, 'balance'),
+        map(lambda c: self.__interest(c, self.__minimums.get(c, 0), spread, op.gt, op.sub, 1, date, previous_date, 'balance'),
             self.__account.fx_balance_currencies())
 
     def __interest(self, currency, minimum, spread, condition, spread_op, sign, date, previous_date, target):
