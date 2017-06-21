@@ -75,9 +75,6 @@ class CurrencyPair(object):
         """
         columns = {
             'price_date': Table.CurrencyPair.PRICE_DATE,
-            'open_price': Table.CurrencyPair.OPEN_PRICE,
-            'high_price': Table.CurrencyPair.HIGH_PRICE,
-            'low_price': Table.CurrencyPair.LOW_PRICE,
             'last_price': Table.CurrencyPair.LAST_PRICE
         }
         return ', '.join([i[0] for i in sorted(columns.items(), key=itemgetter(1))])
