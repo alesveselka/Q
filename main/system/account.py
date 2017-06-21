@@ -54,21 +54,6 @@ class Account(object):
             value = amount / rate
         return value
 
-    def fx_value(self, amount, currency, date):
-        """
-        Return value converted to account-base-currency
-
-        :param amount:      Amount to be converted
-        :param currency:    Quote currency in the pair
-        :param date:        date on which to convert the amount
-        :return:            Converted amount in the account-base-currency
-        """
-        value = amount
-        if currency != self.__base_currency:
-            pairs = [cp for cp in self.__currency_pairs if cp.code() == '%s%s' % (self.__base_currency, currency)]
-            value = Decimal(amount) * pairs[0].rate(date)
-        return value
-
     def equity(self, date):
         """
         Returns recorded equity value on the date passed in
