@@ -1,7 +1,6 @@
 #!/usr/bin/python
 
 from math import floor
-from decimal import Decimal
 
 
 class Risk(object):
@@ -20,5 +19,6 @@ class Risk(object):
         :param date:            date on which return the position size
         :return:                Integer representing position quantity
         """
-        return floor((self.__position_sizing * self.__account.equity(date)) /
-                     Decimal(atr * self.__account.base_value(point_value, currency, date)))
+        equity = float(self.__account.equity(date))
+        base_point_value = float(self.__account.base_value(point_value, currency, date))
+        return floor((self.__position_sizing * equity) / (atr * base_point_value))

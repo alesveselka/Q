@@ -58,13 +58,13 @@ class Broker(object):
         currency = market.currency()
         commissions = Decimal(self.__commission * order.quantity())
         previous_date = market.data(end_date=date)[-2][Table.Market.PRICE_DATE]
-        margin = market.margin(previous_date) * Decimal(order.quantity())
+        margin = market.margin(previous_date) * order.quantity()
         price = self.__slipped_price(order, order_type)
         order_result = OrderResult(OrderResultType.REJECTED, order, price, margin, commissions)
 
         if order_type == OrderType.BTO or order_type == OrderType.STO:
             base_commission = self.__account.base_value(commissions, self.__commission_currency, date)
-            base_margin = self.__account.base_value(margin, currency, date)
+            base_margin = Decimal(self.__account.base_value(margin, currency, date))
             if self.__account.available_funds(date) > base_margin + base_commission:
                 self.__add_transaction(TransactionType.MARGIN_LOAN, date, margin, currency, 'add')
                 self.__add_transaction(TransactionType.COMMISSION, date, -commissions, self.__commission_currency, (market, order, price))
@@ -72,7 +72,7 @@ class Broker(object):
                 order_result = OrderResult(OrderResultType.FILLED, order, price, margin, commissions)
         else:
             position = [p for p in open_positions if p.market() == market][0]
-            mtm = position.mark_to_market(order.date(), price) * Decimal(position.quantity()) * market.point_value()
+            mtm = Decimal(position.mark_to_market(order.date(), price) * position.quantity() * market.point_value())
 
             self.__add_transaction(TransactionType.MTM_TRANSACTION, date, mtm, currency, (market, position.contract(), price))
             self.__add_transaction(TransactionType.COMMISSION, date, -commissions, self.__commission_currency, (market, order, price))
@@ -90,7 +90,7 @@ class Broker(object):
         :return:        number representing final price
         """
         price = order.price()
-        slippage = Decimal(order.market().slippage(order.date(), order.quantity()))
+        slippage = order.market().slippage(order.date(), order.quantity())
         return (price + slippage) if (order_type == OrderType.BTO or order_type == OrderType.BTC) else (price - slippage)
 
     def __sweep_fx_funds(self, date):
@@ -124,7 +124,7 @@ class Broker(object):
 
             if market.has_data(date):
                 price = market.data(end_date=date)[-1][Table.Market.SETTLE_PRICE]
-                mtm = p.mark_to_market(date, price) * Decimal(p.quantity()) * market.point_value()
+                mtm = Decimal(p.mark_to_market(date, price) * p.quantity() * market.point_value())
                 mtm_type = TransactionType.MTM_TRANSACTION if p.latest_enter_date() == date else TransactionType.MTM_POSITION
                 self.__add_transaction(mtm_type, date, mtm, market.currency(), (market, p.contract(), price))
 
@@ -138,8 +138,8 @@ class Broker(object):
         base_currency = self.__account.base_currency()
         for currency in [c for c in self.__account.fx_balance_currencies() if c != base_currency]:
             pair = [cp for cp in self.__currency_pairs if cp.code() == '%s%s' % (base_currency, currency)][0]
-            rate = pair.rate(date)
-            prior_rate = pair.rate(previous_date)
+            rate = Decimal(pair.rate(date))
+            prior_rate = Decimal(pair.rate(previous_date))
             balance = self.__account.fx_balance(currency, previous_date)
 
             if rate != prior_rate and balance:
@@ -157,18 +157,18 @@ class Broker(object):
         :param open_positions:  list of open positions
         """
         if len(open_positions):
-            to_open = defaultdict(Decimal)
-            to_close = defaultdict(Decimal)
+            to_open = defaultdict(float)
+            to_close = defaultdict(float)
 
             for p in open_positions:
                 if date > p.enter_date():
                     market = p.market()
 
                     if market.has_data(date):
-                        margin = market.margin(date) * Decimal(p.quantity())
+                        margin = market.margin(date) * p.quantity()
                         currency = market.currency()
-                        to_close[currency] += Decimal(p.margins()[-1][1])
-                        to_open[currency] += Decimal(margin)
+                        to_close[currency] += p.margins()[-1][1]
+                        to_open[currency] += margin
                         p.add_margin(date, margin)
 
             for k in to_close.keys():
@@ -185,7 +185,7 @@ class Broker(object):
         :param previous_date:   date of interest calculation (previous date for overnight margins)
         """
         minimums = {m: 0 for m in self.__minimums.keys()}
-        spread = Decimal(2.0)
+        spread = 2.0
 
         map(lambda c: self.__interest(c, minimums.get(c, 0), spread, op.ne, op.add, -1, date, previous_date, 'margin'),
             [c for c in self.__account.margin_loan_currencies() if c != self.__account.base_currency()])
@@ -200,7 +200,7 @@ class Broker(object):
         :param date:            Date of the charge
         :param previous_date:   Date of interest calculation (previous date for overnight margins)
         """
-        spread = Decimal(0.5)
+        spread = 0.5
 
         map(lambda c: self.__interest(c, self.__minimums.get(c, 0), spread, op.gt, op.sub, 1, date, previous_date, 'balance'),
             self.__account.fx_balance_currencies())
@@ -222,13 +222,13 @@ class Broker(object):
         days = 365
         transaction_type = TransactionType.BALANCE_INTEREST if target == 'balance' else TransactionType.MARGIN_INTEREST
         fn = self.__account.fx_balance if target == 'balance' else self.__account.margin_loan_balance
-        balance = fn(currency, previous_date) - minimum
+        balance = Decimal(fn(currency, previous_date) - minimum)
 
         if condition(balance, 0):
             currency_rates = [r for r in self.__interest_rates if r.code() == currency]
             benchmark_interest = currency_rates[0] if len(currency_rates) else None
             immediate_rate = benchmark_interest.immediate_rate(previous_date) if benchmark_interest else 0
-            rate = spread_op(immediate_rate, spread) / 100
+            rate = Decimal(spread_op(immediate_rate, spread) / 100)
             amount = balance * rate / days
             context = (balance, benchmark_interest, rate, target)
             self.__add_transaction(transaction_type, date, amount * sign, currency, context)

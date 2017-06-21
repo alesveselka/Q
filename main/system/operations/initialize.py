@@ -3,7 +3,7 @@
 import os
 import json
 import MySQLdb as mysql
-from decimal import Decimal, getcontext
+from decimal import Decimal
 from enum import Table
 from account import Account
 from broker import Broker
@@ -28,8 +28,6 @@ class Initialize:
         params = json.loads(simulation[Table.Simulation.PARAMS])
         roll_strategy = self.__roll_strategy(simulation[Table.Simulation.ROLL_STRATEGY_ID], connection)
 
-        precision = getcontext().prec
-        risk_position_sizing = Decimal('%s' % params['risk_factor']).quantize(Decimal('1.' + ('0' * precision)))
         base_currency = params['base_currency']
         commission_currency = params['commission_currency']
         commission = (params['commission'], commission_currency)
@@ -51,7 +49,7 @@ class Initialize:
             roll_strategy
         )
 
-        risk = Risk(risk_position_sizing, account)
+        risk = Risk(params['risk_factor'], account)
         Simulate(simulation[Table.Simulation.ID], data_series, risk, account, broker, Portfolio(), trading_model)
 
     def __simulation(self, name, connection):

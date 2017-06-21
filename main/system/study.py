@@ -1,7 +1,5 @@
 #!/usr/bin/python
 
-from decimal import Decimal
-
 
 def HHLL(data, window):
     """
@@ -28,7 +26,7 @@ def SMA(data, window):
     :return:        List of tuples(date, value)
     """
     dates, values = zip(*data)
-    s = Decimal(0)
+    s = 0.0
     smas = []
     for i in range(0, window):
         s += values[i]
@@ -52,11 +50,11 @@ def EMA(data, window):
     :return:        List of tuples(date, value)
     """
     dates, values = zip(*data)
-    c = Decimal(2.0 / (window + 1))
+    c = 2.0 / (window + 1)
     ma = SMA(data[:window], window)[-1]
     emas = []
     for i in range(window-1, len(data)):
-        ma = (dates[i], (c * values[i]) + (1 - c) * Decimal(ma[1]))
+        ma = (dates[i], (c * values[i]) + (1 - c) * ma[1])
         emas.append(ma)
 
     return emas

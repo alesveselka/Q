@@ -15,7 +15,7 @@ class Account(object):
         self.__currency_pairs = currency_pairs
 
         self.__fx_balances = defaultdict(Decimal)
-        self.__margin_loan_balances = defaultdict(Decimal)
+        self.__margin_loan_balances = defaultdict(float)
         self.__transactions = []
         self.__records = {}
 
@@ -50,7 +50,8 @@ class Account(object):
         value = amount
         if currency != self.__base_currency:
             pairs = [cp for cp in self.__currency_pairs if cp.code() == '%s%s' % (self.__base_currency, currency)]
-            value = Decimal(amount) / pairs[0].rate(date)
+            rate = Decimal(pairs[0].rate(date)) if isinstance(amount, Decimal) else pairs[0].rate(date)
+            value = amount / rate
         return value
 
     def fx_value(self, amount, currency, date):
@@ -85,8 +86,8 @@ class Account(object):
         :return:        Number representing funds available for trading
         """
         record = self.__record(date)
-        margin_loans = record[AccountRecord.MARGIN_LOANS]
-        return record[AccountRecord.EQUITY] - sum(self.base_value(margin_loans[k], k, date) for k in margin_loans.keys())
+        margins = record[AccountRecord.MARGIN_LOANS]
+        return record[AccountRecord.EQUITY] - Decimal(sum(self.base_value(margins[k], k, date) for k in margins.keys()))
 
     def margin_loan_currencies(self):
         """
@@ -105,7 +106,7 @@ class Account(object):
         :return:            Number representing the balance
         """
         margins = self.__record(date)[AccountRecord.MARGIN_LOANS]
-        return margins[currency] if currency in margins else Decimal(0)
+        return margins[currency] if currency in margins else 0.0
 
     def margin_loan_balances(self, date):
         """
@@ -193,7 +194,7 @@ class Account(object):
         :param currency:    Currency denomination of the amount to be credited
         :param amount:      Amount to be credited
         """
-        balance[currency] += Decimal(amount)
+        balance[currency] += amount
 
     def __debit(self, balance, currency, amount):
         """
@@ -203,7 +204,7 @@ class Account(object):
         :param currency:    Currency denomination of the amount to be debited
         :param amount:      Amount to be debited
         """
-        balance[currency] -= Decimal(amount)
+        balance[currency] -= amount
 
     def __record_balances(self, date):
         """

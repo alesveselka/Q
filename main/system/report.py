@@ -121,7 +121,7 @@ class Report:
         base_currency = self.__account.base_currency()
         margins = self.__account.margin_loan_balances(end_date)
         total_margin = sum([self.__account.base_value(v, k, end_date) for k, v in margins.items()])
-        margin_ratio = {base_currency: total_margin / self.__account.equity(end_date)} if total_margin else {}
+        margin_ratio = {base_currency: total_margin / float(self.__account.equity(end_date))} if total_margin else {}
         result = [
             {'title': 'Meta', 'start_date': start_date, 'end_date': end_date},
             {'title': 'Equity', 'results': {base_currency: self.__account.equity(end_date)}},

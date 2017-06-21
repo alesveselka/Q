@@ -2,7 +2,6 @@
 
 import datetime as dt
 from enum import Table
-from decimal import Decimal
 from operator import itemgetter
 
 
@@ -42,7 +41,7 @@ class CurrencyPair(object):
         :return:        Number representing the rate on the date
         """
         pair_data = self.data(end_date=date)
-        return pair_data[-1][Table.CurrencyPair.LAST_PRICE] if len(pair_data) else Decimal(1)
+        return pair_data[-1][Table.CurrencyPair.LAST_PRICE] if len(pair_data) else 1.0
 
     def load_data(self, connection, end_date):
         """
