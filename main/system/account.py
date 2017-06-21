@@ -86,7 +86,7 @@ class Account(object):
         """
         record = self.__record(date)
         margin_loans = record[AccountRecord.MARGIN_LOANS]
-        return record[AccountRecord.EQUITY] - sum([self.base_value(margin_loans[k], k, date) for k in margin_loans.keys()])
+        return record[AccountRecord.EQUITY] - sum(self.base_value(margin_loans[k], k, date) for k in margin_loans.keys())
 
     def margin_loan_currencies(self):
         """
@@ -212,7 +212,7 @@ class Account(object):
         :param date:    date on which to record
         """
         fx_currencies = self.fx_balance_currencies()
-        equity = sum([self.base_value(self.__fx_balances[c], c, date) for c in fx_currencies if self.__fx_balances[c]])
+        equity = sum(self.base_value(self.__fx_balances[c], c, date) for c in fx_currencies if self.__fx_balances[c])
         fx_balances = {c: self.__fx_balances[c] for c in fx_currencies if self.__fx_balances[c]}
         margins = {c: self.__margin_loan_balances[c] for c in self.margin_loan_currencies() if self.__margin_loan_balances[c]}
 
