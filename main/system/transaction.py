@@ -65,7 +65,7 @@ class Transaction(object):
         elif self.__type == TransactionType.MARGIN_INTEREST or self.__type == TransactionType.BALANCE_INTEREST:
             context_data = {
                 'balance': str(self.__context_data[0]),
-                'currency': self.__context_data[1].code(),
+                'currency': self.__context_data[1].code() if self.__context_data[1] else None,
                 'rate': str(self.__context_data[2]),
                 'target': self.__context_data[3]
             }
