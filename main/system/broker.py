@@ -138,9 +138,8 @@ class Broker(object):
         """
         base_currency = self.__account.base_currency()
         for currency in [c for c in self.__account.fx_balance_currencies() if c != base_currency]:
-            pair = [cp for cp in self.__currency_pairs if cp.code() == '%s%s' % (base_currency, currency)][0]
-            rate = Decimal(pair.rate(date))
-            prior_rate = Decimal(pair.rate(previous_date))
+            rate = Decimal(self.__account.base_rate(currency, date))
+            prior_rate = Decimal(self.__account.base_rate(currency, previous_date))
             balance = self.__account.fx_balance(currency, previous_date)
 
             if rate != prior_rate and balance:

@@ -10,7 +10,7 @@ from decimal import Decimal
 
 class Account(object):
 
-    def __init__(self, initial_balance, base_currency, currency_pairs):
+    def __init__(self, initial_balance, start_data_date, base_currency, currency_pairs):
         self.__base_currency = base_currency
         self.__currency_pairs = currency_pairs
 
@@ -18,9 +18,10 @@ class Account(object):
         self.__margin_loan_balances = defaultdict(float)
         self.__transactions = []
         self.__records = {}
+        self.__rates = {}
 
         self.__fx_balances[base_currency] = initial_balance
-        self.__record_balances(dt.date(1900, 1, 1))
+        self.__record_balances(start_data_date)
 
     def initial_balance(self):
         """
@@ -38,6 +39,20 @@ class Account(object):
         """
         return self.__base_currency
 
+    def base_rate(self, quote_currency, date):
+        """
+        Return rate at the specified date of pair base-currency/quote-currency
+
+        :param quote_currency:  Quote currency in the pair
+        :param date:            date on which to convert the amount
+        :return:                float representing the currency rate
+        """
+        rate = 1.0
+        if quote_currency != self.__base_currency:
+            date not in self.__rates and self.__record_rates(date)
+            rate = self.__rates[date]['%s%s' % (self.__base_currency, quote_currency)]
+        return rate
+
     def base_value(self, amount, currency, date):
         """
         Return value converted to account-base-currency
@@ -47,12 +62,8 @@ class Account(object):
         :param date:        date on which to convert the amount
         :return:            Converted amount in the account-base-currency
         """
-        value = amount
-        if currency != self.__base_currency:
-            pairs = [cp for cp in self.__currency_pairs if cp.code() == '%s%s' % (self.__base_currency, currency)]
-            rate = Decimal(pairs[0].rate(date)) if isinstance(amount, Decimal) else pairs[0].rate(date)
-            value = amount / rate
-        return value
+        rate = self.base_rate(currency, date)
+        return amount / (Decimal(rate) if isinstance(amount, Decimal) else rate)
 
     def equity(self, date):
         """
@@ -213,3 +224,11 @@ class Account(object):
         """
         return self.__records[date] if date in self.__records \
             else [r for r in sorted(self.__records.items()) if r[0] <= date][-1][1]
+
+    def __record_rates(self, date):
+        """
+        Record currency rates for the date passed in
+        
+        :param date: date of the record
+        """
+        self.__rates[date] = {cp.code(): cp.rate(date) for cp in self.__currency_pairs}
