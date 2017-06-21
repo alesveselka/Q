@@ -76,14 +76,15 @@ class Market(object):  # TODO rename to Future?
         """
         return [d for d in self.__adjusted_data if start_date <= d[Table.Market.PRICE_DATE] <= end_date]
 
-    def has_data(self, date):
+    def has_data(self, data, date):
         """
         Check if the market has data for date specified
 
+        :param data:    data to check
         :param date:    date to check data for
         :return:
         """
-        return self.data(end_date=date)[-1][Table.Market.PRICE_DATE] == date
+        return data[-1][Table.Market.PRICE_DATE] == date
 
     def margin(self, date):
         """

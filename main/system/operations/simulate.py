@@ -32,9 +32,8 @@ class Simulate:
         now = dt.datetime.now()
         # end_date = dt.date(now.year, now.month, now.day)
         # end_date = dt.date(1992, 6, 10)
-        end_date = dt.date(2015, 12, 31)
+        end_date = dt.date(1992, 12, 31)
 
-        # TODO parallelize
         self.__data_series.load_and_calculate_data(end_date)
         self.__subscribe()
 
@@ -65,21 +64,36 @@ class Simulate:
         :param date:    date of the complete event
         """
         start_date = self.__data_series.start_date()
-        Persist(
-            self.__id,
-            start_date,
-            date,
-            self.__order_results,
-            self.__account,
-            self.__portfolio,
-            self.__data_series
-        )
-
         report = Report(self.__account)
         # print '\n'.join(report.transactions(start_date, date))
         # print '\n'.join(report.to_lists(start_date, date, Interval.YEARLY))
         # report.to_lists(start_date, date, Interval.MONTHLY)
-        print '\n'.join(report.to_lists(start_date, date))
+        # print '\n'.join(report.to_lists(start_date, date))
+        full_report = '\n'.join(report.to_lists(start_date, date))
+
+        print full_report
+
+        # Persist(
+        #     self.__id,
+        #     start_date,
+        #     date,
+        #     self.__order_results,
+        #     self.__account,
+        #     self.__portfolio,
+        #     self.__data_series
+        # )
+
+        # f = open('report_full_2015-12-31.txt', 'w')
+        # f.write(full_report)
+        # f.close()
+        #
+        # f = open('report_yearly_2015-12-31.txt', 'w')
+        # f.write('\n'.join(report.to_lists(start_date, date, Interval.YEARLY)))
+        # f.close()
+        #
+        # f = open('transactions_2015-12-31.txt', 'w')
+        # f.write('\n'.join(report.transactions(start_date, date)))
+        # f.close()
 
     def __on_market_open(self, date, previous_date):
         """
@@ -146,9 +160,9 @@ class Simulate:
 
         for signal in self.__trading_signals:
             market = signal.market()
+            market_data = market.data(end_date=date)
 
-            if market.has_data(date):
-                market_data = market.data(end_date=date)
+            if market.has_data(market_data, date):
                 atr_long = market.study(Study.ATR_LONG, date)[-1][Table.Study.VALUE]
                 open_price = market_data[-1][Table.Market.OPEN_PRICE]
                 enter_signals = [s for s in self.__trading_signals if s.type() == SignalType.ENTER]

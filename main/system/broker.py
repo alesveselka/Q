@@ -121,9 +121,10 @@ class Broker(object):
         """
         for p in open_positions:
             market = p.market()
+            market_data = market.data(end_date=date)
 
-            if market.has_data(date):
-                price = market.data(end_date=date)[-1][Table.Market.SETTLE_PRICE]
+            if market.has_data(market_data, date):
+                price = market_data[-1][Table.Market.SETTLE_PRICE]
                 mtm = Decimal(p.mark_to_market(date, price) * p.quantity() * market.point_value())
                 mtm_type = TransactionType.MTM_TRANSACTION if p.latest_enter_date() == date else TransactionType.MTM_POSITION
                 self.__add_transaction(mtm_type, date, mtm, market.currency(), (market, p.contract(), price))
@@ -164,7 +165,7 @@ class Broker(object):
                 if date > p.enter_date():
                     market = p.market()
 
-                    if market.has_data(date):
+                    if market.has_data(market.data(end_date=date), date):
                         margin = market.margin(date) * p.quantity()
                         currency = market.currency()
                         to_close[currency] += p.margins()[-1][1]

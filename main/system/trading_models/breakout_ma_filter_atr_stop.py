@@ -33,9 +33,9 @@ class BreakoutMAFilterATRStop(TradingModel):
         signals = []
 
         for market in self.__markets:
+            market_data = market.data(end_date=date)
 
-            if date > market.first_study_date() and market.has_data(date):
-                market_data = market.data(end_date=date)
+            if date > market.first_study_date() and market.has_data(market_data, date):
                 previous_date = market_data[-2][Table.Market.PRICE_DATE]
                 ma_long = market.study(Study.MA_LONG, date)[-1][Table.Study.VALUE]
                 ma_short = market.study(Study.MA_SHORT, date)[-1][Table.Study.VALUE]
