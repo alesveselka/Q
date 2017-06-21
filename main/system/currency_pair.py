@@ -23,16 +23,6 @@ class CurrencyPair(object):
         """
         return self.__code
 
-    def data(self, start_date=dt.date(1900, 1, 1), end_date=dt.date(9999, 12, 31)):
-        """
-        Return list of data in the range specified by starting and ending dates passed in
-
-        :param start_date:  Date, start fo the data range
-        :param end_date:    Date, end of the data range
-        :return:            List of data
-        """
-        return [d for d in self.__data if start_date <= d[Table.CurrencyPair.PRICE_DATE] <= end_date]
-
     def rate(self, date=dt.date(9999, 12, 31)):
         """
         Find and return rate on date specified
@@ -40,7 +30,7 @@ class CurrencyPair(object):
         :param date:    date to return rate on
         :return:        Number representing the rate on the date
         """
-        pair_data = self.data(end_date=date)
+        pair_data = [d for d in self.__data if d[Table.CurrencyPair.PRICE_DATE] <= date]
         return pair_data[-1][Table.CurrencyPair.LAST_PRICE] if len(pair_data) else 1.0
 
     def load_data(self, connection, end_date):
