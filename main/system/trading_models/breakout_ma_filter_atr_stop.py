@@ -137,10 +137,8 @@ class BreakoutMAFilterATRStop(TradingModel):
         :param position:    position for which to calculate the stop loss
         :return:            price representing the stop loss
         """
-        market = position.market()
-        position_data = market.data_range(position.enter_date(), date)
-        prices = [d[Table.Market.SETTLE_PRICE] for d in position_data]
-        atr = market.study(Study.ATR_SHORT, date)[-1][Table.Study.VALUE]
+        prices = position.prices()
+        atr = position.market().study(Study.ATR_SHORT, date)[-1][Table.Study.VALUE]
         risk = atr * self.__stop_multiple
         return max(prices) - risk if position.direction() == Direction.LONG else min(prices) + risk
 

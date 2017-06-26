@@ -71,6 +71,14 @@ class Position(object):
         """
         return self.__open_order_results()[-1].order().contract()
 
+    def prices(self):
+        """
+        Return prices of position time span
+        
+        :return:    list of settle prices
+        """
+        return [p[1] for p in self.__pnls]
+
     def mark_to_market(self, date, price):
         """
         Calculates and saves P/L for the date and price passed in

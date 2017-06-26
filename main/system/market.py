@@ -45,7 +45,6 @@ class Market(object):  # TODO rename to Future?
         self.__margin = margin
         self.__margin_multiple = 0.0
         self.__adjusted_data = []
-        # self.__adjusted_dict = {}
         self.__data_indexes = {}
         self.__contracts = defaultdict(list)
         self.__contract_rolls = []
@@ -78,9 +77,6 @@ class Market(object):  # TODO rename to Future?
         """
         index = self.__data_indexes[date] if date in self.__data_indexes else None
         return (self.__adjusted_data[index], self.__adjusted_data[index-1]) if index else (None, None)
-
-    def data_range(self, start_date=dt.date(1900, 1, 1), end_date=dt.date(9999, 12, 31)):
-        return [d for d in self.__adjusted_data if start_date <= d[Table.Market.PRICE_DATE] <= end_date]
 
     def margin(self, date):
         """
@@ -225,7 +221,6 @@ class Market(object):  # TODO rename to Future?
         ))
         # TODO I can make a generator and retrieve the data when needed
         self.__adjusted_data = cursor.fetchall()
-        # self.__adjusted_dict = {d[Table.Market.PRICE_DATE]: d for d in self.__adjusted_data}
         self.__data_indexes = {i[1][Table.Market.PRICE_DATE]: i[0] for i in enumerate(self.__adjusted_data)}
 
         # contracts_query = """
