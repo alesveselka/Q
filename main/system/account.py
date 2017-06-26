@@ -182,6 +182,15 @@ class Account(object):
             result[t.currency()] += t.amount() * (1 if t.account_action() == AccountAction.CREDIT else -1)
         return result
 
+    def rates(self, date):
+        """
+        Return rates at a date passed in
+        
+        :param date:    date of the rates
+        :return:        dictionary(currency: rate)
+        """
+        return self.__rates[date] if date in self.__rates else {}
+
     def __credit(self, balance, currency, amount):
         """
         Credit specific balance with the amount passed in

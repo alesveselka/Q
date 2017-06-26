@@ -193,6 +193,7 @@ class Persist:
             'fx_translations',
             'margin_interest',
             'balance_interest',
+            'rates',
             'margin_ratio'
         ]
         values = []
@@ -205,7 +206,7 @@ class Persist:
             equity = account.equity(date)
             funds = account.available_funds(date)
             margins = account.margin_loan_balances(date)
-            total_margin = sum([account.base_value(v, k, date) for k, v in margins.items()])
+            total_margin = sum(account.base_value(v, k, date) for k, v in margins.items())
 
             marked_to_market = account.aggregate(date, date, [TransactionType.MTM_TRANSACTION, TransactionType.MTM_POSITION])
             commissions = account.aggregate(date, date, [TransactionType.COMMISSION])
@@ -225,7 +226,8 @@ class Persist:
                 self.__json(fx_translations),
                 self.__json(margin_interest),
                 self.__json(balance_interest),
-                self.__round(total_margin / equity, 10) if total_margin else None
+                self.__json(account.rates(date)),
+                total_margin / float(equity) if total_margin else None
             ))
 
         self.__insert_values('equity', simulation_id, columns, values)
