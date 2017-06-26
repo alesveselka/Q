@@ -80,6 +80,7 @@ class Broker(object):
 
             order_result = OrderResult(OrderResultType.FILLED, order, price, margin, commissions)
 
+        order.clear_market_data()
         return order_result
 
     def __slipped_price(self, order, order_type):

@@ -46,6 +46,9 @@ class Order(object):
     def market_data(self):
         return self.__market_data
 
+    def clear_market_data(self):
+        self.__market_data = None
+
     def __str__(self):
         return 'Order: %d x %s %s @ %.4f' % (
             self.__quantity,

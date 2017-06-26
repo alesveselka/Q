@@ -32,7 +32,7 @@ class Simulate:
         now = dt.datetime.now()
         # end_date = dt.date(now.year, now.month, now.day)
         # end_date = dt.date(1992, 6, 10)
-        end_date = dt.date(1995, 12, 31)
+        end_date = dt.date(2000, 12, 31)
         # 1995-12-31: 92.46s = 1.54m
 
         self.__data_series.load_and_calculate_data(end_date)
@@ -147,6 +147,7 @@ class Simulate:
                     position = self.__portfolio.market_position(order.market())
                     position.add_order_result(order_result)
                     self.__portfolio.remove_position(position)
+                    position.clear_market_data()
 
             self.__order_results.append(order_result)
 

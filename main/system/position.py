@@ -83,6 +83,12 @@ class Position(object):
             self.__market_data[date] = self.__market.data(end_date=date)
         return self.__market_data[date]
 
+    def clear_market_data(self):
+        """
+        Clear market data cache 
+        """
+        self.__market_data = None
+
     def mark_to_market(self, date, price):
         """
         Calculates and saves P/L for the date and price passed in
