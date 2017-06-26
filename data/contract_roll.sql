@@ -5,7 +5,7 @@ CREATE TABLE `contract_roll`(
   `market_id` int NOT NULL,
   `roll_strategy_id` int NOT NULL,
   `date` date NOT NULL,
-  `gap` decimal(20,10) NULL,
+  `gap` double NULL,
   `roll_out_contract` VARCHAR(32) NULL,
   `roll_in_contract` VARCHAR(32) NOT NULL,
   PRIMARY KEY (`id`)

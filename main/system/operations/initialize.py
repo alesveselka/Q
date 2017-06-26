@@ -3,7 +3,7 @@
 import os
 import json
 import MySQLdb as mysql
-from decimal import Decimal, getcontext
+from decimal import Decimal
 from enum import Table
 from account import Account
 from broker import Broker
@@ -18,6 +18,7 @@ from trading_models.breakout_ma_filter_atr_stop import BreakoutMAFilterATRStop
 class Initialize:
 
     def __init__(self, simulation_name):
+        # TODO move this connection to where it is needed and close it when done with an operation.
         connection = mysql.connect(
             os.environ['DB_HOST'],
             os.environ['DB_USER'],
@@ -28,8 +29,6 @@ class Initialize:
         params = json.loads(simulation[Table.Simulation.PARAMS])
         roll_strategy = self.__roll_strategy(simulation[Table.Simulation.ROLL_STRATEGY_ID], connection)
 
-        precision = getcontext().prec
-        risk_position_sizing = Decimal('%s' % params['risk_factor']).quantize(Decimal('1.' + ('0' * precision)))
         base_currency = params['base_currency']
         commission_currency = params['commission_currency']
         commission = (params['commission'], commission_currency)
@@ -43,7 +42,8 @@ class Initialize:
         currency_pairs = data_series.currency_pairs(base_currency, commission_currency)
         interest_rates = data_series.interest_rates(base_currency, commission_currency)
 
-        account = Account(Decimal(params['initial_balance']), base_currency, currency_pairs)
+        start_data_date = investment_universe.start_data_date()
+        account = Account(Decimal(params['initial_balance']), start_data_date, base_currency, currency_pairs)
         broker = Broker(account, commission, currency_pairs, interest_rates, interest_minimums)
         trading_model = self.__trading_model(simulation[Table.Simulation.TRADING_MODEL])(
             futures,
@@ -51,7 +51,7 @@ class Initialize:
             roll_strategy
         )
 
-        risk = Risk(risk_position_sizing, account)
+        risk = Risk(params['risk_factor'], account)
         Simulate(simulation[Table.Simulation.ID], data_series, risk, account, broker, Portfolio(), trading_model)
 
     def __simulation(self, name, connection):

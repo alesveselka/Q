@@ -1,7 +1,6 @@
 #!/usr/bin/python
 
 import datetime as dt
-from decimal import Decimal
 from enum import Table
 from operator import itemgetter
 
@@ -90,7 +89,7 @@ class InterestRate(object):
         """
         rate = [d[Table.InterestRate.THREE_MONTHS_RATE] for d in self.__data
                 if d[Table.InterestRate.PRICE_DATE] <= date and d[Table.InterestRate.THREE_MONTHS_RATE] is not None]
-        return rate[-1] if len(rate) else Decimal(0)
+        return rate[-1] if len(rate) else 0.0
 
     def __str__(self):
         return '%s, %s' % (self.__currency_code, self.__currency_id)

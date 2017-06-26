@@ -2,6 +2,7 @@
 
 import sys
 import json
+from study import *
 from market import Market
 from enum import Table
 from currency_pair import CurrencyPair
@@ -55,6 +56,7 @@ class DataSeries:
             self.__futures = []
 
             for market_id in self.__investment_universe.market_ids():
+            # for market_id in [85]:
                 cursor.execute(market_query % market_id)
                 self.__futures.append(Market(
                     start_data_date,
@@ -83,7 +85,7 @@ class DataSeries:
             """)
             start_data_date = self.__investment_universe.start_data_date()
             futures_currencies = list(set([f.currency() for f in self.__futures] + [base_currency, commission_currency]))
-            futures_currency_pairs = ['%s%s' % (x, y) for x in futures_currencies for y in futures_currencies if x != y]
+            futures_currency_pairs = ['%s%s' % (base_currency, c) for c in futures_currencies if c != base_currency]
             futures_currency_data = [c for c in cursor.fetchall() if c[1] in futures_currency_pairs]
             self.__currency_pairs = [CurrencyPair(start_data_date, *c) for c in futures_currency_data]
 
@@ -121,6 +123,7 @@ class DataSeries:
         cursor.execute("SELECT code, short_name FROM `delivery_month`;")
         delivery_months = cursor.fetchall()
 
+        # TODO load all at once and then filter in python?
         message = 'Loading Futures data ...'
         length = float(len(self.__futures))
         map(lambda i: self.__log(message, i[1].code(), i[0], length)
@@ -137,12 +140,14 @@ class DataSeries:
             enumerate(self.__futures))
         self.__log(message, complete=True)
 
+        # TODO load all at once and then filter in python?
         message = 'Loading currency pairs data ...'
         length = float(len(self.__currency_pairs))
         map(lambda i: self.__log(message, i[1].code(), i[0], length) and i[1].load_data(self.__connection, end_date),
             enumerate(self.__currency_pairs))
         self.__log(message, complete=True)
 
+        # TODO load all at once and then filter in python?
         message = 'Loading interest rates data ...'
         length = float(len(self.__interest_rates))
         map(lambda i: self.__log(message, i[1].code(), i[0], length) and i[1].load_data(self.__connection, end_date),

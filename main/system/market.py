@@ -3,7 +3,6 @@
 import calendar
 import datetime as dt
 from math import ceil
-from study import *
 from enum import Study
 from enum import Table
 from enum import RollSchedule
@@ -77,14 +76,15 @@ class Market(object):  # TODO rename to Future?
         """
         return [d for d in self.__adjusted_data if start_date <= d[Table.Market.PRICE_DATE] <= end_date]
 
-    def has_data(self, date):
+    def has_data(self, data, date):
         """
         Check if the market has data for date specified
 
+        :param data:    data to check
         :param date:    date to check data for
         :return:
         """
-        return self.data(end_date=date)[-1][Table.Market.PRICE_DATE] == date
+        return data[-1][Table.Market.PRICE_DATE] == date
 
     def margin(self, date):
         """
@@ -93,7 +93,7 @@ class Market(object):  # TODO rename to Future?
         :param date:    Date on which to estimate the margin
         :return:        Number representing margin in account-base-currency
         """
-        return Decimal(ceil(self.__margin_multiple * self.study(Study.ATR_SHORT, date)[-1][Table.Study.VALUE]))
+        return ceil(self.__margin_multiple * self.study(Study.ATR_SHORT, date)[-1][Table.Study.VALUE])
 
     def slippage(self, date, quantity):
         """
@@ -107,9 +107,9 @@ class Market(object):  # TODO rename to Future?
         atr = self.study(Study.ATR_SHORT, date)[-1][Table.Study.VALUE]
         volume = self.study(Study.VOL_SHORT, date)[-1][Table.Study.VALUE]
         atr_multiple = [s for s in self.__slippage_map if s['min'] <= volume < s['max']][0].get('atr')
-        quantity_factor = Decimal(2 ** floor(log10(quantity)))
-        slippage_value = Decimal(atr_multiple) * atr
-        result = (Decimal(ceil(slippage_value / self.__tick_value)) * self.__tick_value) / self.__point_value
+        quantity_factor = 2 ** floor(log10(quantity))
+        slippage_value = atr_multiple * atr
+        result = (ceil(slippage_value / self.__tick_value) * self.__tick_value) / self.__point_value
         return result * quantity_factor
 
     def contract_roll(self, current_contract):
@@ -150,7 +150,7 @@ class Market(object):  # TODO rename to Future?
                 next_contract = next_contract_data[-1]
                 days = (next_contract[Table.Market.LAST_TRADING_DAY] - date).days
                 price = next_contract[Table.Market.SETTLE_PRICE]
-                implied_yield = (price / current_contract[Table.Market.SETTLE_PRICE]) ** Decimal(365. / days) - 1
+                implied_yield = (price / current_contract[Table.Market.SETTLE_PRICE]) ** (365. / days) - 1
                 price_difference = price - previous_price
                 previous_price = price
                 curve.append((code, price, next_contract[Table.Market.VOLUME], implied_yield, price_difference, days))
@@ -196,7 +196,7 @@ class Market(object):  # TODO rename to Future?
 
             self.__first_study_date = max([self.__studies[k][0][0] for k in self.__studies.keys()])
 
-            margin = self.__margin if self.__margin else self.__adjusted_data[-1][Table.Market.SETTLE_PRICE] * self.__point_value * Decimal(0.1)
+            margin = self.__margin if self.__margin else self.__adjusted_data[-1][Table.Market.SETTLE_PRICE] * self.__point_value * 0.1
             self.__margin_multiple = margin / self.study(Study.ATR_SHORT)[-1][Table.Study.VALUE]
 
     def load_data(self, connection, end_date, delivery_months):
@@ -227,48 +227,50 @@ class Market(object):  # TODO rename to Future?
             self.__start_data_date.strftime('%Y-%m-%d'),
             end_date.strftime('%Y-%m-%d')
         ))
+        # TODO I can make a generator and retrieve the data when needed
         self.__adjusted_data = cursor.fetchall()
 
-        contracts_query = """
-            SELECT %s
-            FROM %s
-            WHERE market_id = '%s'
-            AND DATE(price_date) >= '%s'
-            AND DATE(price_date) <= '%s'
-            ORDER BY price_date;
-        """
-        cursor.execute(contracts_query % (
-            self.__column_names() + ', last_trading_day',
-            'contract',
-            self.__id,
-            self.__start_data_date.strftime('%Y-%m-%d'),
-            end_date.strftime('%Y-%m-%d')
-        ))
-        for c in cursor.fetchall():
-            self.__contracts[c[Table.Market.CODE][-5:].upper()].append(c)
-
-        contract_roll_query = """
-            SELECT date, gap, roll_out_contract, roll_in_contract
-            FROM contract_roll
-            WHERE market_id = '%s'
-            AND roll_strategy_id = '%s'
-            ORDER BY date;
-        """
-        cursor.execute(contract_roll_query % (self.__id, self.__roll_strategy_id))
-        self.__contract_rolls = cursor.fetchall()
-
-        roll_schedule_query = """
-            SELECT roll_out_month, roll_in_month, month, day 
-            FROM standard_roll_schedule 
-            WHERE market_id = '%s' 
-            AND name = 'norgate';
-        """
-        cursor.execute(roll_schedule_query % self.__id)
-        self.__roll_schedule = cursor.fetchall()
-
-        contract_codes = self.__scheduled_codes([k for k in sorted(self.__contracts.keys())], delivery_months)
-        self.__scheduled_rolls = [(self.__scheduled_roll_date(r[0], delivery_months), 0, r[0], r[1])
-                                  for r in zip(contract_codes, contract_codes[1:])]
+        # contracts_query = """
+        #     SELECT %s
+        #     FROM %s
+        #     WHERE market_id = '%s'
+        #     AND DATE(price_date) >= '%s'
+        #     AND DATE(price_date) <= '%s'
+        #     ORDER BY price_date;
+        # """
+        # cursor.execute(contracts_query % (
+        #     self.__column_names() + ', last_trading_day',
+        #     'contract',
+        #     self.__id,
+        #     self.__start_data_date.strftime('%Y-%m-%d'),
+        #     end_date.strftime('%Y-%m-%d')
+        # ))
+        # # TODO need to load more than 'end_date' - for the last contract to roll out and in contracts
+        # for c in cursor.fetchall():
+        #     self.__contracts[c[Table.Market.CODE][-5:].upper()].append(c)
+        #
+        # contract_roll_query = """
+        #     SELECT date, gap, roll_out_contract, roll_in_contract
+        #     FROM contract_roll
+        #     WHERE market_id = '%s'
+        #     AND roll_strategy_id = '%s'
+        #     ORDER BY date;
+        # """
+        # cursor.execute(contract_roll_query % (self.__id, self.__roll_strategy_id))
+        # self.__contract_rolls = cursor.fetchall()
+        #
+        # roll_schedule_query = """
+        #     SELECT roll_out_month, roll_in_month, month, day
+        #     FROM standard_roll_schedule
+        #     WHERE market_id = '%s'
+        #     AND name = 'norgate';
+        # """
+        # cursor.execute(roll_schedule_query % self.__id)
+        # self.__roll_schedule = cursor.fetchall()
+        #
+        # contract_codes = self.__scheduled_codes([k for k in sorted(self.__contracts.keys())], delivery_months)
+        # self.__scheduled_rolls = [(self.__scheduled_roll_date(r[0], delivery_months), 0, r[0], r[1])
+        #                           for r in zip(contract_codes, contract_codes[1:])]
 
         return True
 

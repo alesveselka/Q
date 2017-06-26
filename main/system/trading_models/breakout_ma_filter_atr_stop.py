@@ -33,9 +33,9 @@ class BreakoutMAFilterATRStop(TradingModel):
         signals = []
 
         for market in self.__markets:
+            market_data = market.data(end_date=date)
 
-            if date > market.first_study_date() and market.has_data(date):
-                market_data = market.data(end_date=date)
+            if date > market.first_study_date() and market.has_data(market_data, date):
                 previous_date = market_data[-2][Table.Market.PRICE_DATE]
                 ma_long = market.study(Study.MA_LONG, date)[-1][Table.Study.VALUE]
                 ma_short = market.study(Study.MA_SHORT, date)[-1][Table.Study.VALUE]
@@ -55,18 +55,21 @@ class BreakoutMAFilterATRStop(TradingModel):
 
                     if self.__should_roll(date, previous_date, market, market_position, signals):
                         signals.append(Signal(market, SignalType.ROLL_EXIT, direction, date, settle_price, position_contract))
-                        contract = self.__roll_in_contract(market, position_contract)
-                        signals.append(Signal(market, SignalType.ROLL_ENTER, direction, date, settle_price, contract))
+                        # contract = self.__roll_in_contract(market, position_contract)
+                        # signals.append(Signal(market, SignalType.ROLL_ENTER, direction, date, settle_price, contract))
+                        signals.append(Signal(market, SignalType.ROLL_ENTER, direction, date, settle_price, None))
 
                 if ma_short > ma_long:
                     if settle_price > hhll_short[Table.Study.VALUE]:
-                        contract = self.__contract(date, market, Direction.LONG)
-                        signals.append(Signal(market, SignalType.ENTER, Direction.LONG, date, settle_price, contract))
+                        # contract = self.__contract(date, market, Direction.LONG)
+                        # signals.append(Signal(market, SignalType.ENTER, Direction.LONG, date, settle_price, contract))
+                        signals.append(Signal(market, SignalType.ENTER, Direction.LONG, date, settle_price, None))
 
                 elif ma_short < ma_long:
                     if settle_price < hhll_short[Table.Study.VALUE_2]:
-                        contract = self.__contract(date, market, Direction.SHORT)
-                        signals.append(Signal(market, SignalType.ENTER, Direction.SHORT, date, settle_price, contract))
+                        # contract = self.__contract(date, market, Direction.SHORT)
+                        # signals.append(Signal(market, SignalType.ENTER, Direction.SHORT, date, settle_price, contract))
+                        signals.append(Signal(market, SignalType.ENTER, Direction.SHORT, date, settle_price, None))
 
         return signals
 
@@ -132,7 +135,7 @@ class BreakoutMAFilterATRStop(TradingModel):
         
         :param date:        date on when to calculate the stop loss
         :param position:    position for which to calculate the stop loss
-        :return:            Decimal price representing the stop loss
+        :return:            price representing the stop loss
         """
         market = position.market()
         position_data = market.data(position.enter_date(), date)
