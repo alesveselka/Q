@@ -9,6 +9,7 @@ from enum import RollSchedule
 from operator import itemgetter
 from math import floor, log10
 from collections import defaultdict
+from collections import OrderedDict
 
 
 class Market(object):  # TODO rename to Future?
@@ -44,11 +45,13 @@ class Market(object):  # TODO rename to Future?
         self.__margin = margin
         self.__margin_multiple = 0.0
         self.__adjusted_data = []
+        self.__data_indexes = {}
         self.__contracts = defaultdict(list)
         self.__contract_rolls = []
         self.__roll_schedule = []
         self.__scheduled_rolls = []
         self.__studies = {}
+        self.__study_indexes = {}
         self.__first_study_date = dt.date(9999, 12, 31)
 
     def id(self):
@@ -66,25 +69,15 @@ class Market(object):  # TODO rename to Future?
     def first_study_date(self):
         return self.__first_study_date
 
-    def data(self, start_date=dt.date(1900, 1, 1), end_date=dt.date(9999, 12, 31)):
+    def data(self, date):
         """
-        Filter and return data that fall in between dates passed in
+        Return market data at the date passed in
 
-        :param start_date:  Date of first date of the data range
-        :param end_date:    Date of last date of the data range
-        :return:            List of market data records
+        :param date:    date of the required data
+        :return:        tuple representing one day record
         """
-        return [d for d in self.__adjusted_data if start_date <= d[Table.Market.PRICE_DATE] <= end_date]
-
-    def has_data(self, data, date):
-        """
-        Check if the market has data for date specified
-
-        :param data:    data to check
-        :param date:    date to check data for
-        :return:
-        """
-        return data[-1][Table.Market.PRICE_DATE] == date
+        index = self.__data_indexes[date] if date in self.__data_indexes else None
+        return (self.__adjusted_data[index], self.__adjusted_data[index-1]) if index else (None, None)
 
     def margin(self, date):
         """
@@ -93,7 +86,7 @@ class Market(object):  # TODO rename to Future?
         :param date:    Date on which to estimate the margin
         :return:        Number representing margin in account-base-currency
         """
-        return ceil(self.__margin_multiple * self.study(Study.ATR_SHORT, date)[-1][Table.Study.VALUE])
+        return ceil(self.__margin_multiple * self.study(Study.ATR_SHORT, date)[Table.Study.VALUE])
 
     def slippage(self, date, quantity):
         """
@@ -104,8 +97,8 @@ class Market(object):  # TODO rename to Future?
         :param quantity:    number of contracts to open
         :return:            Number representing slippage in market points
         """
-        atr = self.study(Study.ATR_SHORT, date)[-1][Table.Study.VALUE]
-        volume = self.study(Study.VOL_SHORT, date)[-1][Table.Study.VALUE]
+        atr = self.study(Study.ATR_SHORT, date)[Table.Study.VALUE]
+        volume = self.study(Study.VOL_SHORT, date)[Table.Study.VALUE]
         atr_multiple = [s for s in self.__slippage_map if s['min'] <= volume < s['max']][0].get('atr')
         quantity_factor = 2 ** floor(log10(quantity))
         slippage_value = atr_multiple * atr
@@ -171,7 +164,7 @@ class Market(object):  # TODO rename to Future?
 
         return contract_roll[Table.ContractRoll.ROLL_IN_CONTRACT]
 
-    def study(self, study_name, date=dt.date(9999, 12, 31)):
+    def study(self, study_name, date=None):
         """
         Return data of the study to the date passed in
 
@@ -179,7 +172,9 @@ class Market(object):  # TODO rename to Future?
         :param date:        last date of data required
         :return:            List of tuples - records of study specified
         """
-        return [s for s in self.__studies[study_name] if s[Table.Study.DATE] <= date]
+        index = (self.__study_indexes[study_name][date] if date in self.__study_indexes[study_name] else None) \
+            if date else len(self.__study_indexes[study_name]) - 1
+        return self.__studies[study_name][index] if index else None
 
     def calculate_studies(self, study_parameters):
         """
@@ -194,10 +189,13 @@ class Market(object):  # TODO rename to Future?
                     params['window']
                 )
 
+            for k in self.__studies.keys():
+                self.__study_indexes[k] = {i[1][Table.Study.DATE]: i[0] for i in enumerate(self.__studies[k])}
+
             self.__first_study_date = max([self.__studies[k][0][0] for k in self.__studies.keys()])
 
             margin = self.__margin if self.__margin else self.__adjusted_data[-1][Table.Market.SETTLE_PRICE] * self.__point_value * 0.1
-            self.__margin_multiple = margin / self.study(Study.ATR_SHORT)[-1][Table.Study.VALUE]
+            self.__margin_multiple = margin / self.study(Study.ATR_SHORT)[Table.Study.VALUE]
 
     def load_data(self, connection, end_date, delivery_months):
         """
@@ -229,6 +227,7 @@ class Market(object):  # TODO rename to Future?
         ))
         # TODO I can make a generator and retrieve the data when needed
         self.__adjusted_data = cursor.fetchall()
+        self.__data_indexes = {i[1][Table.Market.PRICE_DATE]: i[0] for i in enumerate(self.__adjusted_data)}
 
         # contracts_query = """
         #     SELECT %s

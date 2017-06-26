@@ -32,8 +32,7 @@ class Simulate:
         now = dt.datetime.now()
         # end_date = dt.date(now.year, now.month, now.day)
         # end_date = dt.date(1992, 6, 10)
-        end_date = dt.date(2000, 12, 31)
-        # 1995-12-31: 92.46s = 1.54m
+        end_date = dt.date(1992, 12, 31)
 
         self.__data_series.load_and_calculate_data(end_date)
         self.__subscribe()
@@ -92,7 +91,7 @@ class Simulate:
         # f.write('\n'.join(report.to_lists(start_date, date, Interval.YEARLY)))
         # f.close()
         #
-        # f = open('transactions_2015-12-31.txt', 'w')
+        # f = open('transactions_lookup_1992-12-31.txt', 'w')
         # f.write('\n'.join(report.transactions(start_date, date)))
         # f.close()
 
@@ -147,7 +146,6 @@ class Simulate:
                     position = self.__portfolio.market_position(order.market())
                     position.add_order_result(order_result)
                     self.__portfolio.remove_position(position)
-                    position.clear_market_data()
 
             self.__order_results.append(order_result)
 
@@ -162,22 +160,22 @@ class Simulate:
 
         for signal in self.__trading_signals:
             market = signal.market()
-            market_data = market.data(end_date=date)
+            market_data, previous_data = market.data(date)
 
-            if market.has_data(market_data, date):
-                atr_long = market.study(Study.ATR_LONG, date)[-1][Table.Study.VALUE]
-                open_price = market_data[-1][Table.Market.OPEN_PRICE]
+            if market_data:
+                atr_long = market.study(Study.ATR_LONG, date)[Table.Study.VALUE]
+                open_price = market_data[Table.Market.OPEN_PRICE]
                 enter_signals = [s for s in self.__trading_signals if s.type() == SignalType.ENTER]
                 exit_signals = [s for s in self.__trading_signals if s.type() == SignalType.EXIT]
                 roll_signals = [s for s in self.__trading_signals if s.type() == SignalType.ROLL_ENTER or s.type() == SignalType.ROLL_EXIT]
                 market_position = self.__portfolio.market_position(market)
 
                 if market_position and (signal in exit_signals or signal in roll_signals):
-                    orders.append(Order(market, signal, date, open_price, market_position.quantity(), market_data))
+                    orders.append(Order(market, signal, date, open_price, market_position.quantity()))
 
                 if market_position is None and signal in enter_signals:
                     quantity = self.__risk.position_size(market.point_value(), market.currency(), atr_long, date)
-                    orders.append(Order(market, signal, date, open_price, quantity, market_data))
+                    orders.append(Order(market, signal, date, open_price, quantity))
 
                 signals_to_remove.append(signal)
 

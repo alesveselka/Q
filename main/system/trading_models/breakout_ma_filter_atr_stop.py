@@ -33,14 +33,14 @@ class BreakoutMAFilterATRStop(TradingModel):
         signals = []
 
         for market in self.__markets:
-            market_data = market.data(end_date=date)
+            market_data, previous_data = market.data(date)
 
-            if date > market.first_study_date() and market.has_data(market_data, date):
-                previous_date = market_data[-2][Table.Market.PRICE_DATE]
-                ma_long = market.study(Study.MA_LONG, date)[-1][Table.Study.VALUE]
-                ma_short = market.study(Study.MA_SHORT, date)[-1][Table.Study.VALUE]
-                hhll_short = market.study(Study.HHLL_SHORT, previous_date)[-1]
-                settle_price = market_data[-1][Table.Market.SETTLE_PRICE]
+            if date > market.first_study_date() and market_data:
+                previous_date = previous_data[Table.Market.PRICE_DATE]
+                ma_long = market.study(Study.MA_LONG, date)[Table.Study.VALUE]
+                ma_short = market.study(Study.MA_SHORT, date)[Table.Study.VALUE]
+                hhll_short = market.study(Study.HHLL_SHORT, previous_date)
+                settle_price = market_data[Table.Market.SETTLE_PRICE]
                 market_position = self.__market_position(positions, market)
 
                 if market_position:
@@ -124,7 +124,7 @@ class BreakoutMAFilterATRStop(TradingModel):
                 should_roll = date.month != previous_date.month
             else:
                 contract_roll = market.contract_roll(position_contract)
-                roll_date = market.data(end_date=contract_roll[Table.ContractRoll.DATE])[-2][Table.Market.PRICE_DATE]
+                roll_date = market.data(contract_roll[Table.ContractRoll.DATE])[-2][Table.Market.PRICE_DATE]
                 should_roll = date == roll_date and position_contract == contract_roll[Table.ContractRoll.ROLL_OUT_CONTRACT]
 
         return should_roll
@@ -137,10 +137,8 @@ class BreakoutMAFilterATRStop(TradingModel):
         :param position:    position for which to calculate the stop loss
         :return:            price representing the stop loss
         """
-        market = position.market()
-        position_data = market.data(position.enter_date(), date)
-        prices = [d[Table.Market.SETTLE_PRICE] for d in position_data]
-        atr = market.study(Study.ATR_SHORT, date)[-1][Table.Study.VALUE]
+        prices = position.prices()
+        atr = position.market().study(Study.ATR_SHORT, date)[Table.Study.VALUE]
         risk = atr * self.__stop_multiple
         return max(prices) - risk if position.direction() == Direction.LONG else min(prices) + risk
 

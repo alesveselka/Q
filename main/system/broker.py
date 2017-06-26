@@ -57,7 +57,8 @@ class Broker(object):
         order_type = order.type()
         currency = market.currency()
         commissions = Decimal(self.__commission * order.quantity())
-        previous_date = order.market_data()[-2][Table.Market.PRICE_DATE]
+        market_data, previous_data = market.data(date)
+        previous_date = previous_data[Table.Market.PRICE_DATE]
         margin = market.margin(previous_date) * order.quantity()
         price = self.__slipped_price(order, order_type)
         order_result = OrderResult(OrderResultType.REJECTED, order, price, margin, commissions)
@@ -80,7 +81,6 @@ class Broker(object):
 
             order_result = OrderResult(OrderResultType.FILLED, order, price, margin, commissions)
 
-        order.clear_market_data()
         return order_result
 
     def __slipped_price(self, order, order_type):
@@ -122,10 +122,10 @@ class Broker(object):
         """
         for p in open_positions:
             market = p.market()
-            market_data = p.market_data(date)
+            market_data, previous_data = market.data(date)
 
-            if market.has_data(market_data, date):
-                price = market_data[-1][Table.Market.SETTLE_PRICE]
+            if market_data:
+                price = market_data[Table.Market.SETTLE_PRICE]
                 mtm = Decimal(p.mark_to_market(date, price) * p.quantity() * market.point_value())
                 mtm_type = TransactionType.MTM_TRANSACTION if p.latest_enter_date() == date else TransactionType.MTM_POSITION
                 self.__add_transaction(mtm_type, date, mtm, market.currency(), (market, p.contract(), price))
@@ -164,8 +164,9 @@ class Broker(object):
             for p in open_positions:
                 if date > p.enter_date():
                     market = p.market()
+                    market_data, _ = market.data(date)
 
-                    if market.has_data(p.market_data(date), date):
+                    if market_data:
                         margin = market.margin(date) * p.quantity()
                         currency = market.currency()
                         to_close[currency] += p.margins()[-1][1]
