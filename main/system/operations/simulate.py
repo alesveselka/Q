@@ -33,7 +33,6 @@ class Simulate:
         # end_date = dt.date(now.year, now.month, now.day)
         # end_date = dt.date(1992, 6, 10)
         end_date = dt.date(1992, 12, 31)
-        # 1995-12-31: 92.46s = 1.54m
 
         self.__data_series.load_and_calculate_data(end_date)
         self.__subscribe()
@@ -164,7 +163,7 @@ class Simulate:
             market_data, previous_data = market.data(date)
 
             if market_data:
-                atr_long = market.study(Study.ATR_LONG, date)[-1][Table.Study.VALUE]
+                atr_long = market.study(Study.ATR_LONG, date)[Table.Study.VALUE]
                 open_price = market_data[Table.Market.OPEN_PRICE]
                 enter_signals = [s for s in self.__trading_signals if s.type() == SignalType.ENTER]
                 exit_signals = [s for s in self.__trading_signals if s.type() == SignalType.EXIT]

@@ -51,6 +51,7 @@ class Market(object):  # TODO rename to Future?
         self.__roll_schedule = []
         self.__scheduled_rolls = []
         self.__studies = {}
+        self.__study_indexes = {}
         self.__first_study_date = dt.date(9999, 12, 31)
 
     def id(self):
@@ -85,7 +86,7 @@ class Market(object):  # TODO rename to Future?
         :param date:    Date on which to estimate the margin
         :return:        Number representing margin in account-base-currency
         """
-        return ceil(self.__margin_multiple * self.study(Study.ATR_SHORT, date)[-1][Table.Study.VALUE])
+        return ceil(self.__margin_multiple * self.study(Study.ATR_SHORT, date)[Table.Study.VALUE])
 
     def slippage(self, date, quantity):
         """
@@ -96,8 +97,8 @@ class Market(object):  # TODO rename to Future?
         :param quantity:    number of contracts to open
         :return:            Number representing slippage in market points
         """
-        atr = self.study(Study.ATR_SHORT, date)[-1][Table.Study.VALUE]
-        volume = self.study(Study.VOL_SHORT, date)[-1][Table.Study.VALUE]
+        atr = self.study(Study.ATR_SHORT, date)[Table.Study.VALUE]
+        volume = self.study(Study.VOL_SHORT, date)[Table.Study.VALUE]
         atr_multiple = [s for s in self.__slippage_map if s['min'] <= volume < s['max']][0].get('atr')
         quantity_factor = 2 ** floor(log10(quantity))
         slippage_value = atr_multiple * atr
@@ -163,7 +164,7 @@ class Market(object):  # TODO rename to Future?
 
         return contract_roll[Table.ContractRoll.ROLL_IN_CONTRACT]
 
-    def study(self, study_name, date=dt.date(9999, 12, 31)):
+    def study(self, study_name, date=None):
         """
         Return data of the study to the date passed in
 
@@ -171,7 +172,9 @@ class Market(object):  # TODO rename to Future?
         :param date:        last date of data required
         :return:            List of tuples - records of study specified
         """
-        return [s for s in self.__studies[study_name] if s[Table.Study.DATE] <= date]
+        index = (self.__study_indexes[study_name][date] if date in self.__study_indexes[study_name] else None) \
+            if date else len(self.__study_indexes[study_name]) - 1
+        return self.__studies[study_name][index] if index else None
 
     def calculate_studies(self, study_parameters):
         """
@@ -186,10 +189,13 @@ class Market(object):  # TODO rename to Future?
                     params['window']
                 )
 
+            for k in self.__studies.keys():
+                self.__study_indexes[k] = {i[1][Table.Study.DATE]: i[0] for i in enumerate(self.__studies[k])}
+
             self.__first_study_date = max([self.__studies[k][0][0] for k in self.__studies.keys()])
 
             margin = self.__margin if self.__margin else self.__adjusted_data[-1][Table.Market.SETTLE_PRICE] * self.__point_value * 0.1
-            self.__margin_multiple = margin / self.study(Study.ATR_SHORT)[-1][Table.Study.VALUE]
+            self.__margin_multiple = margin / self.study(Study.ATR_SHORT)[Table.Study.VALUE]
 
     def load_data(self, connection, end_date, delivery_months):
         """

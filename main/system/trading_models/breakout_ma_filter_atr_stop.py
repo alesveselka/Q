@@ -37,9 +37,9 @@ class BreakoutMAFilterATRStop(TradingModel):
 
             if date > market.first_study_date() and market_data:
                 previous_date = previous_data[Table.Market.PRICE_DATE]
-                ma_long = market.study(Study.MA_LONG, date)[-1][Table.Study.VALUE]
-                ma_short = market.study(Study.MA_SHORT, date)[-1][Table.Study.VALUE]
-                hhll_short = market.study(Study.HHLL_SHORT, previous_date)[-1]
+                ma_long = market.study(Study.MA_LONG, date)[Table.Study.VALUE]
+                ma_short = market.study(Study.MA_SHORT, date)[Table.Study.VALUE]
+                hhll_short = market.study(Study.HHLL_SHORT, previous_date)
                 settle_price = market_data[Table.Market.SETTLE_PRICE]
                 market_position = self.__market_position(positions, market)
 
@@ -138,7 +138,7 @@ class BreakoutMAFilterATRStop(TradingModel):
         :return:            price representing the stop loss
         """
         prices = position.prices()
-        atr = position.market().study(Study.ATR_SHORT, date)[-1][Table.Study.VALUE]
+        atr = position.market().study(Study.ATR_SHORT, date)[Table.Study.VALUE]
         risk = atr * self.__stop_multiple
         return max(prices) - risk if position.direction() == Direction.LONG else min(prices) + risk
 
