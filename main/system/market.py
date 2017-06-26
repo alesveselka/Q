@@ -9,6 +9,7 @@ from enum import RollSchedule
 from operator import itemgetter
 from math import floor, log10
 from collections import defaultdict
+from collections import OrderedDict
 
 
 class Market(object):  # TODO rename to Future?
@@ -44,6 +45,8 @@ class Market(object):  # TODO rename to Future?
         self.__margin = margin
         self.__margin_multiple = 0.0
         self.__adjusted_data = []
+        # self.__adjusted_dict = {}
+        self.__data_indexes = {}
         self.__contracts = defaultdict(list)
         self.__contract_rolls = []
         self.__roll_schedule = []
@@ -66,25 +69,18 @@ class Market(object):  # TODO rename to Future?
     def first_study_date(self):
         return self.__first_study_date
 
-    def data(self, start_date=dt.date(1900, 1, 1), end_date=dt.date(9999, 12, 31)):
+    def data(self, date):
         """
-        Filter and return data that fall in between dates passed in
+        Return market data at the date passed in
 
-        :param start_date:  Date of first date of the data range
-        :param end_date:    Date of last date of the data range
-        :return:            List of market data records
+        :param date:    date of the required data
+        :return:        tuple representing one day record
         """
+        index = self.__data_indexes[date] if date in self.__data_indexes else None
+        return (self.__adjusted_data[index], self.__adjusted_data[index-1]) if index else (None, None)
+
+    def data_range(self, start_date=dt.date(1900, 1, 1), end_date=dt.date(9999, 12, 31)):
         return [d for d in self.__adjusted_data if start_date <= d[Table.Market.PRICE_DATE] <= end_date]
-
-    def has_data(self, data, date):
-        """
-        Check if the market has data for date specified
-
-        :param data:    data to check
-        :param date:    date to check data for
-        :return:
-        """
-        return data[-1][Table.Market.PRICE_DATE] == date
 
     def margin(self, date):
         """
@@ -229,6 +225,8 @@ class Market(object):  # TODO rename to Future?
         ))
         # TODO I can make a generator and retrieve the data when needed
         self.__adjusted_data = cursor.fetchall()
+        # self.__adjusted_dict = {d[Table.Market.PRICE_DATE]: d for d in self.__adjusted_data}
+        self.__data_indexes = {i[1][Table.Market.PRICE_DATE]: i[0] for i in enumerate(self.__adjusted_data)}
 
         # contracts_query = """
         #     SELECT %s
