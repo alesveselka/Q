@@ -32,7 +32,8 @@ class Simulate:
         now = dt.datetime.now()
         # end_date = dt.date(now.year, now.month, now.day)
         # end_date = dt.date(1992, 6, 10)
-        end_date = dt.date(1992, 12, 31)
+        end_date = dt.date(1995, 12, 31)
+        # 1995-12-31: 92.46s = 1.54m
 
         self.__data_series.load_and_calculate_data(end_date)
         self.__subscribe()
@@ -171,11 +172,11 @@ class Simulate:
                 market_position = self.__portfolio.market_position(market)
 
                 if market_position and (signal in exit_signals or signal in roll_signals):
-                    orders.append(Order(market, signal, date, open_price, market_position.quantity()))
+                    orders.append(Order(market, signal, date, open_price, market_position.quantity(), market_data))
 
                 if market_position is None and signal in enter_signals:
                     quantity = self.__risk.position_size(market.point_value(), market.currency(), atr_long, date)
-                    orders.append(Order(market, signal, date, open_price, quantity))
+                    orders.append(Order(market, signal, date, open_price, quantity, market_data))
 
                 signals_to_remove.append(signal)
 
