@@ -36,7 +36,6 @@ class Persist:
         """
         self.__log('Saving orders')
 
-        precision = 10
         values = []
         for result in order_results:
             order = result.order()
@@ -51,10 +50,10 @@ class Persist:
                 order.type(),
                 order.signal_type(),
                 date,
-                self.__round(order.price(), precision),
+                order.price(),
                 order.quantity(),
                 result.type(),
-                self.__round(result.price(), precision)
+                result.price()
             ))
 
         self.__insert_values(
@@ -88,8 +87,14 @@ class Persist:
             'transaction',
             simulation_id,
             ['simulation_id', 'type', 'account_action', 'date', 'amount', 'currency', 'context'],
-            [(simulation_id, t.type(), t.account_action(), t.date(), self.__round(t.amount(), precision), t.currency(), t.context_json())
-             for t in transactions]
+            [(
+                simulation_id,
+                t.type(),
+                t.account_action(),
+                t.date(),
+                self.__round(t.amount(), precision) if isinstance(t.amount(), Decimal) else t.amount(),
+                t.currency(),
+                t.context_json()) for t in transactions]
         )
 
     def __save_positions(self, simulation_id, portfolio):
@@ -121,11 +126,11 @@ class Persist:
                  p.market().id(),
                  p.direction(),
                  p.enter_date(),
-                 self.__round(p.enter_price(), precision),
+                 p.enter_price(),
                  p.exit_date(),
-                 self.__round(p.exit_price(), precision),
+                 p.exit_price(),
                  p.quantity(),
-                 self.__round(p.pnl(), precision),
+                 p.pnl(),
                  self.__round(p.commissions(), precision)
              ) for p in portfolio.closed_positions() + portfolio.open_positions()]
         )
@@ -140,28 +145,28 @@ class Persist:
         """
         self.__log('Saving studies')
 
-        precision = 28
-        markets_with_data = [m for m in markets if m.data()]
-        length = float(len(markets_with_data))
+        length = float(len(markets))
         values = []
-        for i, m in enumerate(markets_with_data):
+        for i, m in enumerate(markets):
             self.__log('Saving studies', i, length)
 
             for p in study_parameters:
                 study_name = p['name']
-                study_data = m.study(study_name)
-                market_id = m.id()
-                market_code = m.code()
-                for d in study_data:
+                try:
+                    study_data = m.study(study_name)
+                    market_id = m.id()
+                    market_code = m.code()
                     values.append((
                         simulation_id,
                         study_name,
                         market_id,
                         market_code,
-                        d[Table.Study.DATE],
-                        self.__round(d[Table.Study.VALUE], precision),
-                        self.__round(d[Table.Study.VALUE_2], precision) if len(d) > 2 else None
+                        study_data[Table.Study.DATE],
+                        study_data[Table.Study.VALUE],
+                        study_data[Table.Study.VALUE_2] if len(study_data) > 2 else None
                     ))
+                except KeyError:
+                    continue
 
         self.__insert_values(
             'study',
