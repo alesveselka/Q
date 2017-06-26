@@ -13,6 +13,7 @@ CREATE TABLE `equity`(
   `fx_translations` TEXT CHARACTER SET utf8 NULL,
   `margin_interest` TEXT CHARACTER SET utf8 NULL,
   `balance_interest` TEXT CHARACTER SET utf8 NULL,
+  `rates` TEXT CHARACTER SET utf8 NULL,
   `margin_ratio` decimal(20,10) NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;
