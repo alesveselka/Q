@@ -176,6 +176,17 @@ class Market(object):  # TODO rename to Future?
             if date else len(self.__study_indexes[study_name]) - 1
         return self.__studies[study_name][index] if index else None
 
+    def study_range(self, study_name, start_date=dt.date(1900, 1, 1), end_date=dt.date(9999, 12, 31)):
+        """
+        Return study data within range of the dates passed in
+        
+        :param study_name:  name of the study to return
+        :param start_date:  start date of the data range
+        :param end_date:    end date of the data range
+        :return:            list of tuple(date, value, value_2)
+        """
+        return [s for s in self.__studies[study_name] if start_date <= s[Table.Study.DATE] <= end_date]
+
     def calculate_studies(self, study_parameters):
         """
         Calculates and saves studies based on parameters passed in

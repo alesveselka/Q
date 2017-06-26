@@ -153,18 +153,19 @@ class Persist:
             for p in study_parameters:
                 study_name = p['name']
                 try:
-                    study_data = m.study(study_name)
+                    study_data = m.study_range(study_name)
                     market_id = m.id()
                     market_code = m.code()
-                    values.append((
-                        simulation_id,
-                        study_name,
-                        market_id,
-                        market_code,
-                        study_data[Table.Study.DATE],
-                        study_data[Table.Study.VALUE],
-                        study_data[Table.Study.VALUE_2] if len(study_data) > 2 else None
-                    ))
+                    for d in study_data:
+                        values.append((
+                            simulation_id,
+                            study_name,
+                            market_id,
+                            market_code,
+                            d[Table.Study.DATE],
+                            d[Table.Study.VALUE],
+                            d[Table.Study.VALUE_2] if len(d) > 2 else None
+                        ))
                 except KeyError:
                     continue
 
