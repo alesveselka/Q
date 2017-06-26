@@ -17,7 +17,6 @@ class Position(object):
         self.__margins = [(order_result.order().date(), order_result.margin())]
         self.__pnls = []
         self.__order_results = [order_result]
-        self.__market_data = {}
 
     def market(self):
         return self.__market
@@ -72,23 +71,6 @@ class Position(object):
         """
         return self.__open_order_results()[-1].order().contract()
 
-    def market_data(self, date):
-        """
-        Return market data by the date, either fetch them or return from cache
-        
-        :param date:    date of the data to return
-        :return:        list of market data
-        """
-        if date not in self.__market_data:
-            self.__market_data[date] = self.__market.data(end_date=date)
-        return self.__market_data[date]
-
-    def clear_market_data(self):
-        """
-        Clear market data cache 
-        """
-        self.__market_data = None
-
     def mark_to_market(self, date, price):
         """
         Calculates and saves P/L for the date and price passed in
@@ -115,7 +97,7 @@ class Position(object):
 
         :return:    Sum of all Profit and Losses
         """
-        return sum([p[2] for p in self.__pnls])
+        return sum(p[2] for p in self.__pnls)
 
     def __pnl_index(self, date):
         """
