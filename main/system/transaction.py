@@ -44,13 +44,14 @@ class Transaction(object):
             }
         elif self.__type == TransactionType.COMMISSION:
             market = self.__context_data[0]
-            order = self.__context_data[1]
+            order_result = self.__context_data[1]
+            order = order_result.order()
             context_data = {
                 'market_id': market.id(),
                 'contract': order.contract(),
                 'instrument_code': market.code(),
                 'order_type': order.type(),
-                'quantity': order.quantity(),
+                'quantity': order_result.quantity(),
                 'price': str(self.__context_data[2])
             }
         elif self.__type == TransactionType.MARGIN_LOAN:
@@ -86,14 +87,15 @@ class Transaction(object):
             )
         elif self.__type == TransactionType.COMMISSION:
             market = self.__context_data[0]
-            order = self.__context_data[1]
+            order_result = self.__context_data[1]
+            order = order_result.order()
             result += '%s, %s of %.2f(%s): %s %d x %s%s at %.2f.' % (
                 self.__type,
                 self.__account_action,
                 self.__amount,
                 self.__currency,
                 order.type(),
-                order.quantity(),
+                order_result.quantity(),
                 market.code(),
                 (' (%s)' % order.contract()) if order.contract() else '',
                 self.__context_data[2]

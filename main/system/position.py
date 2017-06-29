@@ -11,7 +11,7 @@ class Position(object):
         order = order_result.order()
         self.__market = order.market()
         self.__direction = {OrderType.BTO: Direction.LONG, OrderType.STO: Direction.SHORT}.get(order.type())
-        self.__quantity = order.quantity()
+        self.__quantity = order_result.quantity()
         self.__enter_date = order_result.order().date()
         self.__enter_price = order_result.price()
         self.__margins = [(order_result.order().date(), order_result.margin())]

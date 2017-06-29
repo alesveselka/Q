@@ -73,15 +73,15 @@ class Simulate:
 
         print full_report
 
-        # Persist(
-        #     self.__id,
-        #     start_date,
-        #     date,
-        #     self.__order_results,
-        #     self.__account,
-        #     self.__portfolio,
-        #     self.__data_series
-        # )
+        Persist(
+            self.__id,
+            start_date,
+            date,
+            self.__order_results,
+            self.__account,
+            self.__portfolio,
+            self.__data_series
+        )
 
         # f = open('report_full_2015-12-31.txt', 'w')
         # f.write(full_report)
@@ -91,9 +91,9 @@ class Simulate:
         # f.write('\n'.join(report.to_lists(start_date, date, Interval.YEARLY)))
         # f.close()
         #
-        # f = open('transactions_lookup_1992-12-31.txt', 'w')
-        # f.write('\n'.join(report.transactions(start_date, date)))
-        # f.close()
+        f = open('transactions_lookup_1993-12-31.txt', 'w')
+        f.write('\n'.join(report.transactions(start_date, date)))
+        f.close()
 
     def __on_market_open(self, date, previous_date):
         """
@@ -131,9 +131,10 @@ class Simulate:
         for order in orders:
             order_result = order.quantity() \
                            and self.__broker.transfer(order, self.__portfolio.open_positions()) \
-                           or OrderResult(OrderResultType.REJECTED, order, 0, 0, 0)
+                           or OrderResult(OrderResultType.REJECTED, order, 0, 0, 0, 0)
+            result_type = order_result.type()
 
-            if order_result.type() == OrderResultType.FILLED:
+            if result_type == OrderResultType.FILLED or result_type == OrderResultType.PARTIALLY_FILLED:
                 signal_type = order.signal_type()
                 if signal_type == SignalType.ENTER:
                     self.__portfolio.add_position(Position(order_result))

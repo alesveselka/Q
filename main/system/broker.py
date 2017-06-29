@@ -60,29 +60,29 @@ class Broker(object):
         previous_date = previous_data[Table.Market.PRICE_DATE]
         volume = market_data[Table.Market.VOLUME]
         quantity = order.quantity() if order.quantity() <= volume else floor(volume / 3)
-        commissions = Decimal(self.__commission * quantity)
-        margin = market.margin(previous_date) * quantity
-        price = self.__slipped_price(order, order_type, quantity)
-        order_result = OrderResult(OrderResultType.REJECTED, order, price, margin, commissions)
-        order_result_type = OrderResultType.FILLED if quantity == order.quantity() else OrderResultType.PARTIALLY_FILLED
+        order_result = OrderResult(OrderResultType.REJECTED, order, order.price(), quantity, 0, 0)
 
-        if order_type == OrderType.BTO or order_type == OrderType.STO:
-            base_commission = self.__account.base_value(commissions, self.__commission_currency, date)
-            base_margin = Decimal(self.__account.base_value(margin, currency, date))
-            if self.__account.available_funds(date) > base_margin + base_commission:
-                self.__add_transaction(TransactionType.MARGIN_LOAN, date, margin, currency, 'add')
-                self.__add_transaction(TransactionType.COMMISSION, date, -commissions, self.__commission_currency, (market, order, price))
+        if quantity:
+            commissions = Decimal(self.__commission * quantity)
+            margin = market.margin(previous_date) * quantity
+            price = self.__slipped_price(order, order_type, quantity)
+            result_type = OrderResultType.FILLED if quantity == order.quantity() else OrderResultType.PARTIALLY_FILLED
+            order_result = OrderResult(result_type, order, price, quantity, margin, commissions)
+            context = (market, order_result, price)
 
-                order_result = OrderResult(order_result_type, order, price, margin, commissions)
-        else:
-            position = [p for p in open_positions if p.market() == market][0]
-            mtm = Decimal(position.mark_to_market(order.date(), price) * position.quantity() * market.point_value())
+            if order_type == OrderType.BTO or order_type == OrderType.STO:
+                base_commission = self.__account.base_value(commissions, self.__commission_currency, date)
+                base_margin = Decimal(self.__account.base_value(margin, currency, date))
+                if self.__account.available_funds(date) > base_margin + base_commission:
+                    self.__add_transaction(TransactionType.MARGIN_LOAN, date, margin, currency, 'add')
+                    self.__add_transaction(TransactionType.COMMISSION, date, -commissions, self.__commission_currency, context)
+            else:
+                position = [p for p in open_positions if p.market() == market][0]
+                mtm = Decimal(position.mark_to_market(order.date(), price) * position.quantity() * market.point_value())
 
-            self.__add_transaction(TransactionType.MTM_TRANSACTION, date, mtm, currency, (market, position.contract(), price))
-            self.__add_transaction(TransactionType.COMMISSION, date, -commissions, self.__commission_currency, (market, order, price))
-            self.__add_transaction(TransactionType.MARGIN_LOAN, date, -margin, currency, 'remove')
-
-            order_result = OrderResult(order_result_type, order, price, margin, commissions)
+                self.__add_transaction(TransactionType.MTM_TRANSACTION, date, mtm, currency, (market, position.contract(), price))
+                self.__add_transaction(TransactionType.COMMISSION, date, -commissions, self.__commission_currency, context)
+                self.__add_transaction(TransactionType.MARGIN_LOAN, date, -margin, currency, 'remove')
 
         return order_result
 

@@ -3,10 +3,11 @@
 
 class OrderResult(object):
 
-    def __init__(self, result_type, order, price, margin, commission):
+    def __init__(self, result_type, order, price, quantity, margin, commission):
         self.__type = result_type
         self.__order = order
         self.__price = price
+        self.__quantity = quantity
         self.__margin = margin
         self.__commission = commission
 
@@ -18,6 +19,9 @@ class OrderResult(object):
 
     def price(self):
         return self.__price
+
+    def quantity(self):
+        return self.__quantity
 
     def margin(self):
         return self.__margin
