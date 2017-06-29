@@ -67,11 +67,12 @@ def file_name(pair, rows):
 
 def generate_csvs(dir_path, header, data, pairs):
     def generate_csv(pair):
+        correct_pair = '{1}{0}'.format(*pair.split('/'))
         values = [('{1}/{2}/{0}'.format(*d[0].split('/')), d[header[pair]]) for d in data]
         rows = [','.join([v[0], ('0.0,' * 3)[:-1], v[1]]) for v in values if v[1]]
 
         if len(rows):
-            name = file_name(pair, [rows[0], rows[-1]])
+            name = file_name(correct_pair, [rows[0], rows[-1]])
             print 'Generating %s' % name
 
             f = open(''.join([dir_path, 'generated/split/', name]), 'w')
@@ -113,11 +114,11 @@ if __name__ == '__main__':
     ecu_list = [path for path in dir_list if re.match('^ECU', path)]
     eur_list = [path for path in dir_list if re.match('^[A-Z]{6}', path)]
 
-    download_eur_pairs(dir_path)
+    # download_eur_pairs(dir_path)
 
-    # map(lambda f: generate_csvs(dir_path, *read_data(dir_path, f)), ecu_list + eur_list)
-    #
-    # concat_files(
-    #     ''.join([dir_path, 'generated/split/']),
-    #     ''.join([dir_path, 'generated/full/'])
-    # )
+    map(lambda f: generate_csvs(dir_path, *read_data(dir_path, f)), ecu_list + eur_list)
+
+    concat_files(
+        ''.join([dir_path, 'generated/split/']),
+        ''.join([dir_path, 'generated/full/'])
+    )
