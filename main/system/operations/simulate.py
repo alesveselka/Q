@@ -91,9 +91,9 @@ class Simulate:
         # f.write('\n'.join(report.to_lists(start_date, date, Interval.YEARLY)))
         # f.close()
         #
-        f = open('transactions_lookup_1993-12-31.txt', 'w')
-        f.write('\n'.join(report.transactions(start_date, date)))
-        f.close()
+        # f = open('transactions_2015-12-31.txt', 'w')
+        # f.write('\n'.join(report.transactions(start_date, date)))
+        # f.close()
 
     def __on_market_open(self, date, previous_date):
         """
