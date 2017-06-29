@@ -31,7 +31,8 @@ class CurrencyPair(object):
         :return:        Number representing the rate on the date
         """
         pair_data = [d for d in self.__data if d[Table.CurrencyPair.PRICE_DATE] <= date]
-        return pair_data[-1][Table.CurrencyPair.LAST_PRICE] if len(pair_data) else 1.0
+        return pair_data[-1][Table.CurrencyPair.LAST_PRICE] if len(pair_data) \
+            else (self.__data[0][Table.CurrencyPair.LAST_PRICE] if len(self.__data) else 1.0)
 
     def load_data(self, connection, end_date):
         """
