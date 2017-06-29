@@ -1,5 +1,6 @@
 #!/usr/bin/python
 
+from math import floor
 from enum import OrderType
 from enum import OrderResultType
 from enum import TransactionType
@@ -55,12 +56,15 @@ class Broker(object):
         date = order.date()
         order_type = order.type()
         currency = market.currency()
-        commissions = Decimal(self.__commission * order.quantity())
         market_data, previous_data = market.data(date)
         previous_date = previous_data[Table.Market.PRICE_DATE]
-        margin = market.margin(previous_date) * order.quantity()
-        price = self.__slipped_price(order, order_type)
+        volume = market_data[Table.Market.VOLUME]
+        quantity = order.quantity() if order.quantity() <= volume else floor(volume / 3)
+        commissions = Decimal(self.__commission * quantity)
+        margin = market.margin(previous_date) * quantity
+        price = self.__slipped_price(order, order_type, quantity)
         order_result = OrderResult(OrderResultType.REJECTED, order, price, margin, commissions)
+        order_result_type = OrderResultType.FILLED if quantity == order.quantity() else OrderResultType.PARTIALLY_FILLED
 
         if order_type == OrderType.BTO or order_type == OrderType.STO:
             base_commission = self.__account.base_value(commissions, self.__commission_currency, date)
@@ -69,7 +73,7 @@ class Broker(object):
                 self.__add_transaction(TransactionType.MARGIN_LOAN, date, margin, currency, 'add')
                 self.__add_transaction(TransactionType.COMMISSION, date, -commissions, self.__commission_currency, (market, order, price))
 
-                order_result = OrderResult(OrderResultType.FILLED, order, price, margin, commissions)
+                order_result = OrderResult(order_result_type, order, price, margin, commissions)
         else:
             position = [p for p in open_positions if p.market() == market][0]
             mtm = Decimal(position.mark_to_market(order.date(), price) * position.quantity() * market.point_value())
@@ -78,19 +82,21 @@ class Broker(object):
             self.__add_transaction(TransactionType.COMMISSION, date, -commissions, self.__commission_currency, (market, order, price))
             self.__add_transaction(TransactionType.MARGIN_LOAN, date, -margin, currency, 'remove')
 
-            order_result = OrderResult(OrderResultType.FILLED, order, price, margin, commissions)
+            order_result = OrderResult(order_result_type, order, price, margin, commissions)
 
         return order_result
 
-    def __slipped_price(self, order, order_type):
+    def __slipped_price(self, order, order_type, quantity):
         """
         Calculate and return price after slippage is added
 
-        :param order:   Order instance
-        :return:        number representing final price
+        :param order:       Order instance
+        :param order_type:  type of order
+        :param quantity:    quantity to open
+        :return:            number representing final price
         """
         price = order.price()
-        slippage = order.market().slippage(order.date(), order.quantity())
+        slippage = order.market().slippage(order.date(), quantity)
         return (price + slippage) if (order_type == OrderType.BTO or order_type == OrderType.BTC) else (price - slippage)
 
     def __sweep_fx_funds(self, date):

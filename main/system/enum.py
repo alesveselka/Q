@@ -49,6 +49,7 @@ class OrderType:
 
 class OrderResultType:
     FILLED = 'FILLED'
+    PARTIALLY_FILLED = 'PARTIALLY_FILLED'
     REJECTED = 'REJECTED'
 
 
