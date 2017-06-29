@@ -1,5 +1,6 @@
 #!/usr/bin/python
 
+import time
 import os
 import json
 import MySQLdb as mysql
@@ -18,6 +19,7 @@ from trading_models.breakout_ma_filter_atr_stop import BreakoutMAFilterATRStop
 class Initialize:
 
     def __init__(self, simulation_name):
+        self.__start_time = time.time()
         # TODO move this connection to where it is needed and close it when done with an operation.
         connection = mysql.connect(
             os.environ['DB_HOST'],
@@ -44,7 +46,7 @@ class Initialize:
 
         start_data_date = investment_universe.start_data_date()
         account = Account(Decimal(params['initial_balance']), start_data_date, base_currency, currency_pairs)
-        broker = Broker(account, commission, currency_pairs, interest_rates, interest_minimums)
+        broker = Broker(account, commission, interest_rates, interest_minimums)
         trading_model = self.__trading_model(simulation[Table.Simulation.TRADING_MODEL])(
             futures,
             json.loads(simulation[Table.Simulation.TRADING_PARAMS]),
@@ -53,6 +55,8 @@ class Initialize:
 
         risk = Risk(params['risk_factor'], account)
         Simulate(simulation[Table.Simulation.ID], data_series, risk, account, broker, Portfolio(), trading_model)
+
+        print 'Time:', time.time() - self.__start_time, (time.time() - self.__start_time) / 60
 
     def __simulation(self, name, connection):
         """

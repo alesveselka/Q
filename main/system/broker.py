@@ -13,11 +13,10 @@ import operator as op
 
 class Broker(object):
 
-    def __init__(self, account, commission, currency_pairs, interest_rates, minimums):
+    def __init__(self, account, commission, interest_rates, minimums):
         self.__account = account
         self.__commission = commission[0]
         self.__commission_currency = commission[1]
-        self.__currency_pairs = currency_pairs
         self.__interest_rates = interest_rates
         self.__minimums = minimums
 
