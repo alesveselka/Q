@@ -51,7 +51,7 @@ class Persist:
                 order.signal_type(),
                 date,
                 order.price(),
-                order.quantity(),
+                result.quantity(),
                 result.type(),
                 result.price()
             ))
