@@ -65,7 +65,7 @@ class Broker(object):
         if quantity:
             commissions = Decimal(self.__commission * quantity)
             margin = market.margin(previous_date) * quantity
-            price = self.__slipped_price(order, order_type, quantity)
+            price = self.__slipped_price(market_data, order, order_type, quantity)
             result_type = OrderResultType.FILLED if quantity == order.quantity() else OrderResultType.PARTIALLY_FILLED
             order_result = OrderResult(result_type, order, price, quantity, margin, commissions)
             context = (market, order_result, price)
@@ -86,10 +86,11 @@ class Broker(object):
 
         return order_result
 
-    def __slipped_price(self, order, order_type, quantity):
+    def __slipped_price(self, market_data, order, order_type, quantity):
         """
         Calculate and return price after slippage is added
 
+        :param market_data: tuple of the market day data
         :param order:       Order instance
         :param order_type:  type of order
         :param quantity:    quantity to open
@@ -97,7 +98,10 @@ class Broker(object):
         """
         price = order.price()
         slippage = order.market().slippage(order.date(), quantity)
-        return (price + slippage) if (order_type == OrderType.BTO or order_type == OrderType.BTC) else (price - slippage)
+        slipped_price = (price + slippage) if (order_type == OrderType.BTO or order_type == OrderType.BTC) else (price - slippage)
+        high = market_data[Table.Market.HIGH_PRICE]
+        low = market_data[Table.Market.LOW_PRICE]
+        return high if slipped_price > high else (low if slipped_price < low else slipped_price)
 
     def __sweep_fx_funds(self, date):
         """
