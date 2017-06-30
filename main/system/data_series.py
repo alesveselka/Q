@@ -55,8 +55,8 @@ class DataSeries:
             start_data_date = self.__investment_universe.start_data_date()
             self.__futures = []
 
-            for market_id in self.__investment_universe.market_ids():
-            # for market_id in [85]:
+            # for market_id in self.__investment_universe.market_ids():
+            for market_id in [100]:  # 100 = CL2
                 cursor.execute(market_query % market_id)
                 self.__futures.append(Market(
                     start_data_date,
@@ -113,6 +113,14 @@ class DataSeries:
 
         return self.__interest_rates
 
+    def update_futures_data(self, date):
+        """
+        Update futures data and their studies
+        
+        :param date:    date of the data to update
+        """
+        map(lambda f: f.update_data(date), self.__futures)
+
     def load_and_calculate_data(self, end_date):
         """
         Load data and calculate studies
@@ -121,7 +129,7 @@ class DataSeries:
         """
         cursor = self.__connection.cursor()
         cursor.execute("SELECT code, short_name FROM `delivery_month`;")
-        delivery_months = cursor.fetchall()
+        delivery_months = {i[1][0]: (i[0] + 1, i[1][1]) for i in enumerate(cursor.fetchall())}
 
         # TODO load all at once and then filter in python?
         message = 'Loading Futures data ...'

@@ -9,7 +9,6 @@ from enum import RollSchedule
 from operator import itemgetter
 from math import floor, log10
 from collections import defaultdict
-from collections import OrderedDict
 
 
 class Market(object):  # TODO rename to Future?
@@ -36,7 +35,6 @@ class Market(object):  # TODO rename to Future?
         self.__name = name
         self.__market_code = code
         self.__instrument_code = ''.join([code, '2']) if 'C' in data_codes else code
-        self.__data_codes = data_codes
         self.__currency = currency
         self.__first_data_date = first_data_date
         self.__group = group
@@ -53,6 +51,9 @@ class Market(object):  # TODO rename to Future?
         self.__studies = {}
         self.__study_indexes = {}
         self.__first_study_date = dt.date(9999, 12, 31)
+
+        self.__dynamic_data = []
+        self.__dynamic_indexes = {}
 
     def id(self):
         return self.__id
@@ -76,8 +77,10 @@ class Market(object):  # TODO rename to Future?
         :param date:    date of the required data
         :return:        tuple representing one day record
         """
-        index = self.__data_indexes[date] if date in self.__data_indexes else None
-        return (self.__adjusted_data[index], self.__adjusted_data[index-1]) if index else (None, None)
+        # index = self.__data_indexes[date] if date in self.__data_indexes else None
+        # return (self.__adjusted_data[index], self.__adjusted_data[index-1]) if index else (None, None)
+        index = self.__dynamic_indexes[date] if date in self.__dynamic_indexes else None
+        return (self.__dynamic_data[index], self.__dynamic_data[index-1]) if index else (None, None)
 
     def margin(self, date):
         """
@@ -158,7 +161,7 @@ class Market(object):  # TODO rename to Future?
         :return:        string representing the contract delivery
         """
         rolls = self.__contract_rolls if len(self.__contract_rolls) else self.__scheduled_rolls
-        contract_rolls = [r for r in zip(rolls, rolls[1:]) if r[0][Table.ContractRoll.DATE] < date <= r[1][Table.ContractRoll.DATE]]
+        contract_rolls = [r for r in zip(rolls, rolls[1:]) if r[0][Table.ContractRoll.DATE] <= date < r[1][Table.ContractRoll.DATE]]
         contract_roll = contract_rolls[0][0] if len(contract_rolls) == 1 \
             else (rolls[0] if date < rolls[0][Table.ContractRoll.DATE] else rolls[-1])
 
@@ -208,6 +211,50 @@ class Market(object):  # TODO rename to Future?
             margin = self.__margin if self.__margin else self.__adjusted_data[-1][Table.Market.SETTLE_PRICE] * self.__point_value * 0.1
             self.__margin_multiple = margin / self.study(Study.ATR_SHORT)[Table.Study.VALUE]
 
+    def update_data(self, date):
+        """
+        Update dynamic data and studies
+        
+        :param date:    date of the data update
+        """
+        contract = self.__contract(date)
+        contract_data = [d for d in self.__contracts[self.__contract(date)] if d[Table.Market.PRICE_DATE] == date]
+        if len(contract_data):
+            # TODO adjust for gap! And save the gap!
+            self.__dynamic_data.append(contract_data[-1])
+            self.__dynamic_indexes[date] = len(self.__dynamic_data) - 1
+
+            self.__update_studies(date, contract_data[-1])
+        # print 'update data', date, contract, contract_data[-1] if len(contract_data) else None
+
+
+    def __update_studies(self, date, contract_data):
+        # for params in study_parameters:
+        #     self.__studies[params['name']] = params['study'](
+        #         [tuple(map(lambda c: d[c], params['columns'])) for d in self.__adjusted_data],
+        #         params['window']
+        #     )
+        pass
+
+    def __should_roll(self, date, previous_date, market, position, signals):
+        """
+        Check if position should roll to the next contract
+        
+        :param date:            current date
+        :param previous_date:   previous date
+        :param market:          market of the position
+        :param position:        position to roll
+        :param signals:         signals
+        :return:                Boolean indicating if roll signals should be generated
+        """
+        should_roll = False
+
+        # contract_roll = market.contract_roll(position_contract)
+        # roll_date = market.data(contract_roll[Table.ContractRoll.DATE])[-2][Table.Market.PRICE_DATE]
+        # should_roll = date == roll_date and position_contract == contract_roll[Table.ContractRoll.ROLL_OUT_CONTRACT]
+
+        return should_roll
+
     def load_data(self, connection, end_date, delivery_months):
         """
         Load market's data
@@ -217,47 +264,47 @@ class Market(object):  # TODO rename to Future?
         :param delivery_months: list of delivery months [(code, short-month-name)]
         """
         cursor = connection.cursor()
-        continuous_query = """
-            SELECT %s
-            FROM %s
-            WHERE market_id = '%s'
-            AND code = '%s' 
-            AND roll_strategy_id = '%s'
-            AND DATE(price_date) >= '%s'
-            AND DATE(price_date) <= '%s'
-            ORDER BY price_date;
-        """
-        cursor.execute(continuous_query % (
-            self.__column_names(),
-            'continuous_adjusted',
-            self.__id,
-            self.__instrument_code,
-            self.__roll_strategy_id,
-            self.__start_data_date.strftime('%Y-%m-%d'),
-            end_date.strftime('%Y-%m-%d')
-        ))
-        # TODO I can make a generator and retrieve the data when needed
-        self.__adjusted_data = cursor.fetchall()
-        self.__data_indexes = {i[1][Table.Market.PRICE_DATE]: i[0] for i in enumerate(self.__adjusted_data)}
-
-        # contracts_query = """
+        # continuous_query = """
         #     SELECT %s
         #     FROM %s
         #     WHERE market_id = '%s'
+        #     AND code = '%s'
+        #     AND roll_strategy_id = '%s'
         #     AND DATE(price_date) >= '%s'
         #     AND DATE(price_date) <= '%s'
         #     ORDER BY price_date;
         # """
-        # cursor.execute(contracts_query % (
-        #     self.__column_names() + ', last_trading_day',
-        #     'contract',
+        # cursor.execute(continuous_query % (
+        #     self.__column_names(),
+        #     'continuous_adjusted',
         #     self.__id,
+        #     self.__instrument_code,
+        #     self.__roll_strategy_id,
         #     self.__start_data_date.strftime('%Y-%m-%d'),
         #     end_date.strftime('%Y-%m-%d')
         # ))
-        # # TODO need to load more than 'end_date' - for the last contract to roll out and in contracts
-        # for c in cursor.fetchall():
-        #     self.__contracts[c[Table.Market.CODE][-5:].upper()].append(c)
+        # # TODO I can make a generator and retrieve the data when needed
+        # self.__adjusted_data = cursor.fetchall()
+        # self.__data_indexes = {i[1][Table.Market.PRICE_DATE]: i[0] for i in enumerate(self.__adjusted_data)}
+
+        contracts_query = """
+            SELECT %s
+            FROM %s
+            WHERE market_id = '%s'
+            AND DATE(price_date) >= '%s'
+            AND DATE(price_date) <= '%s'
+            ORDER BY price_date;
+        """
+        cursor.execute(contracts_query % (
+            self.__column_names() + ', last_trading_day',
+            'contract',
+            self.__id,
+            self.__start_data_date.strftime('%Y-%m-%d'),
+            end_date.strftime('%Y-%m-%d')
+        ))
+        # TODO need to load more than 'end_date' - for the last contract to roll out and in contracts
+        for c in cursor.fetchall():
+            self.__contracts[c[Table.Market.CODE][-5:].upper()].append(c)
         #
         # contract_roll_query = """
         #     SELECT date, gap, roll_out_contract, roll_in_contract
@@ -269,18 +316,21 @@ class Market(object):  # TODO rename to Future?
         # cursor.execute(contract_roll_query % (self.__id, self.__roll_strategy_id))
         # self.__contract_rolls = cursor.fetchall()
         #
-        # roll_schedule_query = """
-        #     SELECT roll_out_month, roll_in_month, month, day
-        #     FROM standard_roll_schedule
-        #     WHERE market_id = '%s'
-        #     AND name = 'norgate';
-        # """
-        # cursor.execute(roll_schedule_query % self.__id)
-        # self.__roll_schedule = cursor.fetchall()
-        #
-        # contract_codes = self.__scheduled_codes([k for k in sorted(self.__contracts.keys())], delivery_months)
-        # self.__scheduled_rolls = [(self.__scheduled_roll_date(r[0], delivery_months), 0, r[0], r[1])
-        #                           for r in zip(contract_codes, contract_codes[1:])]
+        roll_schedule_query = """
+            SELECT roll_out_month, roll_in_month, month, day
+            FROM standard_roll_schedule
+            WHERE market_id = '%s'
+            AND name = 'norgate';
+        """
+        cursor.execute(roll_schedule_query % self.__id)
+        self.__roll_schedule = cursor.fetchall()
+
+        contract_codes = self.__scheduled_codes([k for k in sorted(self.__contracts.keys())], delivery_months)
+        self.__scheduled_rolls = [(self.__scheduled_roll_date(r[0], delivery_months), 0, r[0], r[1])
+                                  for r in zip(contract_codes, contract_codes[1:])]
+
+        # for roll in self.__scheduled_rolls:
+        #     print roll
 
         return True
 
@@ -293,8 +343,8 @@ class Market(object):  # TODO rename to Future?
         :return:                list of contract codes
         """
         scheduled_months = [r[RollSchedule.ROLL_OUT_MONTH] for r in self.__roll_schedule]
-        scheduled_codes = [m[0] for m in delivery_months if m[1] in scheduled_months]
-        return [c for c in contract_codes if c[-1].upper() in scheduled_codes]
+        scheduled_codes = [k for k in delivery_months.keys() if delivery_months[k][1] in scheduled_months]
+        return [c for c in contract_codes if c[-1] in scheduled_codes]
 
     def __scheduled_roll_date(self, contract, delivery_months):
         """
@@ -304,15 +354,19 @@ class Market(object):  # TODO rename to Future?
         :param delivery_months: list of delivery months [(code, short-month-name)]
         :return:                date of scheduled roll
         """
-        months = [m for m in calendar.month_abbr]
+        # months = [m for m in calendar.month_abbr]
 
         contract_year = int(contract[:4])
-        contract_month_code = contract[-1].upper()
-        contract_month_index = reduce(lambda i, d: i + 1 if d[0] <= contract_month_code else i, delivery_months, 0)
-        contract_month = months[contract_month_index]
+        contract_month_code = contract[-1]
+        # contract_month_index = reduce(lambda i, d: i + 1 if d[0] <= contract_month_code else i, delivery_months, 0)
+        contract_month_index = delivery_months[contract_month_code][0]
+        contract_month = delivery_months[contract_month_code][1]
+        # contract_month = months[contract_month_index]
 
         roll_schedule = [r for r in self.__roll_schedule if r[RollSchedule.ROLL_OUT_MONTH] == contract_month][0]
-        roll_month_index = [i[0] for i in enumerate(months) if i[1] == roll_schedule[RollSchedule.MONTH]][0]
+
+        # roll_month_index = [i[0] for i in enumerate(months) if i[1] == roll_schedule[RollSchedule.MONTH]][0]
+        roll_month_index = [delivery_months[k][0] for k in delivery_months.keys() if delivery_months[k][1] == roll_schedule[RollSchedule.MONTH]][0]
         roll_year = contract_year if contract_month_index - roll_month_index > -1 else contract_year - 1
         return dt.date(roll_year, roll_month_index, int(roll_schedule[RollSchedule.DAY]))
 
