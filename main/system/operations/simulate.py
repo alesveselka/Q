@@ -120,6 +120,8 @@ class Simulate:
         :param date:            date for the market open
         :param previous_date:   previous market date
         """
+        self.__data_series.update_futures_data(date)
+
         self.__trading_signals += self.__trading_model.signals(date, self.__portfolio.open_positions())
 
     def __transfer_orders(self, orders):
