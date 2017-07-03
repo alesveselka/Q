@@ -9,6 +9,8 @@ from enum import RollSchedule
 from operator import itemgetter
 from math import floor, log10
 from collections import defaultdict
+from collections import deque
+from study import EMA
 
 
 class Market(object):  # TODO rename to Future?
@@ -54,6 +56,16 @@ class Market(object):  # TODO rename to Future?
 
         self.__dynamic_data = []
         self.__dynamic_indexes = {}
+        self.__dynamic_studies = defaultdict(list)
+        self.__dynamic_study_data = {
+            '50': deque([], 50),
+            'tr_50': deque([], 51),
+            'vol_50': deque([], 50),
+            '100': deque([], 100),
+            'tr_100': deque([], 101),
+            'vol_100': deque([], 100)
+        }
+        self.__dynamic_study_indexes = defaultdict(dict)
 
     def id(self):
         return self.__id
@@ -77,10 +89,10 @@ class Market(object):  # TODO rename to Future?
         :param date:    date of the required data
         :return:        tuple representing one day record
         """
-        # index = self.__data_indexes[date] if date in self.__data_indexes else None
-        # return (self.__adjusted_data[index], self.__adjusted_data[index-1]) if index else (None, None)
-        index = self.__dynamic_indexes[date] if date in self.__dynamic_indexes else None
-        return (self.__dynamic_data[index], self.__dynamic_data[index-1]) if index else (None, None)
+        index = self.__data_indexes[date] if date in self.__data_indexes else None
+        return (self.__adjusted_data[index], self.__adjusted_data[index-1]) if index else (None, None)
+        # index = self.__dynamic_indexes[date] if date in self.__dynamic_indexes else None
+        # return (self.__dynamic_data[index], self.__dynamic_data[index-1]) if index else (None, None)
 
     def margin(self, date):
         """
@@ -177,7 +189,10 @@ class Market(object):  # TODO rename to Future?
         """
         index = (self.__study_indexes[study_name][date] if date in self.__study_indexes[study_name] else None) \
             if date else len(self.__study_indexes[study_name]) - 1
-        return self.__studies[study_name][index] if index else None
+        return self.__studies[study_name][index] if index > -1 else None
+        # index = (self.__dynamic_study_indexes[study_name][date] if date in self.__dynamic_study_indexes[study_name] else None) \
+        #     if date else len(self.__dynamic_study_indexes[study_name]) - 1
+        # return self.__dynamic_studies[study_name][index] if index > -1 else None
 
     def study_range(self, study_name, start_date=dt.date(1900, 1, 1), end_date=dt.date(9999, 12, 31)):
         """
@@ -203,13 +218,16 @@ class Market(object):  # TODO rename to Future?
                     params['window']
                 )
 
+            # self.__studies['EMA_50'] = EMA([(d[Table.Market.PRICE_DATE], d[Table.Market.SETTLE_PRICE]) for d in self.__adjusted_data], 50)
+
             for k in self.__studies.keys():
                 self.__study_indexes[k] = {i[1][Table.Study.DATE]: i[0] for i in enumerate(self.__studies[k])}
 
             self.__first_study_date = max([self.__studies[k][0][0] for k in self.__studies.keys()])
 
             margin = self.__margin if self.__margin else self.__adjusted_data[-1][Table.Market.SETTLE_PRICE] * self.__point_value * 0.1
-            self.__margin_multiple = margin / self.study(Study.ATR_SHORT)[Table.Study.VALUE]
+            # self.__margin_multiple = margin / self.study(Study.ATR_SHORT)[Table.Study.VALUE]
+            self.__margin_multiple = margin / self.__studies[Study.ATR_SHORT][-1][Table.Study.VALUE]
 
     def update_data(self, date):
         """
@@ -217,24 +235,88 @@ class Market(object):  # TODO rename to Future?
         
         :param date:    date of the data update
         """
-        contract = self.__contract(date)
-        contract_data = [d for d in self.__contracts[self.__contract(date)] if d[Table.Market.PRICE_DATE] == date]
+        # TODO not necessary if all markets have data - filter universe based on first contract date
+        rolls = self.__contract_rolls if len(self.__contract_rolls) else self.__scheduled_rolls
+        contract = self.__contract(date) if len(rolls) else None
+        contract_data = self.__contracts[contract] if contract else []
+        # TODO cache contract data
+        contract_data = [d for d in contract_data if d[Table.Market.PRICE_DATE] == date]
         if len(contract_data):
             # TODO adjust for gap! And save the gap!
             self.__dynamic_data.append(contract_data[-1])
             self.__dynamic_indexes[date] = len(self.__dynamic_data) - 1
 
-            self.__update_studies(date, contract_data[-1])
-        # print 'update data', date, contract, contract_data[-1] if len(contract_data) else None
+            # self.__update_studies(date, contract_data[-1])
+            if date in self.__data_indexes:  # TODO this is only temporary, because some continuous and individual contract start on different date
+                self.__update_studies(date)
 
+    def __update_studies(self, date):
+        short_window = 50
+        long_window = 100
+        index = self.__data_indexes[date]
+        settle = self.__adjusted_data[index][Table.Market.SETTLE_PRICE]
+        volume = self.__adjusted_data[index][Table.Market.VOLUME]
+        tr = 0.0
+        self.__dynamic_study_data['50'].append(settle)
+        self.__dynamic_study_data['vol_50'].append(volume)
+        if len(self.__dynamic_study_data['50']):
+            tr = max(self.__adjusted_data[index][Table.Market.HIGH_PRICE], self.__adjusted_data[index-1][Table.Market.SETTLE_PRICE]) - \
+                 min(self.__adjusted_data[index][Table.Market.LOW_PRICE], self.__adjusted_data[index-1][Table.Market.SETTLE_PRICE])
+            self.__dynamic_study_data['tr_50'].append(tr)
+        self.__dynamic_study_data['100'].append(settle)
+        self.__dynamic_study_data['vol_100'].append(volume)
+        if len(self.__dynamic_study_data['100']):
+            self.__dynamic_study_data['tr_100'].append(tr)
 
-    def __update_studies(self, date, contract_data):
-        # for params in study_parameters:
-        #     self.__studies[params['name']] = params['study'](
-        #         [tuple(map(lambda c: d[c], params['columns'])) for d in self.__adjusted_data],
-        #         params['window']
-        #     )
-        pass
+        # SMA
+        ma_short = self.__dynamic_studies[Study.MA_SHORT]
+        ma_short.append((date, sum(self.__dynamic_study_data['50']) / len(self.__dynamic_study_data['50'])))
+        self.__dynamic_study_indexes[Study.MA_SHORT][date] = len(ma_short) - 1
+
+        ma_long = self.__dynamic_studies[Study.MA_LONG]
+        ma_long.append((date, sum(self.__dynamic_study_data['100']) / len(self.__dynamic_study_data['100'])))
+        self.__dynamic_study_indexes[Study.MA_LONG][date] = len(ma_long) - 1
+
+        # EMA
+        if len(self.__dynamic_study_data['50']) == short_window:
+            ema_short = self.__dynamic_studies['EMA_50']
+            c = 2.0 / (short_window + 1)
+            ma = (date, ema_short[-1][1] if len(ema_short) else (sum(self.__dynamic_study_data['50']) / len(self.__dynamic_study_data['50'])))
+            ema_short.append((date, (c * settle) + (1 - c) * ma[1]))
+
+        # ATR
+        atr_short = self.__dynamic_studies[Study.ATR_SHORT]
+        if len(self.__dynamic_study_data['tr_50']) == short_window + 1:
+            # EMA of TR
+            c = 2.0 / (short_window + 1)
+            # Slice the window to 50, so its same as original
+            ma = (date, atr_short[-1][1] if len(atr_short) else (sum([tr for tr in self.__dynamic_study_data['tr_50']][1:]) / (len(self.__dynamic_study_data['tr_50'])-1)))
+            atr_short.append((date, (c * self.__dynamic_study_data['tr_50'][-1]) + (1 - c) * ma[1]))
+            self.__dynamic_study_indexes[Study.ATR_SHORT][date] = len(atr_short) - 1
+
+        atr_long = self.__dynamic_studies[Study.ATR_LONG]
+        if len(self.__dynamic_study_data['tr_100']) == long_window + 1:
+            # EMA of TR
+            c = 2.0 / (long_window + 1)
+            # Slice the window to 50, so its same as original
+            ma = (date, atr_long[-1][1] if len(atr_long) else (sum([tr for tr in self.__dynamic_study_data['tr_100']][1:]) / (len(self.__dynamic_study_data['tr_100'])-1)))
+            atr_long.append((date, (c * self.__dynamic_study_data['tr_100'][-1]) + (1 - c) * ma[1]))
+            self.__dynamic_study_indexes[Study.ATR_LONG][date] = len(atr_long) - 1
+
+        # HHLL
+        hhll_short = self.__dynamic_studies[Study.HHLL_SHORT]
+        hhll_short.append((date, max(self.__dynamic_study_data['50']), min(self.__dynamic_study_data['50'])))
+        self.__dynamic_study_indexes[Study.HHLL_SHORT][date] = len(hhll_short) - 1
+
+        # print date, len(hhll_short), self.study(Study.HHLL_SHORT, date), self.__dynamic_studies[Study.HHLL_SHORT][-1]
+
+        # Volume SMA
+        vol_short = self.__dynamic_studies[Study.VOL_SHORT]
+        # vol_short.append((date, float(sum(self.__dynamic_study_data['vol_50'])) / len(self.__dynamic_study_data['vol_50'])))
+        vol_short.append((date, sum(self.__dynamic_study_data['vol_50']) / len(self.__dynamic_study_data['vol_50'])))
+        self.__dynamic_study_indexes[Study.VOL_SHORT][date] = len(vol_short) - 1
+
+        # print date, len(vol_short), self.study(Study.VOL_SHORT, date), self.__dynamic_studies[Study.VOL_SHORT][-1]
 
     def __should_roll(self, date, previous_date, market, position, signals):
         """
@@ -264,28 +346,28 @@ class Market(object):  # TODO rename to Future?
         :param delivery_months: list of delivery months [(code, short-month-name)]
         """
         cursor = connection.cursor()
-        # continuous_query = """
-        #     SELECT %s
-        #     FROM %s
-        #     WHERE market_id = '%s'
-        #     AND code = '%s'
-        #     AND roll_strategy_id = '%s'
-        #     AND DATE(price_date) >= '%s'
-        #     AND DATE(price_date) <= '%s'
-        #     ORDER BY price_date;
-        # """
-        # cursor.execute(continuous_query % (
-        #     self.__column_names(),
-        #     'continuous_adjusted',
-        #     self.__id,
-        #     self.__instrument_code,
-        #     self.__roll_strategy_id,
-        #     self.__start_data_date.strftime('%Y-%m-%d'),
-        #     end_date.strftime('%Y-%m-%d')
-        # ))
-        # # TODO I can make a generator and retrieve the data when needed
-        # self.__adjusted_data = cursor.fetchall()
-        # self.__data_indexes = {i[1][Table.Market.PRICE_DATE]: i[0] for i in enumerate(self.__adjusted_data)}
+        continuous_query = """
+            SELECT %s
+            FROM %s
+            WHERE market_id = '%s'
+            AND code = '%s'
+            AND roll_strategy_id = '%s'
+            AND DATE(price_date) >= '%s'
+            AND DATE(price_date) <= '%s'
+            ORDER BY price_date;
+        """
+        cursor.execute(continuous_query % (
+            self.__column_names(),
+            'continuous_adjusted',
+            self.__id,
+            self.__instrument_code,
+            2,  #self.__roll_strategy_id,
+            self.__start_data_date.strftime('%Y-%m-%d'),
+            end_date.strftime('%Y-%m-%d')
+        ))
+        # TODO I can make a generator and retrieve the data when needed
+        self.__adjusted_data = cursor.fetchall()
+        self.__data_indexes = {i[1][Table.Market.PRICE_DATE]: i[0] for i in enumerate(self.__adjusted_data)}
 
         contracts_query = """
             SELECT %s
