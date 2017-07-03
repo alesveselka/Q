@@ -65,7 +65,8 @@ class Broker(object):
         if quantity:
             commissions = Decimal(self.__commission * quantity)
             margin = market.margin(previous_date) * quantity
-            price = self.__slipped_price(market_data, order, order_type, quantity)
+            # TODO FF2 roll(only?) price doesnt slip despite huge order quantity - see FF2 rolls in 2015
+            price = self.__slipped_price(market_data, market, order.price(), previous_date, order_type, quantity)
             result_type = OrderResultType.FILLED if quantity == order.quantity() else OrderResultType.PARTIALLY_FILLED
             order_result = OrderResult(result_type, order, price, quantity, margin, commissions)
             context = (market, order_result, price)
@@ -86,18 +87,19 @@ class Broker(object):
 
         return order_result
 
-    def __slipped_price(self, market_data, order, order_type, quantity):
+    def __slipped_price(self, market_data, market, price, date, order_type, quantity):
         """
         Calculate and return price after slippage is added
 
         :param market_data: tuple of the market day data
-        :param order:       Order instance
+        :param market       market to calculate the clippage for
+        :param price        order price
+        :param date         date for the slippage calculation
         :param order_type:  type of order
         :param quantity:    quantity to open
         :return:            number representing final price
         """
-        price = order.price()
-        slippage = order.market().slippage(order.date(), quantity)
+        slippage = market.slippage(date, quantity)
         slipped_price = (price + slippage) if (order_type == OrderType.BTO or order_type == OrderType.BTC) else (price - slippage)
         high = market_data[Table.Market.HIGH_PRICE]
         low = market_data[Table.Market.LOW_PRICE]
