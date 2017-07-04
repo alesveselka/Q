@@ -57,14 +57,7 @@ class Market(object):  # TODO rename to Future?
         self.__dynamic_data = []
         self.__dynamic_indexes = {}
         self.__dynamic_studies = defaultdict(list)
-        self.__dynamic_study_data = {
-            '50': deque([], 50),
-            'tr_50': deque([], 51),
-            'vol_50': deque([], 50),
-            '100': deque([], 100),
-            'tr_100': deque([], 101),
-            'vol_100': deque([], 100)
-        }
+        self.__dynamic_study_data = {}
         self.__dynamic_study_indexes = defaultdict(dict)
 
     def id(self):
@@ -213,6 +206,7 @@ class Market(object):  # TODO rename to Future?
         """
         if len(self.__adjusted_data):
             for params in study_parameters:
+                # print params
                 self.__studies[params['name']] = params['study'](
                     [tuple(map(lambda c: d[c], params['columns'])) for d in self.__adjusted_data],
                     params['window']
@@ -229,94 +223,76 @@ class Market(object):  # TODO rename to Future?
             # self.__margin_multiple = margin / self.study(Study.ATR_SHORT)[Table.Study.VALUE]
             self.__margin_multiple = margin / self.__studies[Study.ATR_SHORT][-1][Table.Study.VALUE]
 
-    def update_data(self, date):
+    def update_data(self, date, study_parameters):
         """
         Update dynamic data and studies
         
-        :param date:    date of the data update
+        :param date:                date of the data update
+        :param study_parameters:    study parameters
         """
         # TODO not necessary if all markets have data - filter universe based on first contract date
         rolls = self.__contract_rolls if len(self.__contract_rolls) else self.__scheduled_rolls
+        # TODO don't have to call every single time - just before rolling
         contract = self.__contract(date) if len(rolls) else None
         contract_data = self.__contracts[contract] if contract else []
         # TODO cache contract data
         contract_data = [d for d in contract_data if d[Table.Market.PRICE_DATE] == date]
         if len(contract_data):
+            # TODO also use 'deque' for data? -> probably won't need more during backtest. What about persisting?
             # TODO adjust for gap! And save the gap!
             self.__dynamic_data.append(contract_data[-1])
             self.__dynamic_indexes[date] = len(self.__dynamic_data) - 1
 
             # self.__update_studies(date, contract_data[-1])
             if date in self.__data_indexes:  # TODO this is only temporary, because some continuous and individual contract start on different date
-                self.__update_studies(date)
+                self.__update_studies(date, study_parameters)
 
-    def __update_studies(self, date):
-        short_window = 50
-        long_window = 100
+    def __update_studies(self, date, study_parameters):
         index = self.__data_indexes[date]
+        high = self.__adjusted_data[index][Table.Market.HIGH_PRICE]
+        low = self.__adjusted_data[index][Table.Market.LOW_PRICE]
         settle = self.__adjusted_data[index][Table.Market.SETTLE_PRICE]
+        previous_settle = self.__adjusted_data[index-1][Table.Market.SETTLE_PRICE] if index else settle
         volume = self.__adjusted_data[index][Table.Market.VOLUME]
-        tr = 0.0
-        self.__dynamic_study_data['50'].append(settle)
-        self.__dynamic_study_data['vol_50'].append(volume)
-        if len(self.__dynamic_study_data['50']):
-            tr = max(self.__adjusted_data[index][Table.Market.HIGH_PRICE], self.__adjusted_data[index-1][Table.Market.SETTLE_PRICE]) - \
-                 min(self.__adjusted_data[index][Table.Market.LOW_PRICE], self.__adjusted_data[index-1][Table.Market.SETTLE_PRICE])
-            self.__dynamic_study_data['tr_50'].append(tr)
-        self.__dynamic_study_data['100'].append(settle)
-        self.__dynamic_study_data['vol_100'].append(volume)
-        if len(self.__dynamic_study_data['100']):
-            self.__dynamic_study_data['tr_100'].append(tr)
+        tr = max(high, previous_settle) - min(low, previous_settle)
+        for window in set([params['window'] for params in study_parameters]):
+            key = 'settle_price_%s' % window
+            if key not in self.__dynamic_study_data: self.__dynamic_study_data[key] = deque([], window)
+            self.__dynamic_study_data[key].append(settle)
+            key = 'volume_%s' % window
+            if key not in self.__dynamic_study_data: self.__dynamic_study_data[key] = deque([], window)
+            self.__dynamic_study_data[key].append(volume)
+            key = 'tr_%s' % window
+            if key not in self.__dynamic_study_data: self.__dynamic_study_data[key] = deque([], window)
+            self.__dynamic_study_data[key].append(tr)
 
-        # SMA
-        ma_short = self.__dynamic_studies[Study.MA_SHORT]
-        ma_short.append((date, sum(self.__dynamic_study_data['50']) / len(self.__dynamic_study_data['50'])))
-        self.__dynamic_study_indexes[Study.MA_SHORT][date] = len(ma_short) - 1
+        for params in study_parameters:
+            window = params['window']
+            study_type = params['study']
+            study_name = params['name']
+            study = self.__dynamic_studies[study_name]
+            data_columns = params['columns'][1:]
+            study_data = self.__dynamic_study_data['%s_%s' % (data_columns[-1], window)] \
+                if len(data_columns) == 1 \
+                else self.__dynamic_study_data['tr_%s' % window]
 
-        ma_long = self.__dynamic_studies[Study.MA_LONG]
-        ma_long.append((date, sum(self.__dynamic_study_data['100']) / len(self.__dynamic_study_data['100'])))
-        self.__dynamic_study_indexes[Study.MA_LONG][date] = len(ma_long) - 1
+            if study_type == 'SMA':
+                study.append((date, sum(study_data) / len(study_data)))
 
-        # EMA
-        if len(self.__dynamic_study_data['50']) == short_window:
-            ema_short = self.__dynamic_studies['EMA_50']
-            c = 2.0 / (short_window + 1)
-            ma = (date, ema_short[-1][1] if len(ema_short) else (sum(self.__dynamic_study_data['50']) / len(self.__dynamic_study_data['50'])))
-            ema_short.append((date, (c * settle) + (1 - c) * ma[1]))
+            if study_type == 'EMA':
+                c = 2.0 / (window + 1)
+                ma = (date, study[-1][1] if len(study) else (sum(study_data) / len(study_data)))
+                study.append((date, (c * settle) + (1 - c) * ma[1]))
 
-        # ATR
-        atr_short = self.__dynamic_studies[Study.ATR_SHORT]
-        if len(self.__dynamic_study_data['tr_50']) == short_window + 1:
-            # EMA of TR
-            c = 2.0 / (short_window + 1)
-            # Slice the window to 50, so its same as original
-            ma = (date, atr_short[-1][1] if len(atr_short) else (sum([tr for tr in self.__dynamic_study_data['tr_50']][1:]) / (len(self.__dynamic_study_data['tr_50'])-1)))
-            atr_short.append((date, (c * self.__dynamic_study_data['tr_50'][-1]) + (1 - c) * ma[1]))
-            self.__dynamic_study_indexes[Study.ATR_SHORT][date] = len(atr_short) - 1
+            if study_type == 'ATR':  # Moving average TR
+                c = 2.0 / (window + 1)
+                ma = (date, study[-1][1] if len(study) else (sum(study_data) / len(study_data)))
+                study.append((date, (c * tr) + (1 - c) * ma[1]))
 
-        atr_long = self.__dynamic_studies[Study.ATR_LONG]
-        if len(self.__dynamic_study_data['tr_100']) == long_window + 1:
-            # EMA of TR
-            c = 2.0 / (long_window + 1)
-            # Slice the window to 50, so its same as original
-            ma = (date, atr_long[-1][1] if len(atr_long) else (sum([tr for tr in self.__dynamic_study_data['tr_100']][1:]) / (len(self.__dynamic_study_data['tr_100'])-1)))
-            atr_long.append((date, (c * self.__dynamic_study_data['tr_100'][-1]) + (1 - c) * ma[1]))
-            self.__dynamic_study_indexes[Study.ATR_LONG][date] = len(atr_long) - 1
+            if study_type == 'HHLL':  # Moving average max/min
+                study.append((date, max(study_data), min(study_data)))
 
-        # HHLL
-        hhll_short = self.__dynamic_studies[Study.HHLL_SHORT]
-        hhll_short.append((date, max(self.__dynamic_study_data['50']), min(self.__dynamic_study_data['50'])))
-        self.__dynamic_study_indexes[Study.HHLL_SHORT][date] = len(hhll_short) - 1
-
-        # print date, len(hhll_short), self.study(Study.HHLL_SHORT, date), self.__dynamic_studies[Study.HHLL_SHORT][-1]
-
-        # Volume SMA
-        vol_short = self.__dynamic_studies[Study.VOL_SHORT]
-        # vol_short.append((date, float(sum(self.__dynamic_study_data['vol_50'])) / len(self.__dynamic_study_data['vol_50'])))
-        vol_short.append((date, sum(self.__dynamic_study_data['vol_50']) / len(self.__dynamic_study_data['vol_50'])))
-        self.__dynamic_study_indexes[Study.VOL_SHORT][date] = len(vol_short) - 1
-
-        # print date, len(vol_short), self.study(Study.VOL_SHORT, date), self.__dynamic_studies[Study.VOL_SHORT][-1]
+            self.__dynamic_study_indexes[study_name][date] = len(study) - 1
 
     def __should_roll(self, date, previous_date, market, position, signals):
         """
