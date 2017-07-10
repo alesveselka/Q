@@ -3,6 +3,7 @@
 import os
 import sys
 import json
+import datetime as dt
 import MySQLdb as mysql
 from timer import Timer
 from enum import Table
@@ -13,17 +14,20 @@ from decimal import Decimal, InvalidOperation
 
 class Persist:
 
-    def __init__(self, simulation_id, start_date, end_date, order_results, account, portfolio, data_series):
+    def __init__(self, simulation, start_date, end_date, order_results, account, portfolio, data_series):
         self.__connection = mysql.connect(
             os.environ['DB_HOST'],
             os.environ['DB_USER'],
             os.environ['DB_PASS'],
             os.environ['DB_NAME']
         )
+        simulation_id = simulation[Table.Simulation.ID]
+        roll_strategy_id = simulation[Table.Simulation.ROLL_STRATEGY_ID]
 
         # self.__save_orders(simulation_id, order_results)
         # self.__save_transactions(simulation_id, account.transactions(start_date, end_date))
         # self.__save_positions(simulation_id, portfolio)
+        # self.__save_price_series(simulation_id, roll_strategy_id, data_series.futures(None, None))
         # self.__save_studies(simulation_id, data_series.futures(None, None), data_series.study_parameters())
         # self.__save_equity(simulation_id, account, start_date, end_date)
 
@@ -58,6 +62,7 @@ class Persist:
 
         self.__insert_values(
             'order',
+            'simulation_id',
             simulation_id,
             [
                 'simulation_id',
@@ -85,6 +90,7 @@ class Persist:
         precision = 28
         self.__insert_values(
             'transaction',
+            'simulation_id',
             simulation_id,
             ['simulation_id', 'type', 'account_action', 'date', 'amount', 'currency', 'context'],
             [(
@@ -108,6 +114,7 @@ class Persist:
         precision = 10
         self.__insert_values(
             'position',
+            'simulation_id',
             simulation_id,
             [
                 'simulation_id',
@@ -134,6 +141,58 @@ class Persist:
                  self.__round(p.commissions(), precision)
              ) for p in portfolio.closed_positions() + portfolio.open_positions()]
         )
+
+    def __save_price_series(self, simulation_id, roll_strategy_id, markets):
+        """
+        Persist continuous adjusted price series of the markets passed in
+        
+        :param simulation_id:       ID of the simulation
+        :param roll_strategy_id:    ID of the roll strategy
+        :param markets:             markets of which price series to persist
+        """
+        self.__log('Saving price series')
+
+        # TODO also save contract rolls
+        now = dt.datetime.now()
+        columns = [
+            'market_id',
+            'roll_strategy_id',
+            'code',
+            'price_date',
+            'open_price',
+            'high_price',
+            'low_price',
+            'last_price',
+            'settle_price',
+            'volume',
+            'open_interest',
+            'created_date',
+            'last_updated_date'
+        ]
+        length = float(len(markets))
+        values = []
+        for i, m in enumerate(markets):
+            self.__log('Saving price series', i, length)
+
+            market_id = m.id()
+            market_code = m.code()
+            values += [(
+                market_id,
+                roll_strategy_id,
+                market_code,
+                d[Table.Market.PRICE_DATE],
+                d[Table.Market.OPEN_PRICE],
+                d[Table.Market.HIGH_PRICE],
+                d[Table.Market.LOW_PRICE],
+                d[Table.Market.SETTLE_PRICE],
+                d[Table.Market.SETTLE_PRICE],
+                d[Table.Market.VOLUME],
+                0,
+                now,
+                now
+            ) for d in m.data_range()]
+
+        self.__insert_values('continuous_adjusted', 'roll_strategy_id', roll_strategy_id, columns, values)
 
     def __save_studies(self, simulation_id, markets, study_parameters):
         """
@@ -171,6 +230,7 @@ class Persist:
 
         self.__insert_values(
             'study',
+            'simulation_id',
             simulation_id,
             ['simulation_id', 'name', 'market_id', 'market_code', 'date', 'value', 'value_2'],
             values
@@ -236,7 +296,7 @@ class Persist:
                 total_margin / float(equity) if total_margin else None
             ))
 
-        self.__insert_values('equity', simulation_id, columns, values)
+        self.__insert_values('equity', 'simulation_id', simulation_id, columns, values)
 
         self.__log('Saving equity', complete=True)
 
@@ -249,16 +309,17 @@ class Persist:
         """
         return json.dumps({k: str(v) for k, v in dictionary.items()}) if len(dictionary) else None
 
-    def __insert_values(self, table_name, simulation_id, columns, values):
+    def __insert_values(self, table_name, delete_condition, delete_value, columns, values):
         """
         Insert values to the schema of name and columns passed in
 
-        :param table_name:      Name of the table to insert data into
-        :param simulation_id:   ID of the related simulation
-        :param columns:         list of column names to insert value into
-        :param values:          list of values to insert
+        :param table_name:          Name of the table to insert data into
+        :param delete_condition:    Name of the column to check when deleting
+        :param delete_value:        Value of the delete clause to evaluate
+        :param columns:             list of column names to insert value into
+        :param values:              list of values to insert
         """
-        self.__connection.cursor().execute("DELETE FROM `%s` WHERE simulation_id = '%s'" % (table_name, simulation_id))
+        self.__connection.cursor().execute("DELETE FROM `%s` WHERE `%s` = '%s'" % (table_name, delete_condition, delete_value))
         with self.__connection:
             cursor = self.__connection.cursor()
             cursor.executemany(
