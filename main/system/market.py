@@ -87,6 +87,16 @@ class Market(object):  # TODO rename to Future?
         index = self.__dynamic_indexes[date] if date in self.__dynamic_indexes else None
         return (self.__dynamic_data[index], self.__dynamic_data[index-1]) if index else (None, None)
 
+    def data_range(self, start_date=dt.date(1900, 1, 1), end_date=dt.date(9999, 12, 31)):
+        """
+        Return data between the start and end date passed in
+        
+        :param start_date:  start date of the data
+        :param end_date:    end date of the data
+        :return:            list of data
+        """
+        return [d for d in self.__dynamic_data if start_date <= d[Table.Market.PRICE_DATE] <= end_date]
+
     def margin(self, date):
         """
         Calculates margin estimate
@@ -251,27 +261,32 @@ class Market(object):  # TODO rename to Future?
                     previous_data = [d for d in previous_contract if d[Table.Market.PRICE_DATE] <= date][-1]
                     gap = self.__dynamic_data[index][Table.Market.SETTLE_PRICE] - previous_data[Table.Market.SETTLE_PRICE]
                     self.__actual_rolls.append((date, gap, self.__dynamic_data[index-1][Table.Market.CODE], self.__dynamic_data[index][Table.Market.CODE]))
-                    # print date, 'roll', self.__actual_rolls[-1]
 
-                roll = self.__actual_rolls[-1] if len(self.__actual_rolls) else None
-                if roll:
+                if len(self.__actual_rolls):
+                    gap = sum(roll[1] for roll in self.__actual_rolls)
                     self.__dynamic_data[index] = (
                         column_data[Table.Market.CODE],
                         column_data[Table.Market.PRICE_DATE],
-                        column_data[Table.Market.OPEN_PRICE] - roll[1],
-                        column_data[Table.Market.HIGH_PRICE] - roll[1],
-                        column_data[Table.Market.LOW_PRICE] - roll[1],
-                        column_data[Table.Market.SETTLE_PRICE] - roll[1],
+                        column_data[Table.Market.OPEN_PRICE] - gap,
+                        column_data[Table.Market.HIGH_PRICE] - gap,
+                        column_data[Table.Market.LOW_PRICE] - gap,
+                        column_data[Table.Market.SETTLE_PRICE] - gap,
                         column_data[Table.Market.VOLUME],
                         column_data[Table.Market.LAST_TRADING_DAY]
                     )
-
-                # print date, contract_data[-1][Table.Market.SETTLE_PRICE], self.__dynamic_data[index][Table.Market.SETTLE_PRICE]
 
             else:
                 self.__dynamic_data.append(column_data)
                 index = len(self.__dynamic_data) - 1
                 self.__dynamic_indexes[date] = index
+
+                if len(self.__actual_rolls):
+                    gap = sum(roll[1] for roll in self.__actual_rolls)
+                    self.__dynamic_data[index] = (
+                        column_data[Table.Market.CODE],
+                        column_data[Table.Market.PRICE_DATE],
+                        column_data[Table.Market.OPEN_PRICE] - gap
+                    )
 
     def update_studies(self, date, study_parameters):
         # if date in self.__data_indexes:
