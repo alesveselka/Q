@@ -1,5 +1,6 @@
 #!/usr/bin/python
 
+import datetime as dt
 import sys
 import json
 from study import *
@@ -55,8 +56,8 @@ class DataSeries:
             start_data_date = self.__investment_universe.start_data_date()
             self.__futures = []
 
-            # for market_id in self.__investment_universe.market_ids():
-            for market_id in [100]:  # 100 = CL2, 26 = LWB, 57 = SSG
+            for market_id in self.__investment_universe.market_ids():
+            # for market_id in [33]:  # 100 = CL2, 26 = LWB, 57 = SSG, 33 = W2, 54 = SNI
                 cursor.execute(market_query % market_id)
                 self.__futures.append(Market(
                     start_data_date,
@@ -113,13 +114,22 @@ class DataSeries:
 
         return self.__interest_rates
 
-    def update_futures_data(self, date):
+    def update_futures_data(self, date, columns=None):
         """
         Update futures data and their studies
         
         :param date:    date of the data to update
+        :param columns: columns to update
         """
-        map(lambda f: f.update_data(date, self.__study_parameters), self.__futures)
+        map(lambda f: f.update_data(date, columns), self.__futures)
+
+    def update_futures_studies(self, date):
+        """
+        Update futures studies
+        
+        :param date:    date of the data to update
+        """
+        map(lambda f: f.update_studies(date, self.__study_parameters), self.__futures)
 
     def load_and_calculate_data(self, end_date):
         """
