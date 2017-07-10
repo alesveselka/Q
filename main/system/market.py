@@ -1,6 +1,5 @@
 #!/usr/bin/python
 
-import calendar
 import datetime as dt
 from math import ceil
 from enum import Study
@@ -10,7 +9,6 @@ from operator import itemgetter
 from math import floor, log10
 from collections import defaultdict
 from collections import deque
-from study import EMA
 
 
 class Market(object):  # TODO rename to Future?
@@ -50,9 +48,11 @@ class Market(object):  # TODO rename to Future?
         self.__contract_rolls = []
         self.__roll_schedule = []
         self.__scheduled_rolls = []
+        self.__actual_rolls = []
         self.__studies = {}
         self.__study_indexes = {}
         self.__first_study_date = dt.date(9999, 12, 31)
+        self.__has_study_data = False
 
         self.__dynamic_data = []
         self.__dynamic_indexes = {}
@@ -82,10 +82,10 @@ class Market(object):  # TODO rename to Future?
         :param date:    date of the required data
         :return:        tuple representing one day record
         """
-        index = self.__data_indexes[date] if date in self.__data_indexes else None
-        return (self.__adjusted_data[index], self.__adjusted_data[index-1]) if index else (None, None)
-        # index = self.__dynamic_indexes[date] if date in self.__dynamic_indexes else None
-        # return (self.__dynamic_data[index], self.__dynamic_data[index-1]) if index else (None, None)
+        # index = self.__data_indexes[date] if date in self.__data_indexes else None
+        # return (self.__adjusted_data[index], self.__adjusted_data[index-1]) if index else (None, None)
+        index = self.__dynamic_indexes[date] if date in self.__dynamic_indexes else None
+        return (self.__dynamic_data[index], self.__dynamic_data[index-1]) if index else (None, None)
 
     def margin(self, date):
         """
@@ -94,7 +94,8 @@ class Market(object):  # TODO rename to Future?
         :param date:    Date on which to estimate the margin
         :return:        Number representing margin in account-base-currency
         """
-        return ceil(self.__margin_multiple * self.study(Study.ATR_SHORT, date)[Table.Study.VALUE])
+        # return ceil(self.__margin_multiple * self.study(Study.ATR_SHORT, date)[Table.Study.VALUE])
+        return ceil(self.data(date)[0][Table.Market.SETTLE_PRICE] * self.__point_value * 0.1)
 
     def slippage(self, date, quantity):
         """
@@ -180,12 +181,12 @@ class Market(object):  # TODO rename to Future?
         :param date:        last date of data required
         :return:            List of tuples - records of study specified
         """
-        index = (self.__study_indexes[study_name][date] if date in self.__study_indexes[study_name] else None) \
-            if date else len(self.__study_indexes[study_name]) - 1
-        return self.__studies[study_name][index] if index > -1 else None
-        # index = (self.__dynamic_study_indexes[study_name][date] if date in self.__dynamic_study_indexes[study_name] else None) \
-        #     if date else len(self.__dynamic_study_indexes[study_name]) - 1
-        # return self.__dynamic_studies[study_name][index] if index > -1 else None
+        # index = (self.__study_indexes[study_name][date] if date in self.__study_indexes[study_name] else None) \
+        #     if date else len(self.__study_indexes[study_name]) - 1
+        # return self.__studies[study_name][index] if index > -1 else None
+        index = (self.__dynamic_study_indexes[study_name][date] if date in self.__dynamic_study_indexes[study_name] else None) \
+            if date else len(self.__dynamic_study_indexes[study_name]) - 1
+        return self.__dynamic_studies[study_name][index] if index > -1 else None
 
     def study_range(self, study_name, start_date=dt.date(1900, 1, 1), end_date=dt.date(9999, 12, 31)):
         """
@@ -219,80 +220,122 @@ class Market(object):  # TODO rename to Future?
 
             self.__first_study_date = max([self.__studies[k][0][0] for k in self.__studies.keys()])
 
-            margin = self.__margin if self.__margin else self.__adjusted_data[-1][Table.Market.SETTLE_PRICE] * self.__point_value * 0.1
+            # margin = self.__margin if self.__margin else self.__adjusted_data[-1][Table.Market.SETTLE_PRICE] * self.__point_value * 0.1
+            margin = self.__adjusted_data[-1][Table.Market.SETTLE_PRICE] * self.__point_value * 0.1
             # self.__margin_multiple = margin / self.study(Study.ATR_SHORT)[Table.Study.VALUE]
             self.__margin_multiple = margin / self.__studies[Study.ATR_SHORT][-1][Table.Study.VALUE]
 
-    def update_data(self, date, study_parameters):
+    def update_data(self, date, columns):
         """
         Update dynamic data and studies
         
         :param date:                date of the data update
-        :param study_parameters:    study parameters
+        :param columns:             data columns to update
         """
         # TODO not necessary if all markets have data - filter universe based on first contract date
-        rolls = self.__contract_rolls if len(self.__contract_rolls) else self.__scheduled_rolls
+        # rolls = self.__contract_rolls if len(self.__contract_rolls) else self.__scheduled_rolls
         # TODO don't have to call every single time - just before rolling
-        contract = self.__contract(date) if len(rolls) else None
+        contract = self.__contract(date) if len(self.__scheduled_rolls) else None
         contract_data = self.__contracts[contract] if contract else []
         # TODO cache contract data
         contract_data = [d for d in contract_data if d[Table.Market.PRICE_DATE] == date]
         if len(contract_data):
             # TODO also use 'deque' for data? -> probably won't need more during backtest. What about persisting?
             # TODO adjust for gap! And save the gap!
-            self.__dynamic_data.append(contract_data[-1])
-            self.__dynamic_indexes[date] = len(self.__dynamic_data) - 1
+            column_data = [(contract_data[-1][c]) for c in columns] if columns else contract_data[-1]
+            if date in self.__dynamic_indexes:
+                index = self.__dynamic_indexes[date]
+                self.__dynamic_data[index] = column_data
 
-            # self.__update_studies(date, contract_data[-1])
-            if date in self.__data_indexes:  # TODO this is only temporary, because some continuous and individual contract start on different date
-                self.__update_studies(date, study_parameters)
+                if self.__dynamic_data[index][Table.Market.CODE] != self.__dynamic_data[index-1][Table.Market.CODE]:
+                    previous_contract = self.__contracts[self.__dynamic_data[index-1][Table.Market.CODE][-5:]]
+                    previous_data = [d for d in previous_contract if d[Table.Market.PRICE_DATE] <= date][-1]
+                    gap = self.__dynamic_data[index][Table.Market.SETTLE_PRICE] - previous_data[Table.Market.SETTLE_PRICE]
+                    self.__actual_rolls.append((date, gap, self.__dynamic_data[index-1][Table.Market.CODE], self.__dynamic_data[index][Table.Market.CODE]))
+                    # print date, 'roll', self.__actual_rolls[-1]
 
-    def __update_studies(self, date, study_parameters):
-        index = self.__data_indexes[date]
-        high = self.__adjusted_data[index][Table.Market.HIGH_PRICE]
-        low = self.__adjusted_data[index][Table.Market.LOW_PRICE]
-        settle = self.__adjusted_data[index][Table.Market.SETTLE_PRICE]
-        previous_settle = self.__adjusted_data[index-1][Table.Market.SETTLE_PRICE] if index else settle
-        volume = self.__adjusted_data[index][Table.Market.VOLUME]
-        tr = max(high, previous_settle) - min(low, previous_settle)
-        for window in set([params['window'] for params in study_parameters]):
-            key = 'settle_price_%s' % window
-            if key not in self.__dynamic_study_data: self.__dynamic_study_data[key] = deque([], window)
-            self.__dynamic_study_data[key].append(settle)
-            key = 'volume_%s' % window
-            if key not in self.__dynamic_study_data: self.__dynamic_study_data[key] = deque([], window)
-            self.__dynamic_study_data[key].append(volume)
-            key = 'tr_%s' % window
-            if key not in self.__dynamic_study_data: self.__dynamic_study_data[key] = deque([], window)
-            self.__dynamic_study_data[key].append(tr)
+                roll = self.__actual_rolls[-1] if len(self.__actual_rolls) else None
+                if roll:
+                    self.__dynamic_data[index] = (
+                        column_data[Table.Market.CODE],
+                        column_data[Table.Market.PRICE_DATE],
+                        column_data[Table.Market.OPEN_PRICE] - roll[1],
+                        column_data[Table.Market.HIGH_PRICE] - roll[1],
+                        column_data[Table.Market.LOW_PRICE] - roll[1],
+                        column_data[Table.Market.SETTLE_PRICE] - roll[1],
+                        column_data[Table.Market.VOLUME],
+                        column_data[Table.Market.LAST_TRADING_DAY]
+                    )
 
-        for params in study_parameters:
-            window = params['window']
-            study_type = params['study']
-            study_name = params['name']
-            study = self.__dynamic_studies[study_name]
-            data_columns = params['columns'][1:]
-            study_data = self.__dynamic_study_data['%s_%s' % (data_columns[-1], window)] \
-                if len(data_columns) == 1 \
-                else self.__dynamic_study_data['tr_%s' % window]
+                # print date, contract_data[-1][Table.Market.SETTLE_PRICE], self.__dynamic_data[index][Table.Market.SETTLE_PRICE]
 
-            if study_type == 'SMA':
-                study.append((date, sum(study_data) / len(study_data)))
+            else:
+                self.__dynamic_data.append(column_data)
+                index = len(self.__dynamic_data) - 1
+                self.__dynamic_indexes[date] = index
 
-            if study_type == 'EMA':
-                c = 2.0 / (window + 1)
-                ma = (date, study[-1][1] if len(study) else (sum(study_data) / len(study_data)))
-                study.append((date, (c * settle) + (1 - c) * ma[1]))
+    def update_studies(self, date, study_parameters):
+        if date in self.__data_indexes:
+            index = self.__data_indexes[date]
+            market_data = self.__dynamic_data[index]
+            high = market_data[Table.Market.HIGH_PRICE]
+            low = market_data[Table.Market.LOW_PRICE]
+            settle = market_data[Table.Market.SETTLE_PRICE]
+            previous_settle = self.__dynamic_data[index-1][Table.Market.SETTLE_PRICE] if index else settle
+            volume = market_data[Table.Market.VOLUME]
+            tr = max(high, previous_settle) - min(low, previous_settle)
+            for window in set([params['window'] for params in study_parameters]):
+                key = 'settle_price_%s' % window
+                if key not in self.__dynamic_study_data: self.__dynamic_study_data[key] = deque([], window)
+                self.__dynamic_study_data[key].append(settle)
+                key = 'volume_%s' % window
+                if key not in self.__dynamic_study_data: self.__dynamic_study_data[key] = deque([], window)
+                self.__dynamic_study_data[key].append(volume)
+                key = 'tr_%s' % window
+                if key not in self.__dynamic_study_data: self.__dynamic_study_data[key] = deque([], window)
+                self.__dynamic_study_data[key].append(tr)
 
-            if study_type == 'ATR':  # Moving average TR
-                c = 2.0 / (window + 1)
-                ma = (date, study[-1][1] if len(study) else (sum(study_data) / len(study_data)))
-                study.append((date, (c * tr) + (1 - c) * ma[1]))
+            has_study = []
+            for params in study_parameters:
+                window = params['window']
+                study_type = params['study']
+                study_name = params['name']
+                study = self.__dynamic_studies[study_name]
+                data_columns = params['columns'][1:]
+                study_data = self.__dynamic_study_data['%s_%s' % (data_columns[-1], window)] \
+                    if len(data_columns) == 1 \
+                    else self.__dynamic_study_data['tr_%s' % window]
 
-            if study_type == 'HHLL':  # Moving average max/min
-                study.append((date, max(study_data), min(study_data)))
+                if study_type == 'SMA':
+                    study.append((date, sum(study_data) / len(study_data)))
 
-            self.__dynamic_study_indexes[study_name][date] = len(study) - 1
+                if study_type == 'EMA':
+                    c = 2.0 / (window + 1)
+                    ma = (date, study[-1][1] if len(study) else (sum(study_data) / len(study_data)))
+                    study.append((date, (c * settle) + (1 - c) * ma[1]))
+
+                if study_type == 'ATR':  # Moving average TR
+                    c = 2.0 / (window + 1)
+                    ma = (date, study[-1][1] if len(study) else (sum(study_data) / len(study_data)))
+                    study.append((date, (c * tr) + (1 - c) * ma[1]))
+
+                if study_type == 'HHLL':  # Moving average max/min
+                    study.append((date, max(study_data), min(study_data)))
+                    # print 'HHLL', date, max(study_data), min(study_data)
+
+                self.__dynamic_study_indexes[study_name][date] = len(study) - 1
+
+                has_study.append(len(study) >= window)
+
+            self.__has_study_data = all(has_study)
+
+    def has_study_data(self):
+        """
+        Returns flag indicating if the market has studies data
+        
+        :return:    boolean
+        """
+        return self.__has_study_data
 
     def __should_roll(self, date, previous_date, market, position, signals):
         """
