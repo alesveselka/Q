@@ -17,8 +17,8 @@ from persist import Persist
 
 class Simulate:
 
-    def __init__(self, id, data_series, risk, account, broker, portfolio, trading_model):
-        self.__id = id
+    def __init__(self, simulation, data_series, risk, account, broker, portfolio, trading_model):
+        self.__simulation = simulation
         self.__data_series = data_series
         self.__risk = risk
         self.__account = account
@@ -74,7 +74,7 @@ class Simulate:
         print full_report
 
         Persist(
-            self.__id,
+            self.__simulation,
             start_date,
             date,
             self.__order_results,
@@ -102,6 +102,12 @@ class Simulate:
         :param date:            date for the market open
         :param previous_date:   previous market date
         """
+        self.__data_series.update_futures_data(date, [
+            Table.Market.CODE,
+            Table.Market.PRICE_DATE,
+            Table.Market.OPEN_PRICE
+        ])
+
         self.__transfer_orders(self.__orders(date))
 
     def __on_market_close(self, date, previous_date):
@@ -111,7 +117,7 @@ class Simulate:
         :param date:            date for the market open
         :param previous_date:   previous market date
         """
-        self.__broker.update_account(date, previous_date, self.__portfolio.open_positions())
+        # self.__broker.update_account(date, previous_date, self.__portfolio.open_positions())
 
     def __on_eod_data(self, date, previous_date):
         """
@@ -121,6 +127,9 @@ class Simulate:
         :param previous_date:   previous market date
         """
         self.__data_series.update_futures_data(date)
+        self.__data_series.update_futures_studies(date)
+
+        self.__broker.update_account(date, previous_date, self.__portfolio.open_positions())
 
         self.__trading_signals += self.__trading_model.signals(date, self.__portfolio.open_positions())
 
@@ -166,7 +175,7 @@ class Simulate:
             market_data, previous_data = market.data(date)
 
             if market_data:
-                atr_long = market.study(Study.ATR_LONG, date)[Table.Study.VALUE]
+                atr_long = market.study(Study.ATR_LONG, previous_data[Table.Market.PRICE_DATE])[Table.Study.VALUE]
                 open_price = market_data[Table.Market.OPEN_PRICE]
                 enter_signals = [s for s in self.__trading_signals if s.type() == SignalType.ENTER]
                 exit_signals = [s for s in self.__trading_signals if s.type() == SignalType.EXIT]
