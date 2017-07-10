@@ -241,7 +241,6 @@ class Market(object):  # TODO rename to Future?
         contract_data = [d for d in contract_data if d[Table.Market.PRICE_DATE] == date]
         if len(contract_data):
             # TODO also use 'deque' for data? -> probably won't need more during backtest. What about persisting?
-            # TODO adjust for gap! And save the gap!
             column_data = [(contract_data[-1][c]) for c in columns] if columns else contract_data[-1]
             if date in self.__dynamic_indexes:
                 index = self.__dynamic_indexes[date]
@@ -275,8 +274,9 @@ class Market(object):  # TODO rename to Future?
                 self.__dynamic_indexes[date] = index
 
     def update_studies(self, date, study_parameters):
-        if date in self.__data_indexes:
-            index = self.__data_indexes[date]
+        # if date in self.__data_indexes:
+        if date in self.__dynamic_indexes:
+            index = self.__dynamic_indexes[date]
             market_data = self.__dynamic_data[index]
             high = market_data[Table.Market.HIGH_PRICE]
             low = market_data[Table.Market.LOW_PRICE]
