@@ -207,7 +207,8 @@ class Market(object):  # TODO rename to Future?
         :param end_date:    end date of the data range
         :return:            list of tuple(date, value, value_2)
         """
-        return [s for s in self.__studies[study_name] if start_date <= s[Table.Study.DATE] <= end_date]
+        # return [s for s in self.__studies[study_name] if start_date <= s[Table.Study.DATE] <= end_date]
+        return [s for s in self.__dynamic_studies[study_name] if start_date <= s[Table.Study.DATE] <= end_date]
 
     def calculate_studies(self, study_parameters):
         """
