@@ -105,7 +105,8 @@ class Market(object):  # TODO rename to Future?
         :return:        Number representing margin in account-base-currency
         """
         # return ceil(self.__margin_multiple * self.study(Study.ATR_SHORT, date)[Table.Study.VALUE])
-        return ceil(self.data(date)[0][Table.Market.SETTLE_PRICE] * self.__point_value * 0.1)
+        # return ceil(self.data(date)[0][Table.Market.SETTLE_PRICE] * self.__point_value * 0.1)
+        return self.__margin
 
     def slippage(self, date, quantity):
         """
@@ -286,7 +287,9 @@ class Market(object):  # TODO rename to Future?
                     self.__dynamic_data[index] = (
                         column_data[Table.Market.CODE],
                         column_data[Table.Market.PRICE_DATE],
-                        column_data[Table.Market.OPEN_PRICE] - gap
+                        column_data[Table.Market.OPEN_PRICE] - gap,
+                        column_data[Table.Market.HIGH_PRICE] - gap,
+                        column_data[Table.Market.LOW_PRICE] - gap
                     )
 
     def update_studies(self, date, study_parameters):
@@ -448,6 +451,12 @@ class Market(object):  # TODO rename to Future?
 
         # for roll in self.__scheduled_rolls:
         #     print roll
+
+        if self.__margin == 0:
+            contract = self.__contract(end_date)
+            contract_data = [d for d in self.__contracts[contract] if d[Table.Market.PRICE_DATE] <= end_date]
+            price = contract_data[-1][Table.Market.SETTLE_PRICE] if len(contract_data) else None
+            self.__margin = price * self.__point_value * 0.1
 
         return True
 
