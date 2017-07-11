@@ -105,7 +105,9 @@ class Simulate:
         self.__data_series.update_futures_data(date, [
             Table.Market.CODE,
             Table.Market.PRICE_DATE,
-            Table.Market.OPEN_PRICE
+            Table.Market.OPEN_PRICE,
+            Table.Market.HIGH_PRICE,
+            Table.Market.LOW_PRICE
         ])
 
         self.__transfer_orders(self.__orders(date))
