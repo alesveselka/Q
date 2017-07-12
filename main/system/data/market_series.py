@@ -1,8 +1,6 @@
 #!/usr/bin/python
 
-import datetime as dt
 from enum import Table
-from enum import RollSchedule
 from operator import itemgetter
 from collections import deque
 from collections import defaultdict
