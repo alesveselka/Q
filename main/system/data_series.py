@@ -8,6 +8,7 @@ from market import Market
 from enum import Table
 from currency_pair import CurrencyPair
 from interest_rate import InterestRate
+from market_series import MarketSeries
 
 
 class DataSeries:
@@ -57,11 +58,10 @@ class DataSeries:
             # for market_id in [33]:  # 100 = CL2, 26 = LWB, 57 = SSG, 33 = W2, 54 = SNI, 94 = SI
                 cursor.execute(market_query % market_id)
                 self.__futures.append(Market(
-                    start_data_date,
                     market_id,
                     roll_strategy_id,
                     slippage_map,
-                    self.__study_parameters,
+                    MarketSeries(start_data_date, self.__study_parameters),
                     *cursor.fetchone())
                 )
 
