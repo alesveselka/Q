@@ -66,7 +66,6 @@ class Broker(object):
         if quantity:
             commissions = Decimal(self.__commission * quantity)
             margin = market.margin(previous_date) * quantity
-            # TODO FF2 roll(only?) price doesnt slip despite huge order quantity - see FF2 rolls in 2015
             price = self.__slipped_price(market_data, market, order.price(), previous_date, order_type, quantity)
             result_type = OrderResultType.FILLED if quantity == order.quantity() else OrderResultType.PARTIALLY_FILLED
             order_result = OrderResult(result_type, order, price, quantity, margin, commissions)
@@ -102,6 +101,9 @@ class Broker(object):
         """
         slippage = market.slippage(date, quantity)
         slipped_price = (price + slippage) if (order_type == OrderType.BTO or order_type == OrderType.BTC) else (price - slippage)
+        # TODO add 'execution cost' transaction instead of slipped price? And update only Open price on Market Open?
+        # The High and Low prices are not actually available at this point (Market Open),
+        # but I'm using them here to not getting execution price out of price range
         high = market_data[Table.Market.HIGH_PRICE]
         low = market_data[Table.Market.LOW_PRICE]
         return high if slipped_price > high else (low if slipped_price < low else slipped_price)
