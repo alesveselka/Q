@@ -6,20 +6,16 @@ from enum import RollSchedule
 from operator import itemgetter
 from collections import deque
 from collections import defaultdict
+from data.market_series import MarketSeries
 
-from abc import ABCMeta, abstractmethod
 
-
-class MarketSeries:
-
-    __metaclass__ = ABCMeta
+class NorgateSeries(MarketSeries):
 
     def __init__(self, start_data_date, study_parameters):
-        self.__start_data_date = start_data_date
-        self.__study_parameters = study_parameters
+        super(NorgateSeries, self).__init__(start_data_date, study_parameters)
         
         # self.__roll_strategy_id = roll_strategy_id
-        self._adjusted_data = []
+        self.__adjusted_data = []
         self.__data_indexes = {}
 
         self.__prices = []
@@ -37,7 +33,6 @@ class MarketSeries:
         self.__first_study_date = dt.date(9999, 12, 31)
         self.__has_study_data = False
 
-    @abstractmethod
     def data(self, date):
         """
         Return market data at the date passed in
@@ -46,11 +41,10 @@ class MarketSeries:
         :return:        tuple representing one day record
         """
         # index = self.__data_indexes[date] if date in self.__data_indexes else None
-        # return (self._adjusted_data[index], self._adjusted_data[index-1]) if index else (None, None)
+        # return (self.__adjusted_data[index], self.__adjusted_data[index-1]) if index else (None, None)
         index = self.__price_indexes[date] if date in self.__price_indexes else None
         return (self.__prices[index], self.__prices[index-1]) if index else (None, None)
 
-    @abstractmethod
     def data_range(self, start_date, end_date):
         """
         Return data between the start and end date passed in
@@ -120,7 +114,6 @@ class MarketSeries:
 
         return contract_roll[Table.ContractRoll.ROLL_IN_CONTRACT]
 
-    @abstractmethod
     def study(self, study_name, date=None):
         """
         Return data of the study to the date passed in
@@ -133,7 +126,6 @@ class MarketSeries:
             if date else len(self.__study_indexes[study_name]) - 1
         return self.__studies[study_name][index] if index > -1 else None
 
-    @abstractmethod
     def study_range(self, study_name, start_date, end_date):
         """
         Return study data within range of the dates passed in
@@ -145,7 +137,6 @@ class MarketSeries:
         """
         return [s for s in self.__studies[study_name] if start_date <= s[Table.Study.DATE] <= end_date]
 
-    @abstractmethod
     def update_data(self, date):
         """
         Update dynamic data
@@ -173,7 +164,6 @@ class MarketSeries:
                 gap = sum(roll[1] for roll in self.__rolls)
                 self.__prices[index] = tuple(d - gap if isinstance(d, float) else d for d in contract_data[-1])
 
-    @abstractmethod
     def update_studies(self, date):
         """
         Update dynamic studies
@@ -220,7 +210,6 @@ class MarketSeries:
 
             self.__has_study_data = all(has_study)
 
-    @abstractmethod
     def has_study_data(self):
         """
         Returns flag indicating if the market has studies data
@@ -229,7 +218,6 @@ class MarketSeries:
         """
         return self.__has_study_data
 
-    @abstractmethod
     def load(self, connection, end_date, delivery_months, market_id, market_code):
         """
         Load market's data
@@ -260,8 +248,8 @@ class MarketSeries:
             end_date.strftime('%Y-%m-%d')
         ))
         # TODO I can make a generator and retrieve the data when needed
-        self._adjusted_data = cursor.fetchall()
-        self.__data_indexes = {i[1][Table.Market.PRICE_DATE]: i[0] for i in enumerate(self._adjusted_data)}
+        self.__adjusted_data = cursor.fetchall()
+        self.__data_indexes = {i[1][Table.Market.PRICE_DATE]: i[0] for i in enumerate(self.__adjusted_data)}
 
         contracts_query = """
             SELECT %s
