@@ -251,8 +251,6 @@ class Market(object):  # TODO rename to Future?
         # TODO cache contract data
         contract_data = [d for d in contract_data if d[Table.Market.PRICE_DATE] == date]
         if len(contract_data):
-            # TODO also use 'deque' for data? -> probably won't need more during backtest. What about persisting?
-
             self.__dynamic_data.append(contract_data[-1])
             index = len(self.__dynamic_data) - 1
             self.__dynamic_indexes[date] = index
@@ -271,22 +269,17 @@ class Market(object):  # TODO rename to Future?
         if date in self.__dynamic_indexes:
             index = self.__dynamic_indexes[date]
             market_data = self.__dynamic_data[index]
-            high = market_data[Table.Market.HIGH_PRICE]
-            low = market_data[Table.Market.LOW_PRICE]
-            settle = market_data[Table.Market.SETTLE_PRICE]
-            previous_settle = self.__dynamic_data[index-1][Table.Market.SETTLE_PRICE] if index else settle
+            settle_price = market_data[Table.Market.SETTLE_PRICE]
+            previous_settle = self.__dynamic_data[index-1][Table.Market.SETTLE_PRICE] if index else settle_price
             volume = market_data[Table.Market.VOLUME]
-            tr = max(high, previous_settle) - min(low, previous_settle)
-            for window in set([params['window'] for params in study_parameters]):
-                key = 'settle_price_%s' % window
-                if key not in self.__dynamic_study_data: self.__dynamic_study_data[key] = deque([], window)
-                self.__dynamic_study_data[key].append(settle)
-                key = 'volume_%s' % window
-                if key not in self.__dynamic_study_data: self.__dynamic_study_data[key] = deque([], window)
-                self.__dynamic_study_data[key].append(volume)
-                key = 'tr_%s' % window
-                if key not in self.__dynamic_study_data: self.__dynamic_study_data[key] = deque([], window)
-                self.__dynamic_study_data[key].append(tr)
+            tr = max(market_data[Table.Market.HIGH_PRICE], previous_settle) - min(market_data[Table.Market.LOW_PRICE], previous_settle)
+            study_data_keys = set('%s:%s' % (p['columns'][-1] if len(p['columns']) == 2 else 'tr', p['window']) for p in study_parameters)
+            l = locals()
+            for key in study_data_keys:
+                column, window = key.split(':')
+                key = '%s_%s' % (column, window)
+                if key not in self.__dynamic_study_data: self.__dynamic_study_data[key] = deque([], int(window))
+                self.__dynamic_study_data[key].append(l[column])
 
             has_study = []
             for params in study_parameters:
@@ -295,22 +288,21 @@ class Market(object):  # TODO rename to Future?
                 study_name = params['name']
                 study = self.__dynamic_studies[study_name]
                 data_columns = params['columns'][1:]
-                study_data = self.__dynamic_study_data['%s_%s' % (data_columns[-1], window)] \
-                    if len(data_columns) == 1 \
-                    else self.__dynamic_study_data['tr_%s' % window]
+                column = data_columns[-1] if len(data_columns) == 1 else 'tr'
+                study_data = self.__dynamic_study_data['%s_%s' % (column, window)]
 
                 if study_type == 'SMA':
                     study.append((date, sum(study_data) / len(study_data)))
 
                 if study_type == 'EMA':
                     c = 2.0 / (window + 1)
-                    ma = (date, study[-1][1] if len(study) else (sum(study_data) / len(study_data)))
-                    study.append((date, (c * settle) + (1 - c) * ma[1]))
+                    ma = study[-1][1] if len(study) else (sum(study_data) / len(study_data))
+                    study.append((date, (c * settle_price) + (1 - c) * ma))
 
                 if study_type == 'ATR':  # Moving average TR
                     c = 2.0 / (window + 1)
-                    ma = (date, study[-1][1] if len(study) else (sum(study_data) / len(study_data)))
-                    study.append((date, (c * tr) + (1 - c) * ma[1]))
+                    ma = study[-1][1] if len(study) else (sum(study_data) / len(study_data))
+                    study.append((date, (c * tr) + (1 - c) * ma))
 
                 if study_type == 'HHLL':  # Moving average max/min
                     study.append((date, max(study_data), min(study_data)))
