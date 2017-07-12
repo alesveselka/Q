@@ -1,14 +1,10 @@
 #!/usr/bin/python
 
-import datetime as dt
 import sys
-import json
-from study import *
-from market import Market
-from enum import Table
 from currency_pair import CurrencyPair
-from interest_rate import InterestRate
 from market_series import MarketSeries
+from interest_rate import InterestRate
+from market import Market
 
 
 class DataSeries:

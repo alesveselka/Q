@@ -1,14 +1,14 @@
 #!/usr/bin/python
 
-import time
 import os
 import json
+import time
 import MySQLdb as mysql
 from decimal import Decimal
 from enum import Table
 from account import Account
 from broker import Broker
-from data_series import DataSeries
+from data.data_series import DataSeries
 from investment_universe import InvestmentUniverse
 from portfolio import Portfolio
 from risk import Risk

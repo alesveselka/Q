@@ -44,7 +44,7 @@ class MarketSeries:
         index = self.__price_indexes[date] if date in self.__price_indexes else None
         return (self.__prices[index], self.__prices[index-1]) if index else (None, None)
 
-    def data_range(self, start_date=dt.date(1900, 1, 1), end_date=dt.date(9999, 12, 31)):
+    def data_range(self, start_date, end_date):
         """
         Return data between the start and end date passed in
         
@@ -125,7 +125,7 @@ class MarketSeries:
             if date else len(self.__study_indexes[study_name]) - 1
         return self.__studies[study_name][index] if index > -1 else None
 
-    def study_range(self, study_name, start_date=dt.date(1900, 1, 1), end_date=dt.date(9999, 12, 31)):
+    def study_range(self, study_name, start_date, end_date):
         """
         Return study data within range of the dates passed in
         
@@ -265,7 +265,6 @@ class MarketSeries:
             self.__start_data_date.strftime('%Y-%m-%d'),
             end_date.strftime('%Y-%m-%d')
         ))
-        # TODO need to load more than 'end_date' - for the last contract to roll out and in contracts
         for c in cursor.fetchall():
             self.__contracts[c[Table.Market.CODE][-5:].upper()].append(c)
 
@@ -299,6 +298,7 @@ class MarketSeries:
         return True
 
     # TODO move elsewhere
+    # TODO actually implement margin multiplier, but with contract data?
     def margin(self, end_date, point_value):
         contract = self.__contract(end_date)
         contract_data = [d for d in self.__contracts[contract] if d[Table.Market.PRICE_DATE] <= end_date]
