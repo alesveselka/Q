@@ -39,7 +39,7 @@ class Initialize:
         investment_universe = InvestmentUniverse(simulation[Table.Simulation.INVESTMENT_UNIVERSE], connection)
         investment_universe.load_data()
 
-        data_series = DataSeries(investment_universe, connection, simulation[Table.Simulation.STUDIES])
+        data_series = DataSeries(investment_universe, connection, json.loads(simulation[Table.Simulation.STUDIES]))
         futures = data_series.futures(roll_strategy[Table.RollStrategy.ID], params['slippage_map'])
         currency_pairs = data_series.currency_pairs(base_currency, commission_currency)
         interest_rates = data_series.interest_rates(base_currency, commission_currency)

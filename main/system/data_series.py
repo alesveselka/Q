@@ -12,15 +12,14 @@ from interest_rate import InterestRate
 
 class DataSeries:
 
-    def __init__(self, investment_universe, connection, studies):
+    def __init__(self, investment_universe, connection, study_parameters):
 
         self.__investment_universe = investment_universe
         self.__connection = connection
-        self.__studies = studies
         self.__futures = None
         self.__currency_pairs = None
         self.__interest_rates = None
-        self.__study_parameters = []
+        self.__study_parameters = study_parameters
 
     def start_date(self):
         """
@@ -45,8 +44,6 @@ class DataSeries:
                   m.code,
                   m.data_codes,
                   m.currency,
-                  m.first_data_date,
-                  g.name as group_name,
                   m.tick_value,
                   m.point_value,
                   m.overnight_initial_margin
@@ -56,14 +53,15 @@ class DataSeries:
             start_data_date = self.__investment_universe.start_data_date()
             self.__futures = []
 
-            # for market_id in self.__investment_universe.market_ids():
-            for market_id in [33]:  # 100 = CL2, 26 = LWB, 57 = SSG, 33 = W2, 54 = SNI
+            for market_id in self.__investment_universe.market_ids():
+            # for market_id in [33]:  # 100 = CL2, 26 = LWB, 57 = SSG, 33 = W2, 54 = SNI, 94 = SI
                 cursor.execute(market_query % market_id)
                 self.__futures.append(Market(
                     start_data_date,
                     market_id,
                     roll_strategy_id,
                     slippage_map,
+                    self.__study_parameters,
                     *cursor.fetchone())
                 )
 
@@ -128,7 +126,7 @@ class DataSeries:
         
         :param date:    date of the data to update
         """
-        map(lambda f: f.update_studies(date, self.__study_parameters), self.__futures)
+        map(lambda f: f.update_studies(date), self.__futures)
 
     def load_and_calculate_data(self, end_date):
         """
@@ -140,24 +138,12 @@ class DataSeries:
         cursor.execute("SELECT code, short_name FROM `delivery_month`;")
         delivery_months = {i[1][0]: (i[0] + 1, i[1][1]) for i in enumerate(cursor.fetchall())}
 
-        self.__study_parameters = json.loads(self.__studies)
-
         # TODO load all at once and then filter in python?
         message = 'Loading Futures data ...'
         length = float(len(self.__futures))
         map(lambda i: self.__log(message, i[1].code(), i[0], length)
-                      and i[1].load_data(self.__connection, end_date, self.__study_parameters, delivery_months), enumerate(self.__futures))
+                      and i[1].load_data(self.__connection, end_date, delivery_months), enumerate(self.__futures))
         self.__log(message, complete=True)
-
-        # message = 'Calculating Futures studies ...'
-
-        # for s in self.__study_parameters:
-        #     s['study'] = getattr(sys.modules['study'], s['study'])
-        #     s['columns'] = [Table.Market.__dict__[c.upper()] for c in s['columns']]
-        #
-        # map(lambda i: self.__log(message, i[1].code(), i[0], length) and i[1].calculate_studies(self.__study_parameters),
-        #     enumerate(self.__futures))
-        # self.__log(message, complete=True)
 
         # TODO load all at once and then filter in python?
         message = 'Loading currency pairs data ...'
