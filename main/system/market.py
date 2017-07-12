@@ -237,12 +237,11 @@ class Market(object):  # TODO rename to Future?
             # self.__margin_multiple = margin / self.study(Study.ATR_SHORT)[Table.Study.VALUE]
             self.__margin_multiple = margin / self.__studies[Study.ATR_SHORT][-1][Table.Study.VALUE]
 
-    def update_data(self, date, columns):
+    def update_data(self, date):
         """
         Update dynamic data and studies
         
-        :param date:                date of the data update
-        :param columns:             data columns to update
+        :param date:    date of the data update
         """
         # TODO not necessary if all markets have data - filter universe based on first contract date
         # rolls = self.__contract_rolls if len(self.__contract_rolls) else self.__scheduled_rolls
@@ -253,44 +252,30 @@ class Market(object):  # TODO rename to Future?
         contract_data = [d for d in contract_data if d[Table.Market.PRICE_DATE] == date]
         if len(contract_data):
             # TODO also use 'deque' for data? -> probably won't need more during backtest. What about persisting?
-            column_data = [(contract_data[-1][c]) for c in columns] if columns else contract_data[-1]
-            if date in self.__dynamic_indexes:
-                index = self.__dynamic_indexes[date]
-                self.__dynamic_data[index] = column_data
 
-                if self.__dynamic_data[index][Table.Market.CODE] != self.__dynamic_data[index-1][Table.Market.CODE]:
-                    previous_contract = self.__contracts[self.__dynamic_data[index-1][Table.Market.CODE][-5:]]
-                    previous_data = [d for d in previous_contract if d[Table.Market.PRICE_DATE] <= date][-1]
-                    gap = self.__dynamic_data[index][Table.Market.SETTLE_PRICE] - previous_data[Table.Market.SETTLE_PRICE]
-                    self.__actual_rolls.append((date, gap, self.__dynamic_data[index-1][Table.Market.CODE], self.__dynamic_data[index][Table.Market.CODE]))
+            self.__dynamic_data.append(contract_data[-1])
+            index = len(self.__dynamic_data) - 1
+            self.__dynamic_indexes[date] = index
 
-                if len(self.__actual_rolls):
-                    gap = sum(roll[1] for roll in self.__actual_rolls)
-                    self.__dynamic_data[index] = (
-                        column_data[Table.Market.CODE],
-                        column_data[Table.Market.PRICE_DATE],
-                        column_data[Table.Market.OPEN_PRICE] - gap,
-                        column_data[Table.Market.HIGH_PRICE] - gap,
-                        column_data[Table.Market.LOW_PRICE] - gap,
-                        column_data[Table.Market.SETTLE_PRICE] - gap,
-                        column_data[Table.Market.VOLUME],
-                        column_data[Table.Market.LAST_TRADING_DAY]
-                    )
+            if self.__dynamic_data[index][Table.Market.CODE] != self.__dynamic_data[index-1][Table.Market.CODE]:
+                previous_contract = self.__contracts[self.__dynamic_data[index-1][Table.Market.CODE][-5:]]
+                previous_data = [d for d in previous_contract if d[Table.Market.PRICE_DATE] <= date][-1]
+                gap = self.__dynamic_data[index][Table.Market.SETTLE_PRICE] - previous_data[Table.Market.SETTLE_PRICE]
+                self.__actual_rolls.append((date, gap, self.__dynamic_data[index-1][Table.Market.CODE], self.__dynamic_data[index][Table.Market.CODE]))
 
-            else:
-                self.__dynamic_data.append(column_data)
-                index = len(self.__dynamic_data) - 1
-                self.__dynamic_indexes[date] = index
+            if len(self.__actual_rolls):
+                gap = sum(roll[1] for roll in self.__actual_rolls)
+                self.__dynamic_data[index] = (
+                    contract_data[-1][Table.Market.CODE],
+                    contract_data[-1][Table.Market.PRICE_DATE],
+                    contract_data[-1][Table.Market.OPEN_PRICE] - gap,
+                    contract_data[-1][Table.Market.HIGH_PRICE] - gap,
+                    contract_data[-1][Table.Market.LOW_PRICE] - gap,
+                    contract_data[-1][Table.Market.SETTLE_PRICE] - gap,
+                    contract_data[-1][Table.Market.VOLUME],
+                    contract_data[-1][Table.Market.LAST_TRADING_DAY]
 
-                if len(self.__actual_rolls):
-                    gap = sum(roll[1] for roll in self.__actual_rolls)
-                    self.__dynamic_data[index] = (
-                        column_data[Table.Market.CODE],
-                        column_data[Table.Market.PRICE_DATE],
-                        column_data[Table.Market.OPEN_PRICE] - gap,
-                        column_data[Table.Market.HIGH_PRICE] - gap,
-                        column_data[Table.Market.LOW_PRICE] - gap
-                    )
+                )
 
     def update_studies(self, date, study_parameters):
         # if date in self.__data_indexes:

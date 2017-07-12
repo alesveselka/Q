@@ -102,13 +102,10 @@ class Simulate:
         :param date:            date for the market open
         :param previous_date:   previous market date
         """
-        self.__data_series.update_futures_data(date, [
-            Table.Market.CODE,
-            Table.Market.PRICE_DATE,
-            Table.Market.OPEN_PRICE,
-            Table.Market.HIGH_PRICE,
-            Table.Market.LOW_PRICE
-        ])
+        # Update all data (Open, High, Low, Settle, ...) although only 'open' price is available now.
+        # The reason is to enclose slipped price in high - low range when executed on open,
+        # and also for simpler and faster calculations
+        self.__data_series.update_futures_data(date)
 
         self.__transfer_orders(self.__orders(date))
 
@@ -128,7 +125,6 @@ class Simulate:
         :param date:            date for the market open
         :param previous_date:   previous market date
         """
-        self.__data_series.update_futures_data(date)
         self.__data_series.update_futures_studies(date)
 
         self.__broker.update_account(date, previous_date, self.__portfolio.open_positions())
