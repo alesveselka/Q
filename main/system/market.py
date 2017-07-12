@@ -265,20 +265,9 @@ class Market(object):  # TODO rename to Future?
 
             if len(self.__actual_rolls):
                 gap = sum(roll[1] for roll in self.__actual_rolls)
-                self.__dynamic_data[index] = (
-                    contract_data[-1][Table.Market.CODE],
-                    contract_data[-1][Table.Market.PRICE_DATE],
-                    contract_data[-1][Table.Market.OPEN_PRICE] - gap,
-                    contract_data[-1][Table.Market.HIGH_PRICE] - gap,
-                    contract_data[-1][Table.Market.LOW_PRICE] - gap,
-                    contract_data[-1][Table.Market.SETTLE_PRICE] - gap,
-                    contract_data[-1][Table.Market.VOLUME],
-                    contract_data[-1][Table.Market.LAST_TRADING_DAY]
-
-                )
+                self.__dynamic_data[index] = tuple(d - gap if isinstance(d, float) else d for d in contract_data[-1])
 
     def update_studies(self, date, study_parameters):
-        # if date in self.__data_indexes:
         if date in self.__dynamic_indexes:
             index = self.__dynamic_indexes[date]
             market_data = self.__dynamic_data[index]
@@ -325,7 +314,6 @@ class Market(object):  # TODO rename to Future?
 
                 if study_type == 'HHLL':  # Moving average max/min
                     study.append((date, max(study_data), min(study_data)))
-                    # print 'HHLL', date, max(study_data), min(study_data)
 
                 self.__dynamic_study_indexes[study_name][date] = len(study) - 1
 
