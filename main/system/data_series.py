@@ -140,15 +140,17 @@ class DataSeries:
         cursor.execute("SELECT code, short_name FROM `delivery_month`;")
         delivery_months = {i[1][0]: (i[0] + 1, i[1][1]) for i in enumerate(cursor.fetchall())}
 
+        self.__study_parameters = json.loads(self.__studies)
+
         # TODO load all at once and then filter in python?
         message = 'Loading Futures data ...'
         length = float(len(self.__futures))
         map(lambda i: self.__log(message, i[1].code(), i[0], length)
-                      and i[1].load_data(self.__connection, end_date, delivery_months), enumerate(self.__futures))
+                      and i[1].load_data(self.__connection, end_date, self.__study_parameters, delivery_months), enumerate(self.__futures))
         self.__log(message, complete=True)
 
         # message = 'Calculating Futures studies ...'
-        self.__study_parameters = json.loads(self.__studies)
+
         # for s in self.__study_parameters:
         #     s['study'] = getattr(sys.modules['study'], s['study'])
         #     s['columns'] = [Table.Market.__dict__[c.upper()] for c in s['columns']]

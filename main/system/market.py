@@ -277,9 +277,7 @@ class Market(object):  # TODO rename to Future?
             l = locals()
             for key in study_data_keys:
                 column, window = key.split(':')
-                key = '%s_%s' % (column, window)
-                if key not in self.__dynamic_study_data: self.__dynamic_study_data[key] = deque([], int(window))
-                self.__dynamic_study_data[key].append(l[column])
+                self.__dynamic_study_data['%s_%s' % (column, window)].append(l[column])
 
             has_study = []
             for params in study_parameters:
@@ -340,13 +338,14 @@ class Market(object):  # TODO rename to Future?
 
         return should_roll
 
-    def load_data(self, connection, end_date, delivery_months):
+    def load_data(self, connection, end_date, study_parameters, delivery_months):
         """
         Load market's data
 
-        :param connection:      MySQLdb connection instance
-        :param end_date:        Last date to fetch data to
-        :param delivery_months: list of delivery months [(code, short-month-name)]
+        :param connection:          MySQLdb connection instance
+        :param end_date:            Last date to fetch data to
+        :param study_parameters:    Study parameters
+        :param delivery_months:     list of delivery months [(code, short-month-name)]
         """
         cursor = connection.cursor()
         continuous_query = """
@@ -416,6 +415,11 @@ class Market(object):  # TODO rename to Future?
 
         # for roll in self.__scheduled_rolls:
         #     print roll
+
+        study_data_keys = set('%s:%s' % (p['columns'][-1] if len(p['columns']) == 2 else 'tr', p['window']) for p in study_parameters)
+        for key in study_data_keys:
+            column, window = key.split(':')
+            self.__dynamic_study_data['%s_%s' % (column, window)] = deque([], int(window))
 
         if self.__margin == 0:
             contract = self.__contract(end_date)
