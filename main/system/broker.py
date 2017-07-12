@@ -37,7 +37,8 @@ class Broker(object):
         self.__translate_fx_balances(date, previous_date)
         self.__charge_interest(date, previous_date)
         self.__pay_interest(date, previous_date)
-        self.__update_margin_loans(date, open_positions)
+        # No need to update margin loans since I use fixed amounts
+        # self.__update_margin_loans(date, open_positions)
 
         if not open_positions:
             self.__sweep_fx_funds(date)
@@ -65,7 +66,7 @@ class Broker(object):
 
         if quantity:
             commissions = Decimal(self.__commission * quantity)
-            margin = market.margin(previous_date) * quantity
+            margin = market.margin() * quantity
             price = self.__slipped_price(market_data, market, order.price(), previous_date, order_type, quantity)
             result_type = OrderResultType.FILLED if quantity == order.quantity() else OrderResultType.PARTIALLY_FILLED
             order_result = OrderResult(result_type, order, price, quantity, margin, commissions)
@@ -181,7 +182,7 @@ class Broker(object):
                     market_data, _ = market.data(date)
 
                     if market_data:
-                        margin = market.margin(date) * p.quantity()
+                        margin = market.margin() * p.quantity()
                         currency = market.currency()
                         to_close[currency] += p.margins()[-1][1]
                         to_open[currency] += margin
