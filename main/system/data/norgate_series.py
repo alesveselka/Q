@@ -42,7 +42,7 @@ class NorgateSeries(MarketSeries):
             'continuous_adjusted',
             market_id,
             market_code,
-            2,  #roll_strategy_id,
+            roll_strategy_id,
             self._start_data_date.strftime('%Y-%m-%d'),
             end_date.strftime('%Y-%m-%d')
         ))

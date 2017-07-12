@@ -3,9 +3,6 @@
 import sys
 from currency_pair import CurrencyPair
 from interest_rate import InterestRate
-from market_series import MarketSeries
-from custom_series import CustomSeries
-from norgate_series import NorgateSeries
 from market import Market
 
 
@@ -27,11 +24,12 @@ class DataSeries:
         """
         return self.__investment_universe.start_data_date()
 
-    def futures(self, slippage_map):
+    def futures(self, slippage_map, series_class):
         """
         Load futures data if not already loaded
 
         :param slippage_map:        list of dicts, each representing volume range to arrive at slippage estimate
+        :param series_class:        class of the market series object
         :return:                    list of Market objects
         """
         if self.__futures is None:
@@ -57,8 +55,7 @@ class DataSeries:
                 self.__futures.append(Market(
                     market_id,
                     slippage_map,
-                    # CustomSeries(start_data_date, self.__study_parameters),
-                    NorgateSeries(start_data_date, self.__study_parameters),
+                    series_class(start_data_date, self.__study_parameters),
                     *cursor.fetchone())
                 )
 
