@@ -239,7 +239,7 @@ class Market(object):  # TODO rename to Future?
 
     def update_data(self, date):
         """
-        Update dynamic data and studies
+        Update dynamic data
         
         :param date:    date of the data update
         """
@@ -266,6 +266,12 @@ class Market(object):  # TODO rename to Future?
                 self.__dynamic_data[index] = tuple(d - gap if isinstance(d, float) else d for d in contract_data[-1])
 
     def update_studies(self, date, study_parameters):
+        """
+        Update dynamic studies
+        
+        :param date:                date of the update
+        :param study_parameters:    parameters of each study
+        """
         if date in self.__dynamic_indexes:
             index = self.__dynamic_indexes[date]
             market_data = self.__dynamic_data[index]
@@ -292,17 +298,12 @@ class Market(object):  # TODO rename to Future?
                 if study_type == 'SMA':
                     study.append((date, sum(study_data) / len(study_data)))
 
-                if study_type == 'EMA':
+                if study_type == 'EMA' or study_type == 'ATR':
                     c = 2.0 / (window + 1)
                     ma = study[-1][1] if len(study) else (sum(study_data) / len(study_data))
-                    study.append((date, (c * settle_price) + (1 - c) * ma))
+                    study.append((date, (c * l[column]) + (1 - c) * ma))
 
-                if study_type == 'ATR':  # Moving average TR
-                    c = 2.0 / (window + 1)
-                    ma = study[-1][1] if len(study) else (sum(study_data) / len(study_data))
-                    study.append((date, (c * tr) + (1 - c) * ma))
-
-                if study_type == 'HHLL':  # Moving average max/min
+                if study_type == 'HHLL':
                     study.append((date, max(study_data), min(study_data)))
 
                 self.__dynamic_study_indexes[study_name][date] = len(study) - 1
