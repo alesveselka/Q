@@ -132,13 +132,16 @@ class MarketSeries(object):
         """
         return self.__has_study_data
 
-    def load(self, connection, end_date, delivery_months, market_id, market_code):
+    def load(self, connection, end_date, delivery_months, market_id, market_code, roll_strategy_id):
         """
-        Load market's data
+        Load series data
 
         :param connection:          MySQLdb connection instance
         :param end_date:            Last date to fetch data to
         :param delivery_months:     list of delivery months [(code, short-month-name)]
+        :param market_id:           ID of the series market
+        :param market_code:         code symbol of the series market
+        :param roll_strategy_id:    ID of the series roll strategy
         """
         study_data_keys = set('%s:%s' % (p['columns'][-1] if len(p['columns']) == 2 else 'tr', p['window']) for p in self.__study_parameters)
         for key in study_data_keys:

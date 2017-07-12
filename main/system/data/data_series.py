@@ -2,8 +2,10 @@
 
 import sys
 from currency_pair import CurrencyPair
-from market_series import MarketSeries
 from interest_rate import InterestRate
+from market_series import MarketSeries
+from custom_series import CustomSeries
+from norgate_series import NorgateSeries
 from market import Market
 
 
@@ -25,11 +27,10 @@ class DataSeries:
         """
         return self.__investment_universe.start_data_date()
 
-    def futures(self, roll_strategy_id, slippage_map):
+    def futures(self, slippage_map):
         """
         Load futures data if not already loaded
 
-        :param roll_strategy_id:    ID of the roll strategy used to connect contract data
         :param slippage_map:        list of dicts, each representing volume range to arrive at slippage estimate
         :return:                    list of Market objects
         """
@@ -55,9 +56,9 @@ class DataSeries:
                 cursor.execute(market_query % market_id)
                 self.__futures.append(Market(
                     market_id,
-                    roll_strategy_id,
                     slippage_map,
-                    MarketSeries(start_data_date, self.__study_parameters),
+                    # CustomSeries(start_data_date, self.__study_parameters),
+                    NorgateSeries(start_data_date, self.__study_parameters),
                     *cursor.fetchone())
                 )
 
@@ -124,11 +125,12 @@ class DataSeries:
         """
         map(lambda f: f.update_studies(date), self.__futures)
 
-    def load_and_calculate_data(self, end_date):
+    def load(self, end_date, roll_strategy_id):
         """
         Load data and calculate studies
 
-        :param end_date:        last date to load data
+        :param end_date:            last date to load data
+        :param roll_strategy_id:    ID of the series roll strategy
         """
         cursor = self.__connection.cursor()
         cursor.execute("SELECT code, short_name FROM `delivery_month`;")
@@ -138,7 +140,7 @@ class DataSeries:
         message = 'Loading Futures data ...'
         length = float(len(self.__futures))
         map(lambda i: self.__log(message, i[1].code(), i[0], length)
-                      and i[1].load_data(self.__connection, end_date, delivery_months), enumerate(self.__futures))
+                      and i[1].load_data(self.__connection, end_date, delivery_months, roll_strategy_id), enumerate(self.__futures))
         self.__log(message, complete=True)
 
         # TODO load all at once and then filter in python?

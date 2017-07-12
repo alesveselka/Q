@@ -34,7 +34,7 @@ class Simulate:
         # end_date = dt.date(1992, 6, 10)
         end_date = dt.date(1992, 12, 31)
 
-        self.__data_series.load_and_calculate_data(end_date)
+        self.__data_series.load(end_date, simulation[Table.Simulation.ROLL_STRATEGY_ID])
         self.__subscribe()
 
         self.__start(data_series.start_date(), end_date)
@@ -83,15 +83,15 @@ class Simulate:
             self.__data_series
         )
 
-        # f = open('report_full_2015-12-31.txt', 'w')
+        # f = open('2_report_full_1993-12-31.txt', 'w')
         # f.write(full_report)
         # f.close()
         #
-        # f = open('report_yearly_2015-12-31.txt', 'w')
+        # f = open('2_report_yearly_1993-12-31.txt', 'w')
         # f.write('\n'.join(report.to_lists(start_date, date, Interval.YEARLY)))
         # f.close()
         #
-        # f = open('transactions_2015-12-31.txt', 'w')
+        # f = open('2_transactions_1993-12-31.txt', 'w')
         # f.write('\n'.join(report.transactions(start_date, date)))
         # f.close()
 

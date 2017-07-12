@@ -14,8 +14,6 @@ class CustomSeries(MarketSeries):
     def __init__(self, start_data_date, study_parameters):
         super(CustomSeries, self).__init__(start_data_date, study_parameters)
 
-        # self.__roll_strategy_id = roll_strategy_id
-
         self.__contracts = defaultdict(list)
         self.__roll_schedule = []
         self.__scheduled_rolls = []
@@ -107,15 +105,18 @@ class CustomSeries(MarketSeries):
                 gap = sum(roll[1] for roll in self.__rolls)
                 self._prices[index] = tuple(d - gap if isinstance(d, float) else d for d in contract_data[-1])
 
-    def load(self, connection, end_date, delivery_months, market_id, market_code):
+    def load(self, connection, end_date, delivery_months, market_id, market_code, roll_strategy_id):
         """
         Load market's data
 
         :param connection:          MySQLdb connection instance
         :param end_date:            Last date to fetch data to
         :param delivery_months:     list of delivery months [(code, short-month-name)]
+        :param market_id:           ID of the series market
+        :param market_code:         code symbol of the series market
+        :param roll_strategy_id:    ID of the series roll strategy
         """
-        super(CustomSeries, self).load(connection, end_date, delivery_months, market_id, market_code)
+        super(CustomSeries, self).load(connection, end_date, delivery_months, market_id, market_code, roll_strategy_id)
 
         # TODO use connection pool?
         cursor = connection.cursor()
@@ -140,8 +141,7 @@ class CustomSeries(MarketSeries):
         roll_schedule_query = """
             SELECT roll_out_month, roll_in_month, month, day
             FROM standard_roll_schedule
-            WHERE market_id = '%s'
-            AND name = 'norgate';
+            WHERE market_id = '%s';
         """
         cursor.execute(roll_schedule_query % market_id)
         self.__roll_schedule = cursor.fetchall()

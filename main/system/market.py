@@ -9,9 +9,8 @@ from math import floor, log10
 
 class Market:
 
-    def __init__(self, market_id, roll_strategy_id, slippage_map, series, name, code, data_codes, currency, tick_value, point_value, margin):
+    def __init__(self, market_id, slippage_map, series, name, code, data_codes, currency, tick_value, point_value, margin):
         self.__id = market_id
-        self.__roll_strategy_id = roll_strategy_id
         self.__slippage_map = slippage_map
         self.__name = name
         self.__market_code = code
@@ -55,8 +54,8 @@ class Market:
     def has_study_data(self):
         return self.__series.has_study_data()
 
-    def load_data(self, connection, end_date, delivery_months):
-        self.__series.load(connection, end_date, delivery_months, self.__id, self.__instrument_code)
+    def load_data(self, connection, end_date, delivery_months, roll_strategy_id):
+        self.__series.load(connection, end_date, delivery_months, self.__id, self.__instrument_code, roll_strategy_id)
 
         if self.__margin == 0:
             self.__margin = self.__series.margin(end_date, self.__point_value)

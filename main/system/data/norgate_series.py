@@ -9,25 +9,21 @@ class NorgateSeries(MarketSeries):
     def __init__(self, start_data_date, study_parameters):
         super(NorgateSeries, self).__init__(start_data_date, study_parameters)
 
-        # self.__roll_strategy_id = roll_strategy_id
-
     def update_data(self, date):
-        """
-        Update dynamic data
-        
-        :param date:    date of the data update
-        """
         pass
 
-    def load(self, connection, end_date, delivery_months, market_id, market_code):
+    def load(self, connection, end_date, delivery_months, market_id, market_code, roll_strategy_id):
         """
         Load market's data
 
         :param connection:          MySQLdb connection instance
         :param end_date:            Last date to fetch data to
         :param delivery_months:     list of delivery months [(code, short-month-name)]
+        :param market_id:           ID of the series market
+        :param market_code:         code symbol of the series market
+        :param roll_strategy_id:    ID of the series roll strategy
         """
-        super(NorgateSeries, self).load(connection, end_date, delivery_months, market_id, market_code)
+        super(NorgateSeries, self).load(connection, end_date, delivery_months, market_id, market_code, roll_strategy_id)
 
         # TODO use connection pool?
         cursor = connection.cursor()
@@ -46,7 +42,7 @@ class NorgateSeries(MarketSeries):
             'continuous_adjusted',
             market_id,
             market_code,
-            2,  #self.__roll_strategy_id,
+            2,  #roll_strategy_id,
             self._start_data_date.strftime('%Y-%m-%d'),
             end_date.strftime('%Y-%m-%d')
         ))
