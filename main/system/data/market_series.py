@@ -148,10 +148,15 @@ class MarketSeries(object):
             column, window = key.split(':')
             self.__study_data['%s_%s' % (column, window)] = deque([], int(window))
 
-    # TODO move elsewhere
-    # TODO actually implement margin multiplier, but with contract data?
     @abstractmethod
     def margin(self, end_date, point_value):
+        """
+        Return calculated margin based on price and point value at the date passed in
+        
+        :param end_date:    date to calculate margin on
+        :param point_value: point value of the market instrument
+        :return:            number representing margin
+        """
         raise NotImplementedError("Should implement 'margin(end_date, point_value)'")
 
     def _column_names(self):

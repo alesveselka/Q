@@ -3,8 +3,6 @@
 import datetime as dt
 from enum import Table
 from enum import RollSchedule
-from operator import itemgetter
-from collections import deque
 from collections import defaultdict
 from data.market_series import MarketSeries
 
@@ -155,9 +153,15 @@ class CustomSeries(MarketSeries):
 
         return True
 
-    # TODO move elsewhere
     # TODO actually implement margin multiplier, but with contract data?
     def margin(self, end_date, point_value):
+        """
+        Return calculated margin based on price and point value at the date passed in
+        
+        :param end_date:    date to calculate margin on
+        :param point_value: point value of the market instrument
+        :return:            number representing margin
+        """
         contract = self.__contract(end_date)
         contract_data = [d for d in self.__contracts[contract] if d[Table.Market.PRICE_DATE] <= end_date]
         price = contract_data[-1][Table.Market.SETTLE_PRICE] if len(contract_data) else None
