@@ -47,7 +47,10 @@ class NorgateSeries(MarketSeries):
             end_date.strftime('%Y-%m-%d')
         ))
         # TODO I can make a generator and retrieve the data when needed
-        self._prices = cursor.fetchall()
+        # This may cut 'weekend' dates, but those may be legit in markets in different time-zones (Asia, etc.)
+        # TODO implement trading-hours to check properly
+        workdays = range(1, 6)
+        self._prices = [p for p in cursor.fetchall() if p[Table.Market.PRICE_DATE].isoweekday() in workdays]
         self._price_indexes = {i[1][Table.Market.PRICE_DATE]: i[0] for i in enumerate(self._prices)}
 
         return True

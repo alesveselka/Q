@@ -80,7 +80,7 @@ class MarketSeries(object):
         """
         Update dynamic studies
         
-        :param date:                date of the update
+        :param date:    date of the update
         """
         if date in self._price_indexes:
             index = self._price_indexes[date]
