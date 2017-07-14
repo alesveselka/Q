@@ -89,6 +89,7 @@ class CustomSeries(MarketSeries):
                 previous_data = [d for d in self.__contracts[previous_contract] if d[Table.Market.PRICE_DATE] <= date][-1]
                 gap = self._prices[index][Table.Market.SETTLE_PRICE] - previous_data[Table.Market.SETTLE_PRICE]
                 self.__rolls.append((date, gap, previous_contract, self._prices[index][Table.Market.CODE]))
+                self.__contracts.pop(previous_contract, None)
 
             gap = sum(roll[1] for roll in self.__rolls)
             self._prices[index] = tuple(d - gap if isinstance(d, float) else d for d in self._prices[index])
