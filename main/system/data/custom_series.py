@@ -139,7 +139,6 @@ class CustomSeries(MarketSeries):
 
         return True
 
-    # TODO actually implement margin multiplier, but with contract data?
     def margin(self, end_date, point_value):
         """
         Return calculated margin based on price and point value at the date passed in
@@ -148,7 +147,7 @@ class CustomSeries(MarketSeries):
         :param point_value: point value of the market instrument
         :return:            number representing margin
         """
-        contract = self.__scheduled_contract(end_date)
+        contract = self.__scheduled_roll(end_date)[Table.ContractRoll.ROLL_IN_CONTRACT]
         contract_data = [d for d in self.__contracts[contract] if d[Table.Market.PRICE_DATE] <= end_date]
         price = contract_data[-1][Table.Market.SETTLE_PRICE] if len(contract_data) else None
         return price * point_value * 0.1
@@ -159,23 +158,18 @@ class CustomSeries(MarketSeries):
         
         :param delivery_months:     list of delivery months
         """
-        contract_codes = self.__scheduled_codes([k for k in sorted(self.__contracts.keys())], delivery_months)
+        scheduled_months = [r[RollSchedule.ROLL_OUT_MONTH] for r in self.__roll_schedule]
+        scheduled_codes = [k for k in delivery_months.keys() if delivery_months[k][1] in scheduled_months]
+        contract_keys = sorted(self.__contracts.keys())
+        contract_codes = [c for c in [k for k in contract_keys] if c[-1] in scheduled_codes]
+
         self.__scheduled_rolls = [(self.__scheduled_roll_date(r[0], delivery_months), 0, r[0], r[1])
                                   for r in zip(contract_codes, contract_codes[1:])]
 
         self.__rolls.append(self.__scheduled_roll(self._start_data_date))
 
-        for key in self.__contracts.keys():
+        for key in contract_keys:
             key not in contract_codes and self.__contracts.pop(key, None)
-
-    def __scheduled_contract(self, date):
-        """
-        Find and return contract to be in on the date passed in
-        
-        :param date:    date of the contract
-        :return:        string representing the contract delivery
-        """
-        return self.__scheduled_roll(date)[Table.ContractRoll.ROLL_IN_CONTRACT]
 
     def __scheduled_roll(self, date):
         """
@@ -191,18 +185,6 @@ class CustomSeries(MarketSeries):
 
         return contract_roll
 
-    def __scheduled_codes(self, contract_codes, delivery_months):
-        """
-        Filter out contract codes which months are not included in scheduled rolls
-        
-        :param contract_codes:  list of contract codes
-        :param delivery_months: list of delivery months [(code, short-month-name)]
-        :return:                list of contract codes
-        """
-        scheduled_months = [r[RollSchedule.ROLL_OUT_MONTH] for r in self.__roll_schedule]
-        scheduled_codes = [k for k in delivery_months.keys() if delivery_months[k][1] in scheduled_months]
-        return [c for c in contract_codes if c[-1] in scheduled_codes]
-
     def __scheduled_roll_date(self, contract, delivery_months):
         """
         Return market's next scheduled roll date based on contract passed in
@@ -211,18 +193,12 @@ class CustomSeries(MarketSeries):
         :param delivery_months: list of delivery months [(code, short-month-name)]
         :return:                date of scheduled roll
         """
-        # months = [m for m in calendar.month_abbr]
-
         contract_year = int(contract[:4])
         contract_month_code = contract[-1]
-        # contract_month_index = reduce(lambda i, d: i + 1 if d[0] <= contract_month_code else i, delivery_months, 0)
-        contract_month_index = delivery_months[contract_month_code][0]
-        contract_month = delivery_months[contract_month_code][1]
-        # contract_month = months[contract_month_index]
+        contract_month_index, contract_month = delivery_months[contract_month_code]
 
         roll_schedule = [r for r in self.__roll_schedule if r[RollSchedule.ROLL_OUT_MONTH] == contract_month][0]
 
-        # roll_month_index = [i[0] for i in enumerate(months) if i[1] == roll_schedule[RollSchedule.MONTH]][0]
         roll_month_index = [delivery_months[k][0] for k in delivery_months.keys() if delivery_months[k][1] == roll_schedule[RollSchedule.MONTH]][0]
         roll_year = contract_year if contract_month_index - roll_month_index > -1 else contract_year - 1
         return dt.date(roll_year, roll_month_index, int(roll_schedule[RollSchedule.DAY]))
