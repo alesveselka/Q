@@ -65,3 +65,12 @@ class NorgateSeries(MarketSeries):
         :return:            number representing margin
         """
         return self._prices[-1][Table.Market.SETTLE_PRICE] * point_value * 0.1
+
+    def contract(self, date):
+        """
+        Return 'None' since the continuous series doesn't have individual contracts
+        
+        :param date:    date by which find the contract
+        :return:        contract symbol code 
+        """
+        return None

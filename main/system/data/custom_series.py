@@ -65,10 +65,10 @@ class CustomSeries(MarketSeries):
     def contract(self, date):
         """
         Return contract on the date passed in
-        :param date: 
-        :return: 
+        
+        :param date:    date by which find the contract
+        :return:        contract symbol code
         """
-        # TODO this is available everywhere via 'data()'
         return self._prices[self._price_indexes[date]][Table.Market.CODE]
 
     def update_data(self, date):
