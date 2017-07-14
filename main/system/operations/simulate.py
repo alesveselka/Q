@@ -179,13 +179,14 @@ class Simulate:
                 exit_signals = [s for s in self.__trading_signals if s.type() == SignalType.EXIT]
                 roll_signals = [s for s in self.__trading_signals if s.type() == SignalType.ROLL_ENTER or s.type() == SignalType.ROLL_EXIT]
                 market_position = self.__portfolio.market_position(market)
+                contract = market.contract(date)
 
                 if market_position and (signal in exit_signals or signal in roll_signals):
-                    orders.append(Order(market, signal, date, open_price, market_position.quantity()))
+                    orders.append(Order(market, signal, date, open_price, market_position.quantity(), contract))
 
                 if market_position is None and signal in enter_signals:
                     quantity = self.__risk.position_size(market.point_value(), market.currency(), atr_long, date)
-                    orders.append(Order(market, signal, date, open_price, quantity))
+                    orders.append(Order(market, signal, date, open_price, quantity, contract))
 
                 signals_to_remove.append(signal)
 

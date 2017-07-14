@@ -7,9 +7,9 @@ from enum import OrderType
 
 class Order(object):
 
-    def __init__(self, market, signal, date, price, quantity):
+    def __init__(self, market, signal, date, price, quantity, contract):
         self.__market = market
-        self.__contract = signal.contract()
+        self.__contract = contract
         self.__date = date
         self.__price = price
         self.__quantity = quantity
