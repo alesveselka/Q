@@ -147,6 +147,15 @@ class MarketSeries(object):
             self.__study_data['%s_%s' % (column, window)] = deque([], int(window))
 
     @abstractmethod
+    def contract(self, date):
+        """
+        Return latest rolled-in contract code
+        
+        :return:    string code representing the latest rolled-in contract
+        """
+        raise NotImplementedError("Should implement 'latest_contract()'")
+
+    @abstractmethod
     def margin(self, end_date, point_value):
         """
         Return calculated margin based on price and point value at the date passed in

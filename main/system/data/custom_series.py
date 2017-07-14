@@ -34,7 +34,7 @@ class CustomSeries(MarketSeries):
     #     :param date:    date to which relate the yield curve
     #     :return:        list of tuples(code, price, volume, yield, relative-price-difference))
     #     """
-    #     current_contract_code = self.__contract(date)
+    #     current_contract_code = self.__scheduled_contract(date)
     #     current_contract = [c for c in self.__contracts[current_contract_code] if c[Table.Market.PRICE_DATE] <= date][-1]
     #     contract_codes = [k for k in sorted(self.__contracts.keys()) if k > current_contract_code]
     #     previous_price = current_contract[Table.Market.SETTLE_PRICE] if current_contract else 0
@@ -62,19 +62,13 @@ class CustomSeries(MarketSeries):
     #
     #     return curve
 
-    def __contract(self, date):
+    def contract(self, date):
         """
-        Find and return contract to be in on the date passed in
-        
-        :param date:    date of the contract
-        :return:        string representing the contract delivery
+        Return contract on the date passed in
+        :param date: 
+        :return: 
         """
-        contract_rolls = [r for r in zip(self.__scheduled_rolls, self.__scheduled_rolls[1:])
-                          if r[0][Table.ContractRoll.DATE] <= date < r[1][Table.ContractRoll.DATE]]
-        contract_roll = contract_rolls[0][0] if len(contract_rolls) == 1 \
-            else (self.__scheduled_rolls[0] if date < self.__scheduled_rolls[0][Table.ContractRoll.DATE] else self.__scheduled_rolls[-1])
-
-        return contract_roll[Table.ContractRoll.ROLL_IN_CONTRACT]
+        return self._prices[self._price_indexes[date]][Table.Market.CODE]
 
     def update_data(self, date):
         """
@@ -83,25 +77,21 @@ class CustomSeries(MarketSeries):
         :param date:    date of the data update
         """
         # TODO not necessary if all markets have data - filter universe based on first contract date
-        # TODO don't have to call every single time - just before rolling
-        contract = self.__contract(date) if len(self.__scheduled_rolls) else None
-        contract_data = self.__contracts[contract] if contract else []
-        # TODO cache contract data
-        contract_data = [d for d in contract_data if d[Table.Market.PRICE_DATE] == date]
+        scheduled_contract = self.__scheduled_roll(date)[Table.ContractRoll.ROLL_IN_CONTRACT]
+        contract_data = [d for d in self.__contracts[scheduled_contract] if d[Table.Market.PRICE_DATE] == date]
         if len(contract_data):
-            self._prices.append(contract_data[-1])
+            self._prices.append(tuple(i[1] if i[0] else i[1][-5:] for i in enumerate(contract_data[-1])))
             index = len(self._prices) - 1
             self._price_indexes[date] = index
 
             if self._prices[index][Table.Market.CODE] != self._prices[index-1][Table.Market.CODE]:
-                previous_contract = self.__contracts[self._prices[index-1][Table.Market.CODE][-5:]]
-                previous_data = [d for d in previous_contract if d[Table.Market.PRICE_DATE] <= date][-1]
+                previous_contract = self._prices[index-1][Table.Market.CODE]
+                previous_data = [d for d in self.__contracts[previous_contract] if d[Table.Market.PRICE_DATE] <= date][-1]
                 gap = self._prices[index][Table.Market.SETTLE_PRICE] - previous_data[Table.Market.SETTLE_PRICE]
-                self.__rolls.append((date, gap, self._prices[index-1][Table.Market.CODE], self._prices[index][Table.Market.CODE]))
+                self.__rolls.append((date, gap, previous_contract, self._prices[index][Table.Market.CODE]))
 
-            if len(self.__rolls):
-                gap = sum(roll[1] for roll in self.__rolls)
-                self._prices[index] = tuple(d - gap if isinstance(d, float) else d for d in contract_data[-1])
+            gap = sum(roll[1] for roll in self.__rolls)
+            self._prices[index] = tuple(d - gap if isinstance(d, float) else d for d in self._prices[index])
 
     def load(self, connection, end_date, delivery_months, market_id, market_code, roll_strategy_id):
         """
@@ -133,8 +123,8 @@ class CustomSeries(MarketSeries):
             self._start_data_date.strftime('%Y-%m-%d'),
             end_date.strftime('%Y-%m-%d')
         ))
-        for c in cursor.fetchall():
-            self.__contracts[c[Table.Market.CODE][-5:].upper()].append(c)
+        for contract in [c for c in cursor.fetchall() if market_code == c[Table.Market.CODE][:-5]]:
+            self.__contracts[contract[Table.Market.CODE][-5:].upper()].append(contract)
 
         roll_schedule_query = """
             SELECT roll_out_month, roll_in_month, month, day
@@ -148,8 +138,7 @@ class CustomSeries(MarketSeries):
         self.__scheduled_rolls = [(self.__scheduled_roll_date(r[0], delivery_months), 0, r[0], r[1])
                                   for r in zip(contract_codes, contract_codes[1:])]
 
-        # for roll in self.__scheduled_rolls:
-        #     print roll
+        self.__rolls.append(self.__scheduled_roll(self._start_data_date))
 
         return True
 
@@ -162,10 +151,33 @@ class CustomSeries(MarketSeries):
         :param point_value: point value of the market instrument
         :return:            number representing margin
         """
-        contract = self.__contract(end_date)
+        contract = self.__scheduled_contract(end_date)
         contract_data = [d for d in self.__contracts[contract] if d[Table.Market.PRICE_DATE] <= end_date]
         price = contract_data[-1][Table.Market.SETTLE_PRICE] if len(contract_data) else None
         return price * point_value * 0.1
+
+    def __scheduled_contract(self, date):
+        """
+        Find and return contract to be in on the date passed in
+        
+        :param date:    date of the contract
+        :return:        string representing the contract delivery
+        """
+        return self.__scheduled_roll(date)[Table.ContractRoll.ROLL_IN_CONTRACT]
+
+    def __scheduled_roll(self, date):
+        """
+        Return scheduled roll for the date passed in
+        
+        :param date:    date of the scheduled roll
+        :return:        scheduled roll (date, gap, roll-out-contract, roll-in-contract)
+        """
+        contract_rolls = [r for r in zip(self.__scheduled_rolls, self.__scheduled_rolls[1:])
+                          if r[0][Table.ContractRoll.DATE] <= date < r[1][Table.ContractRoll.DATE]]
+        contract_roll = contract_rolls[0][0] if len(contract_rolls) == 1 \
+            else (self.__scheduled_rolls[0] if date < self.__scheduled_rolls[0][Table.ContractRoll.DATE] else self.__scheduled_rolls[-1])
+
+        return contract_roll
 
     def __scheduled_codes(self, contract_codes, delivery_months):
         """

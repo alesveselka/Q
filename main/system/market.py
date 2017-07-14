@@ -62,6 +62,9 @@ class Market:
 
         return True
 
+    def contract(self, date):
+        return self.__series.contract(date)
+
     def margin(self):
         return self.__margin
 
