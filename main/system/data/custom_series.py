@@ -68,6 +68,7 @@ class CustomSeries(MarketSeries):
         :param date: 
         :return: 
         """
+        # TODO this is available everywhere via 'data()'
         return self._prices[self._price_indexes[date]][Table.Market.CODE]
 
     def update_data(self, date):
@@ -76,7 +77,6 @@ class CustomSeries(MarketSeries):
         
         :param date:    date of the data update
         """
-        # TODO not necessary if all markets have data - filter universe based on first contract date
         scheduled_contract = self.__scheduled_roll(date)[Table.ContractRoll.ROLL_IN_CONTRACT]
         contract_data = [d for d in self.__contracts[scheduled_contract] if d[Table.Market.PRICE_DATE] == date]
         if len(contract_data):
@@ -140,6 +140,9 @@ class CustomSeries(MarketSeries):
                                   for r in zip(contract_codes, contract_codes[1:])]
 
         self.__rolls.append(self.__scheduled_roll(self._start_data_date))
+
+        for key in self.__contracts.keys():
+            key not in contract_codes and self.__contracts.pop(key, None)
 
         return True
 
