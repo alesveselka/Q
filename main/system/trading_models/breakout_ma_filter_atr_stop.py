@@ -51,7 +51,7 @@ class BreakoutMAFilterATRStop(TradingModel):
                         if settle_price >= self.__stop_loss(date, market_position):
                             signals.append(Signal(market, SignalType.EXIT, direction, date, settle_price))
 
-                    if self.__should_roll(date, previous_date, market, market_position, signals):
+                    if self.__should_roll(date, previous_date, market, market_position.contract(), signals):
                         signals.append(Signal(market, SignalType.ROLL_EXIT, direction, date, settle_price))
                         signals.append(Signal(market, SignalType.ROLL_ENTER, direction, date, settle_price))
 
@@ -65,27 +65,21 @@ class BreakoutMAFilterATRStop(TradingModel):
 
         return signals
 
-    def __should_roll(self, date, previous_date, market, position, signals):
+    def __should_roll(self, date, previous_date, market, contract, signals):
         """
         Check if position should roll to the next contract
         
         :param date:            current date
         :param previous_date:   previous date
         :param market:          market of the position
-        :param position:        position to roll
+        :param contract:        position contract
         :param signals:         signals
         :return:                Boolean indicating if roll signals should be generated
         """
         should_roll = False
 
         if len([s for s in signals if s.market() == market]) == 0:
-            position_contract = position.contract()
-            if position_contract is None:
-                should_roll = date.month != previous_date.month
-            else:
-                contract_roll = market.contract_roll(position_contract)
-                roll_date = market.data(contract_roll[Table.ContractRoll.DATE])[-2][Table.Market.PRICE_DATE]
-                should_roll = date == roll_date and position_contract == contract_roll[Table.ContractRoll.ROLL_OUT_CONTRACT]
+            should_roll = market.contract(date) != market.contract(previous_date) if contract else date.month != previous_date.month
 
         return should_roll
 
