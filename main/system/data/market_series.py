@@ -153,7 +153,16 @@ class MarketSeries(object):
         
         :return:    string code representing the latest rolled-in contract
         """
-        raise NotImplementedError("Should implement 'latest_contract()'")
+        raise NotImplementedError("Should implement 'contract()'")
+
+    @abstractmethod
+    def rolls(self):
+        """
+        Return contract rolls
+        
+        :return:    list of tuples(date, gap, roll-out-contract, roll-in-contract)
+        """
+        raise NotImplementedError("Should implement 'rolls()'")
 
     @abstractmethod
     def margin(self, end_date, point_value):

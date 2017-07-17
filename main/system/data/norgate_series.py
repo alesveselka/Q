@@ -74,3 +74,11 @@ class NorgateSeries(MarketSeries):
         :return:        contract symbol code 
         """
         return None
+
+    def rolls(self):
+        """
+        Return empty list since the continuous series doesn't have roll data
+        
+        :return:    list of tuples(date, gap, roll-out-contract, roll-in-contract)
+        """
+        return []

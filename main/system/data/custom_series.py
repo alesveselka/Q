@@ -72,6 +72,14 @@ class CustomSeries(MarketSeries):
         """
         return self._prices[self._price_indexes[date]][Table.Market.CODE]
 
+    def rolls(self):
+        """
+        Return contract rolls
+        
+        :return:    list of tuples(date, gap, roll-out-contract, roll-in-contract)
+        """
+        return self.__rolls
+
     def update_data(self, date):
         """
         Update dynamic data

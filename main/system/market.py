@@ -65,6 +65,9 @@ class Market:
     def contract(self, date):
         return self.__series.contract(date)
 
+    def contract_rolls(self):
+        return self.__series.rolls()
+
     def margin(self):
         return self.__margin
 

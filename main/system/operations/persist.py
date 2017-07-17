@@ -154,9 +154,8 @@ class Persist:
         """
         self.__log('Saving price series')
 
-        # TODO also save contract rolls
         now = dt.datetime.now()
-        columns = [
+        price_columns = [
             'market_id',
             'roll_strategy_id',
             'code',
@@ -171,14 +170,23 @@ class Persist:
             'created_date',
             'last_updated_date'
         ]
+        roll_columns = [
+            'market_id',
+            'roll_strategy_id',
+            'date',
+            'gap',
+            'roll_out_contract',
+            'roll_in_contract'
+        ]
         length = float(len(markets))
-        values = []
+        price_values = []
+        roll_values = []
         for i, m in enumerate(markets):
             self.__log('Saving price series', i, length)
 
             market_id = m.id()
             market_code = m.code()
-            values += [(
+            price_values += [(
                 market_id,
                 roll_strategy_id,
                 market_code,
@@ -194,7 +202,17 @@ class Persist:
                 now
             ) for d in m.data_range()]
 
-        self.__insert_values('continuous_adjusted', 'roll_strategy_id', roll_strategy_id, columns, values)
+            roll_values += [(
+                market_id,
+                roll_strategy_id,
+                r[Table.ContractRoll.DATE],
+                r[Table.ContractRoll.GAP],
+                r[Table.ContractRoll.ROLL_OUT_CONTRACT],
+                r[Table.ContractRoll.ROLL_IN_CONTRACT]
+            ) for r in m.contract_rolls()]
+
+        self.__insert_values('continuous_adjusted', 'roll_strategy_id', roll_strategy_id, price_columns, price_values)
+        self.__insert_values('contract_roll', 'roll_strategy_id', roll_strategy_id, roll_columns, roll_values)
 
     def __save_studies(self, simulation_id, markets, study_parameters):
         """
