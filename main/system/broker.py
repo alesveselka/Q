@@ -5,6 +5,7 @@ from enum import OrderType
 from enum import OrderResultType
 from enum import TransactionType
 from enum import Table
+from enum import Study
 from transaction import Transaction
 from order_result import OrderResult
 from collections import defaultdict
@@ -36,7 +37,8 @@ class Broker(object):
         self.__translate_fx_balances(date, previous_date)
         self.__charge_interest(date, previous_date)
         self.__pay_interest(date, previous_date)
-        self.__update_margin_loans(date, open_positions)
+        # No need to update margin loans since I use fixed amounts
+        # self.__update_margin_loans(date, open_positions)
 
         if not open_positions:
             self.__sweep_fx_funds(date)
@@ -58,14 +60,14 @@ class Broker(object):
         currency = market.currency()
         market_data, previous_data = market.data(date)
         previous_date = previous_data[Table.Market.PRICE_DATE]
-        volume = market_data[Table.Market.VOLUME]
+        volume = market.study(Study.VOL_SHORT)[Table.Study.VALUE]
         quantity = order.quantity() if order.quantity() <= volume else floor(volume / 3)
         order_result = OrderResult(OrderResultType.REJECTED, order, order.price(), quantity, 0, 0)
 
         if quantity:
             commissions = Decimal(self.__commission * quantity)
-            margin = market.margin(previous_date) * quantity
-            price = self.__slipped_price(market_data, order, order_type, quantity)
+            margin = market.margin() * quantity
+            price = self.__slipped_price(market_data, market, order.price(), previous_date, order_type, quantity)
             result_type = OrderResultType.FILLED if quantity == order.quantity() else OrderResultType.PARTIALLY_FILLED
             order_result = OrderResult(result_type, order, price, quantity, margin, commissions)
             context = (market, order_result, price)
@@ -86,19 +88,23 @@ class Broker(object):
 
         return order_result
 
-    def __slipped_price(self, market_data, order, order_type, quantity):
+    def __slipped_price(self, market_data, market, price, date, order_type, quantity):
         """
         Calculate and return price after slippage is added
 
         :param market_data: tuple of the market day data
-        :param order:       Order instance
+        :param market       market to calculate the clippage for
+        :param price        order price
+        :param date         date for the slippage calculation
         :param order_type:  type of order
         :param quantity:    quantity to open
         :return:            number representing final price
         """
-        price = order.price()
-        slippage = order.market().slippage(order.date(), quantity)
+        slippage = market.slippage(date, quantity)
         slipped_price = (price + slippage) if (order_type == OrderType.BTO or order_type == OrderType.BTC) else (price - slippage)
+        # TODO add 'execution cost' transaction instead of slipped price? And update only Open price on Market Open?
+        # The High and Low prices are not actually available at this point (Market Open),
+        # but I'm using them here to not getting execution price out of price range
         high = market_data[Table.Market.HIGH_PRICE]
         low = market_data[Table.Market.LOW_PRICE]
         return high if slipped_price > high else (low if slipped_price < low else slipped_price)
@@ -176,7 +182,7 @@ class Broker(object):
                     market_data, _ = market.data(date)
 
                     if market_data:
-                        margin = market.margin(date) * p.quantity()
+                        margin = market.margin() * p.quantity()
                         currency = market.currency()
                         to_close[currency] += p.margins()[-1][1]
                         to_open[currency] += margin

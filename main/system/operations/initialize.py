@@ -1,18 +1,20 @@
 #!/usr/bin/python
 
-import time
 import os
 import json
+import time
 import MySQLdb as mysql
 from decimal import Decimal
 from enum import Table
 from account import Account
 from broker import Broker
-from data_series import DataSeries
+from series.data_series import DataSeries
 from investment_universe import InvestmentUniverse
 from portfolio import Portfolio
 from risk import Risk
 from simulate import Simulate
+from series.custom_series import CustomSeries
+from series.norgate_series import NorgateSeries
 from trading_models.breakout_ma_filter_atr_stop import BreakoutMAFilterATRStop
 
 
@@ -39,8 +41,9 @@ class Initialize:
         investment_universe = InvestmentUniverse(simulation[Table.Simulation.INVESTMENT_UNIVERSE], connection)
         investment_universe.load_data()
 
-        data_series = DataSeries(investment_universe, connection, simulation[Table.Simulation.STUDIES])
-        futures = data_series.futures(roll_strategy[Table.RollStrategy.ID], params['slippage_map'])
+        data_series = DataSeries(investment_universe, connection, json.loads(simulation[Table.Simulation.STUDIES]))
+        series_class = NorgateSeries if roll_strategy[Table.RollStrategy.NAME] == 'norgate' else CustomSeries
+        futures = data_series.futures(params['slippage_map'], series_class)
         currency_pairs = data_series.currency_pairs(base_currency, commission_currency)
         interest_rates = data_series.interest_rates(base_currency, commission_currency)
 
@@ -54,7 +57,7 @@ class Initialize:
         )
 
         risk = Risk(params['risk_factor'], account)
-        Simulate(simulation[Table.Simulation.ID], data_series, risk, account, broker, Portfolio(), trading_model)
+        Simulate(simulation, data_series, risk, account, broker, Portfolio(), trading_model)
 
         print 'Time:', time.time() - self.__start_time, (time.time() - self.__start_time) / 60
 

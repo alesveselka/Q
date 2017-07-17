@@ -5,6 +5,7 @@ CREATE TABLE `position`(
   `simulation_id` int NOT NULL,
   `market_id` int NOT NULL,
   `direction` varchar(8) NOT NULL,
+  `contract` varchar(16) NOT NULL,
   `enter_date` date NOT NULL,
   `enter_price` double NOT NULL,
   `exit_date` date NULL,

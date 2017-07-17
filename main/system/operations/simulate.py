@@ -17,8 +17,8 @@ from persist import Persist
 
 class Simulate:
 
-    def __init__(self, id, data_series, risk, account, broker, portfolio, trading_model):
-        self.__id = id
+    def __init__(self, simulation, data_series, risk, account, broker, portfolio, trading_model):
+        self.__simulation = simulation
         self.__data_series = data_series
         self.__risk = risk
         self.__account = account
@@ -34,7 +34,7 @@ class Simulate:
         # end_date = dt.date(1992, 6, 10)
         end_date = dt.date(1992, 12, 31)
 
-        self.__data_series.load_and_calculate_data(end_date)
+        self.__data_series.load(end_date, simulation[Table.Simulation.ROLL_STRATEGY_ID])
         self.__subscribe()
 
         self.__start(data_series.start_date(), end_date)
@@ -74,7 +74,7 @@ class Simulate:
         print full_report
 
         Persist(
-            self.__id,
+            self.__simulation,
             start_date,
             date,
             self.__order_results,
@@ -83,15 +83,15 @@ class Simulate:
             self.__data_series
         )
 
-        # f = open('report_full_2015-12-31.txt', 'w')
+        # f = open('2_report_full_1993-12-31.txt', 'w')
         # f.write(full_report)
         # f.close()
         #
-        # f = open('report_yearly_2015-12-31.txt', 'w')
+        # f = open('2_report_yearly_1993-12-31.txt', 'w')
         # f.write('\n'.join(report.to_lists(start_date, date, Interval.YEARLY)))
         # f.close()
         #
-        # f = open('transactions_2015-12-31.txt', 'w')
+        # f = open('2_transactions_1993-12-31.txt', 'w')
         # f.write('\n'.join(report.transactions(start_date, date)))
         # f.close()
 
@@ -102,6 +102,11 @@ class Simulate:
         :param date:            date for the market open
         :param previous_date:   previous market date
         """
+        # Update all data (Open, High, Low, Settle, ...) although only 'open' price is available now.
+        # The reason is to enclose slipped price in high - low range when executed on open,
+        # and also for simpler and faster calculations
+        self.__data_series.update_futures_data(date)
+
         self.__transfer_orders(self.__orders(date))
 
     def __on_market_close(self, date, previous_date):
@@ -111,7 +116,7 @@ class Simulate:
         :param date:            date for the market open
         :param previous_date:   previous market date
         """
-        self.__broker.update_account(date, previous_date, self.__portfolio.open_positions())
+        # self.__broker.update_account(date, previous_date, self.__portfolio.open_positions())
 
     def __on_eod_data(self, date, previous_date):
         """
@@ -120,6 +125,10 @@ class Simulate:
         :param date:            date for the market open
         :param previous_date:   previous market date
         """
+        self.__data_series.update_futures_studies(date)
+
+        self.__broker.update_account(date, previous_date, self.__portfolio.open_positions())
+
         self.__trading_signals += self.__trading_model.signals(date, self.__portfolio.open_positions())
 
     def __transfer_orders(self, orders):
@@ -164,7 +173,7 @@ class Simulate:
             market_data, previous_data = market.data(date)
 
             if market_data:
-                atr_long = market.study(Study.ATR_LONG, date)[Table.Study.VALUE]
+                atr_long = market.study(Study.ATR_LONG, previous_data[Table.Market.PRICE_DATE])[Table.Study.VALUE]
                 open_price = market_data[Table.Market.OPEN_PRICE]
                 enter_signals = [s for s in self.__trading_signals if s.type() == SignalType.ENTER]
                 exit_signals = [s for s in self.__trading_signals if s.type() == SignalType.EXIT]
@@ -172,11 +181,12 @@ class Simulate:
                 market_position = self.__portfolio.market_position(market)
 
                 if market_position and (signal in exit_signals or signal in roll_signals):
-                    orders.append(Order(market, signal, date, open_price, market_position.quantity()))
+                    contract = market.contract(date) if signal.type() == SignalType.ROLL_ENTER else market_position.contract()
+                    orders.append(Order(market, signal, date, open_price, market_position.quantity(), contract))
 
                 if market_position is None and signal in enter_signals:
                     quantity = self.__risk.position_size(market.point_value(), market.currency(), atr_long, date)
-                    orders.append(Order(market, signal, date, open_price, quantity))
+                    orders.append(Order(market, signal, date, open_price, quantity, market.contract(date)))
 
                 signals_to_remove.append(signal)
 

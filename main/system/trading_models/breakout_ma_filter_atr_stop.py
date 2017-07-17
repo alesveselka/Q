@@ -4,7 +4,6 @@ from enum import Study
 from enum import Direction
 from enum import SignalType
 from enum import Table
-from enum import YieldCurve
 from strategy_signal import Signal
 from trading_models.trading_model import TradingModel
 
@@ -35,7 +34,7 @@ class BreakoutMAFilterATRStop(TradingModel):
         for market in self.__markets:
             market_data, previous_data = market.data(date)
 
-            if date > market.first_study_date() and market_data:
+            if market.has_study_data() and market_data:
                 previous_date = previous_data[Table.Market.PRICE_DATE]
                 ma_long = market.study(Study.MA_LONG, date)[Table.Study.VALUE]
                 ma_short = market.study(Study.MA_SHORT, date)[Table.Study.VALUE]
@@ -45,87 +44,42 @@ class BreakoutMAFilterATRStop(TradingModel):
 
                 if market_position:
                     direction = market_position.direction()
-                    position_contract = market_position.contract()
                     if direction == Direction.LONG:
                         if settle_price <= self.__stop_loss(date, market_position):
-                            signals.append(Signal(market, SignalType.EXIT, direction, date, settle_price, position_contract))
+                            signals.append(Signal(market, SignalType.EXIT, direction, date, settle_price))
                     elif direction == Direction.SHORT:
                         if settle_price >= self.__stop_loss(date, market_position):
-                            signals.append(Signal(market, SignalType.EXIT, direction, date, settle_price, position_contract))
+                            signals.append(Signal(market, SignalType.EXIT, direction, date, settle_price))
 
-                    if self.__should_roll(date, previous_date, market, market_position, signals):
-                        signals.append(Signal(market, SignalType.ROLL_EXIT, direction, date, settle_price, position_contract))
-                        # contract = self.__roll_in_contract(market, position_contract)
-                        # signals.append(Signal(market, SignalType.ROLL_ENTER, direction, date, settle_price, contract))
-                        signals.append(Signal(market, SignalType.ROLL_ENTER, direction, date, settle_price, None))
+                    if self.__should_roll(date, previous_date, market, market_position.contract(), signals):
+                        signals.append(Signal(market, SignalType.ROLL_EXIT, direction, date, settle_price))
+                        signals.append(Signal(market, SignalType.ROLL_ENTER, direction, date, settle_price))
 
                 if ma_short > ma_long:
                     if settle_price > hhll_short[Table.Study.VALUE]:
-                        # contract = self.__contract(date, market, Direction.LONG)
-                        # signals.append(Signal(market, SignalType.ENTER, Direction.LONG, date, settle_price, contract))
-                        signals.append(Signal(market, SignalType.ENTER, Direction.LONG, date, settle_price, None))
+                        signals.append(Signal(market, SignalType.ENTER, Direction.LONG, date, settle_price))
 
                 elif ma_short < ma_long:
                     if settle_price < hhll_short[Table.Study.VALUE_2]:
-                        # contract = self.__contract(date, market, Direction.SHORT)
-                        # signals.append(Signal(market, SignalType.ENTER, Direction.SHORT, date, settle_price, contract))
-                        signals.append(Signal(market, SignalType.ENTER, Direction.SHORT, date, settle_price, None))
+                        signals.append(Signal(market, SignalType.ENTER, Direction.SHORT, date, settle_price))
 
         return signals
 
-    def __contract(self, date, market, direction):
-        """
-        Find 'optimal' contract to trade
-        
-        :param date:        date of the signal
-        :param market:      market to trade
-        :param direction:   direction of trade signal
-        :return:            string representing code of contract to trade
-        """
-        min_volume = 1000
-        yield_curve = market.yield_curve(date)
-        current = [y for y in yield_curve if y[YieldCurve.YIELD] is None][0]
-        candidates = [y for y in yield_curve if y[YieldCurve.YIELD] is not None and y[YieldCurve.VOLUME] >= min_volume]
-        optimal = current
-
-        if len(candidates):
-            fn = max if direction == Direction.SHORT else min
-            best = fn([c[YieldCurve.YIELD] for c in candidates])
-            optimal = [c for c in candidates if c[YieldCurve.YIELD] == best][0]
-
-        return {'optimal_roll': optimal, 'standard_roll': current}.get(self.__roll_strategy[Table.RollStrategy.TYPE])[0]
-
-    def __roll_in_contract(self, market, contract):
-        """
-        Find and retun roll-in contract
-        
-        :param market:      contract's market
-        :param contract:    current 'roll out' contract
-        :return:            contract to roll in
-        """
-        return market.contract_roll(contract)[Table.ContractRoll.ROLL_IN_CONTRACT]
-
-    def __should_roll(self, date, previous_date, market, position, signals):
+    def __should_roll(self, date, previous_date, market, contract, signals):
         """
         Check if position should roll to the next contract
         
         :param date:            current date
         :param previous_date:   previous date
         :param market:          market of the position
-        :param position:        position to roll
+        :param contract:        position contract
         :param signals:         signals
         :return:                Boolean indicating if roll signals should be generated
         """
         should_roll = False
 
         if len([s for s in signals if s.market() == market]) == 0:
-            position_contract = position.contract()
-            if position_contract is None:
-                should_roll = date.month != previous_date.month
-            else:
-                contract_roll = market.contract_roll(position_contract)
-                roll_date = market.data(contract_roll[Table.ContractRoll.DATE])[-2][Table.Market.PRICE_DATE]
-                should_roll = date == roll_date and position_contract == contract_roll[Table.ContractRoll.ROLL_OUT_CONTRACT]
+            should_roll = market.contract(date) != market.contract(previous_date) if contract else date.month != previous_date.month
 
         return should_roll
 

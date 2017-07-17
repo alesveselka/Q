@@ -8,5 +8,6 @@ CREATE TABLE `standard_roll_schedule`(
   `roll_in_month` varchar(8) NOT NULL,
   `month` varchar(8) NOT NULL,
   `day` int NOT NULL,
-  PRIMARY KEY (`id`)
+  PRIMARY KEY (`id`),
+  KEY `index_market_id` (`market_id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;
