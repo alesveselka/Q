@@ -120,7 +120,7 @@ class CustomSeries(MarketSeries):
         cursor = connection.cursor()
         contracts_query = """
             SELECT %s
-            FROM %s
+            FROM contract
             WHERE market_id = '%s'
             AND DATE(price_date) >= '%s'
             AND DATE(price_date) <= '%s'
@@ -128,7 +128,6 @@ class CustomSeries(MarketSeries):
         """
         cursor.execute(contracts_query % (
             self._column_names() + ', last_trading_day',
-            'contract',
             market_id,
             self._start_data_date.strftime('%Y-%m-%d'),
             end_date.strftime('%Y-%m-%d')
