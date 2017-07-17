@@ -1,7 +1,7 @@
 #!/usr/bin/python
 
 from enum import Table
-from data.market_series import MarketSeries
+from series.market_series import MarketSeries
 
 
 class NorgateSeries(MarketSeries):

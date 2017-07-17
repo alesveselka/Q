@@ -4,7 +4,7 @@ import datetime as dt
 from enum import Table
 from enum import RollSchedule
 from collections import defaultdict
-from data.market_series import MarketSeries
+from series.market_series import MarketSeries
 
 
 class CustomSeries(MarketSeries):

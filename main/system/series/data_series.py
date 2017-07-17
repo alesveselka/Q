@@ -50,7 +50,7 @@ class DataSeries:
             self.__futures = []
 
             for market_id in self.__investment_universe.market_ids():
-            # for market_id in [33]:  # 100 = CL2, 26 = LWB, 57 = SSG, 33 = W2, 54 = SNI, 94 = SI
+            # for market_id in [33]:  # 100 = CL2, 33 = W2, 19 = SB, 94 = SI, 56 = SPIM2, 55 = SP
                 cursor.execute(market_query % market_id)
                 self.__futures.append(Market(
                     market_id,

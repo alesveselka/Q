@@ -8,13 +8,13 @@ from decimal import Decimal
 from enum import Table
 from account import Account
 from broker import Broker
-from data.data_series import DataSeries
+from series.data_series import DataSeries
 from investment_universe import InvestmentUniverse
 from portfolio import Portfolio
 from risk import Risk
 from simulate import Simulate
-from data.custom_series import CustomSeries
-from data.norgate_series import NorgateSeries
+from series.custom_series import CustomSeries
+from series.norgate_series import NorgateSeries
 from trading_models.breakout_ma_filter_atr_stop import BreakoutMAFilterATRStop
 
 
