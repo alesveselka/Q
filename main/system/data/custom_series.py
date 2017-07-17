@@ -16,6 +16,7 @@ class CustomSeries(MarketSeries):
         self.__roll_schedule = []
         self.__scheduled_rolls = []
         self.__rolls = []
+        self.__gaps = 0.0
 
     # def contract_roll(self, current_contract):
     #     """
@@ -90,9 +91,9 @@ class CustomSeries(MarketSeries):
                 gap = self._prices[index][Table.Market.SETTLE_PRICE] - previous_data[Table.Market.SETTLE_PRICE]
                 self.__rolls.append((date, gap, previous_contract, self._prices[index][Table.Market.CODE]))
                 self.__contracts.pop(previous_contract, None)
+                self.__gaps = sum(roll[1] for roll in self.__rolls)
 
-            gap = sum(roll[1] for roll in self.__rolls)
-            self._prices[index] = tuple(d - gap if isinstance(d, float) else d for d in self._prices[index])
+            self._prices[index] = tuple(d - self.__gaps if isinstance(d, float) else d for d in self._prices[index])
 
     def load(self, connection, end_date, delivery_months, market_id, market_code, roll_strategy_id):
         """
