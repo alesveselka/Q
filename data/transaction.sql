@@ -8,6 +8,6 @@ CREATE TABLE `transaction`(
   `date` date NOT NULL,
   `amount` decimal(40,30) NOT NULL,
   `currency` varchar(8) NOT NULL,
-  `context` TEXT CHARACTER SET utf8,
+  `context` varchar(600),
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;
