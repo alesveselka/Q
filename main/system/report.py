@@ -141,13 +141,14 @@ class Report:
         :return:            dict of dict of performance results
         """
         fn = self.__account.aggregate
+        transactions = self.__account.transactions(start_date, end_date)
         base_currency = self.__account.base_currency()
-        balance_interest = fn(start_date, end_date, [TransactionType.BALANCE_INTEREST])
+        balance_interest = fn(transactions, [TransactionType.BALANCE_INTEREST])
         return [
-            {'title': 'Mark-to-Market', 'results': fn(start_date, end_date, [TransactionType.MTM_TRANSACTION, TransactionType.MTM_POSITION])},
-            {'title': 'Commission', 'results': fn(start_date, end_date, [TransactionType.COMMISSION])},
-            {'title': 'Fx Translation', 'results': fn(start_date, end_date, [TransactionType.FX_BALANCE_TRANSLATION])},
-            {'title': 'Interest on Margin', 'results': fn(start_date, end_date, [TransactionType.MARGIN_INTEREST])},
+            {'title': 'Mark-to-Market', 'results': fn(transactions, [TransactionType.MTM_TRANSACTION, TransactionType.MTM_POSITION])},
+            {'title': 'Commission', 'results': fn(transactions, [TransactionType.COMMISSION])},
+            {'title': 'Fx Translation', 'results': fn(transactions, [TransactionType.FX_BALANCE_TRANSLATION])},
+            {'title': 'Interest on Margin', 'results': fn(transactions, [TransactionType.MARGIN_INTEREST])},
             {'title': 'Interest on base Balance', 'results': {k: v for k, v in balance_interest.items() if k == base_currency}},
             {'title': 'Interest on non-base Balance', 'results': {k: v for k, v in balance_interest.items() if k != base_currency}}
         ]

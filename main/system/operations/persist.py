@@ -294,11 +294,12 @@ class Persist:
             margins = account.margin_loan_balances(date)
             total_margin = sum(account.base_value(v, k, date) for k, v in margins.items())
 
-            marked_to_market = account.aggregate(date, date, [TransactionType.MTM_TRANSACTION, TransactionType.MTM_POSITION])
-            commissions = account.aggregate(date, date, [TransactionType.COMMISSION])
-            fx_translations = account.aggregate(date, date, [TransactionType.FX_BALANCE_TRANSLATION])
-            margin_interest = account.aggregate(date, date, [TransactionType.MARGIN_INTEREST])
-            balance_interest = account.aggregate(date, date, [TransactionType.BALANCE_INTEREST])
+            transactions = account.transactions(date, date)
+            marked_to_market = account.aggregate(transactions, [TransactionType.MTM_TRANSACTION, TransactionType.MTM_POSITION])
+            commissions = account.aggregate(transactions, [TransactionType.COMMISSION])
+            fx_translations = account.aggregate(transactions, [TransactionType.FX_BALANCE_TRANSLATION])
+            margin_interest = account.aggregate(transactions, [TransactionType.MARGIN_INTEREST])
+            balance_interest = account.aggregate(transactions, [TransactionType.BALANCE_INTEREST])
 
             values.append((
                 simulation_id,

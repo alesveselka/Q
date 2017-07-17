@@ -167,18 +167,17 @@ class Account(object):
         """
         return [t for t in self.__transactions if start_date <= t.date() <= end_date]
 
-    def aggregate(self, start_date, end_date, transaction_types):
+    def aggregate(self, transactions, transaction_types):
         """
         Goes through transactions of specified type and within period 
         and aggregate them into currency: amount map
         
-        :param start_date:          date when to start aggregation (including)
-        :param end_date:            date when to end aggregation (including)
+        :param transactions:        list of transaction to aggregate from
         :param transaction_types:   types of transactions to aggregate
         :return:                    dict(currency: amount)
         """
         result = defaultdict(Decimal)
-        for t in [tr for tr in self.transactions(start_date, end_date) if tr.type() in transaction_types]:
+        for t in [tr for tr in transactions if tr.type() in transaction_types]:
             result[t.currency()] += t.amount() * (1 if t.account_action() == AccountAction.CREDIT else -1)
         return result
 
