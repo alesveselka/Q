@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 import sys
+import json
 from enum import Table
 from currency_pair import CurrencyPair
 from interest_rate import InterestRate
@@ -60,7 +61,12 @@ class DataSeries:
                 self.__futures.append(Market(
                     market_id,
                     slippage_map,
-                    series_class(start_data_date, self.__study_parameters, roll_strategy),
+                    series_class(start_data_date, self.__study_parameters, (
+                        roll_strategy[Table.RollStrategy.ID],
+                        roll_strategy[Table.RollStrategy.NAME],
+                        roll_strategy[Table.RollStrategy.TYPE],
+                        json.loads(roll_strategy[Table.RollStrategy.PARAMS]),
+                    )),
                     *cursor.fetchone())
                 )
 
