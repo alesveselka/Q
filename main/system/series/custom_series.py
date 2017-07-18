@@ -191,7 +191,7 @@ class CustomSeries(MarketSeries):
         if len(contract_rolls) and contract_rolls[-1][Table.ContractRoll.DATE] <= date:
             yield_curve = self.__yield_curve(date, last_contract)
             optimal_contracts = [c for c in yield_curve if c[YieldCurve.VOLUME] >= self.__optimal_volume]
-            optimal_contracts = sorted(yield_curve, key=itemgetter(2)) if len(optimal_contracts) == 0 else []
+            optimal_contracts = optimal_contracts if len(optimal_contracts) else sorted(yield_curve, key=itemgetter(2))
 
         return optimal_contracts[-1][YieldCurve.CODE] if len(optimal_contracts) else last_contract
 
