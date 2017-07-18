@@ -12,8 +12,9 @@ class MarketSeries(object):
 
     __metaclass__ = ABCMeta
 
-    def __init__(self, start_data_date, study_parameters):
+    def __init__(self, start_data_date, study_parameters, roll_strategy):
         self._start_data_date = start_data_date
+        self._roll_strategy = roll_strategy
 
         self._prices = []
         self._price_indexes = {}
