@@ -1,9 +1,12 @@
 #!/usr/bin/python
 
 import sys
+from enum import Table
 from currency_pair import CurrencyPair
 from interest_rate import InterestRate
 from market import Market
+from series.norgate_series import NorgateSeries
+from series.custom_series import CustomSeries
 
 
 class DataSeries:
@@ -24,12 +27,12 @@ class DataSeries:
         """
         return self.__investment_universe.start_data_date()
 
-    def futures(self, slippage_map, series_class):
+    def futures(self, slippage_map, roll_strategy):
         """
         Load futures data if not already loaded
 
         :param slippage_map:        list of dicts, each representing volume range to arrive at slippage estimate
-        :param series_class:        class of the market series object
+        :param roll_strategy:       contract roll strategy
         :return:                    list of Market objects
         """
         if self.__futures is None:
@@ -49,13 +52,15 @@ class DataSeries:
             start_data_date = self.__investment_universe.start_data_date()
             self.__futures = []
 
+            series_class = NorgateSeries if roll_strategy[Table.RollStrategy.NAME] == 'norgate' else CustomSeries
+
             for market_id in self.__investment_universe.market_ids():
-            # for market_id in [33]:  # 100 = CL2, 33 = W2, 19 = SB, 94 = SI, 56 = SPIM2, 55 = SP
+            # for market_id in [33]:  # 100 = CL2, 33 = W2, 19 = SB
                 cursor.execute(market_query % market_id)
                 self.__futures.append(Market(
                     market_id,
                     slippage_map,
-                    series_class(start_data_date, self.__study_parameters),
+                    series_class(start_data_date, self.__study_parameters, roll_strategy),
                     *cursor.fetchone())
                 )
 

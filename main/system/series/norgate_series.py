@@ -6,8 +6,8 @@ from series.market_series import MarketSeries
 
 class NorgateSeries(MarketSeries):
 
-    def __init__(self, start_data_date, study_parameters):
-        super(NorgateSeries, self).__init__(start_data_date, study_parameters)
+    def __init__(self, start_data_date, study_parameters, roll_strategy):
+        super(NorgateSeries, self).__init__(start_data_date, study_parameters, roll_strategy)
 
     def update_data(self, date):
         pass

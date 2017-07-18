@@ -13,8 +13,6 @@ from investment_universe import InvestmentUniverse
 from portfolio import Portfolio
 from risk import Risk
 from simulate import Simulate
-from series.custom_series import CustomSeries
-from series.norgate_series import NorgateSeries
 from trading_models.breakout_ma_filter_atr_stop import BreakoutMAFilterATRStop
 
 
@@ -42,8 +40,7 @@ class Initialize:
         investment_universe.load_data()
 
         data_series = DataSeries(investment_universe, connection, json.loads(simulation[Table.Simulation.STUDIES]))
-        series_class = NorgateSeries if roll_strategy[Table.RollStrategy.NAME] == 'norgate' else CustomSeries
-        futures = data_series.futures(params['slippage_map'], series_class)
+        futures = data_series.futures(params['slippage_map'], roll_strategy)
         currency_pairs = data_series.currency_pairs(base_currency, commission_currency)
         interest_rates = data_series.interest_rates(base_currency, commission_currency)
 

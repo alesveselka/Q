@@ -9,59 +9,14 @@ from series.market_series import MarketSeries
 
 class CustomSeries(MarketSeries):
 
-    def __init__(self, start_data_date, study_parameters):
-        super(CustomSeries, self).__init__(start_data_date, study_parameters)
+    def __init__(self, start_data_date, study_parameters, roll_strategy):
+        super(CustomSeries, self).__init__(start_data_date, study_parameters, roll_strategy)
 
         self.__contracts = defaultdict(list)
         self.__roll_schedule = []
         self.__scheduled_rolls = []
         self.__rolls = []
         self.__gaps = 0.0
-
-    # def contract_roll(self, current_contract):
-    #     """
-    #     Find and return contract roll based on current contract passed in
-    #
-    #     :param current_contract:    string representing current contract
-    #     :return:                    tuple(date, gap, roll-out-contract, roll-in-contract)
-    #     """
-    #     rolls = self.__contract_rolls if len(self.__contract_rolls) else self.__scheduled_rolls
-    #     return [r for r in rolls if r[Table.ContractRoll.ROLL_OUT_CONTRACT] == current_contract][0]
-    #
-    # def yield_curve(self, date):
-    #     """
-    #     Calculate yield curve relative to the date passed in
-    #
-    #     :param date:    date to which relate the yield curve
-    #     :return:        list of tuples(code, price, volume, yield, relative-price-difference))
-    #     """
-    #     current_contract_code = self.__scheduled_contract(date)
-    #     current_contract = [c for c in self.__contracts[current_contract_code] if c[Table.Market.PRICE_DATE] <= date][-1]
-    #     contract_codes = [k for k in sorted(self.__contracts.keys()) if k > current_contract_code]
-    #     previous_price = current_contract[Table.Market.SETTLE_PRICE] if current_contract else 0
-    #     curve = [(
-    #         current_contract_code,
-    #         current_contract[Table.Market.SETTLE_PRICE],
-    #         current_contract[Table.Market.VOLUME],
-    #         None,
-    #         None,
-    #         (current_contract[Table.Market.LAST_TRADING_DAY] - date).days
-    #     )]
-    #
-    #     # TODO normalize with ATR
-    #     # TODO also calculate average volatility of each contract
-    #     for code in contract_codes:
-    #         next_contract_data = [c for c in self.__contracts[code] if c[Table.Market.PRICE_DATE] <= date]
-    #         if len(next_contract_data):
-    #             next_contract = next_contract_data[-1]
-    #             days = (next_contract[Table.Market.LAST_TRADING_DAY] - date).days
-    #             price = next_contract[Table.Market.SETTLE_PRICE]
-    #             implied_yield = (price / current_contract[Table.Market.SETTLE_PRICE]) ** (365. / days) - 1
-    #             price_difference = price - previous_price
-    #             previous_price = price
-    #             curve.append((code, price, next_contract[Table.Market.VOLUME], implied_yield, price_difference, days))
-    #
-    #     return curve
 
     def contract(self, date):
         """
