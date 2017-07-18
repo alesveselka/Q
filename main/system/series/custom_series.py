@@ -2,8 +2,11 @@
 
 import datetime as dt
 from enum import Table
+from enum import YieldCurve
 from enum import RollSchedule
+from enum import RollStrategyType
 from collections import defaultdict
+from operator import itemgetter
 from series.market_series import MarketSeries
 
 
@@ -13,10 +16,13 @@ class CustomSeries(MarketSeries):
         super(CustomSeries, self).__init__(start_data_date, study_parameters, roll_strategy)
 
         self.__contracts = defaultdict(list)
+        self.__contract_keys = []
         self.__roll_schedule = []
         self.__scheduled_rolls = []
         self.__rolls = []
         self.__gaps = 0.0
+
+        self.__optimal_volume = self._roll_strategy[Table.RollStrategy.PARAMS].get('min_volume', 1000)
 
     def contract(self, date):
         """
@@ -41,8 +47,11 @@ class CustomSeries(MarketSeries):
         
         :param date:    date of the data update
         """
-        scheduled_contract = self.__scheduled_roll(date)[Table.ContractRoll.ROLL_IN_CONTRACT]
+        scheduled_contract = self.__scheduled_roll(date)[Table.ContractRoll.ROLL_IN_CONTRACT] \
+            if self._roll_strategy[Table.RollStrategy.TYPE] == RollStrategyType.STANDARD_ROLL \
+            else self.__optimal_contract(date)
         contract_data = [d for d in self.__contracts[scheduled_contract] if d[Table.Market.PRICE_DATE] == date]
+
         if len(contract_data):
             self._prices.append(tuple(i[1] if i[0] else i[1][-5:] for i in enumerate(contract_data[-1])))
             index = len(self._prices) - 1
@@ -134,6 +143,8 @@ class CustomSeries(MarketSeries):
         for key in contract_keys:
             key not in contract_codes and self.__contracts.pop(key, None)
 
+        self.__contract_keys = sorted(self.__contracts.keys())
+
     def __scheduled_roll(self, date):
         """
         Return scheduled roll for the date passed in
@@ -165,3 +176,47 @@ class CustomSeries(MarketSeries):
         roll_month_index = [delivery_months[k][0] for k in delivery_months.keys() if delivery_months[k][1] == roll_schedule[RollSchedule.MONTH]][0]
         roll_year = contract_year if contract_month_index - roll_month_index > -1 else contract_year - 1
         return dt.date(roll_year, roll_month_index, int(roll_schedule[RollSchedule.DAY]))
+
+    def __optimal_contract(self, date):
+        """
+        Return optimal contract to roll into
+        
+        :param date:    date of the contract
+        :return:        string symbol representing contract code
+        """
+        last_contract = self.__rolls[-1][Table.ContractRoll.ROLL_IN_CONTRACT]
+        contract_rolls = [r for r in self.__scheduled_rolls if r[Table.ContractRoll.ROLL_OUT_CONTRACT] == last_contract]
+        optimal_contracts = []
+
+        if len(contract_rolls) and contract_rolls[-1][Table.ContractRoll.DATE] <= date:
+            yield_curve = self.__yield_curve(date, last_contract)
+            optimal_contracts = [c for c in yield_curve if c[YieldCurve.VOLUME] >= self.__optimal_volume]
+            optimal_contracts = sorted(yield_curve, key=itemgetter(2)) if len(optimal_contracts) == 0 else []
+
+        return optimal_contracts[-1][YieldCurve.CODE] if len(optimal_contracts) else last_contract
+
+    def __yield_curve(self, date, contract_code):
+        """
+        Calculate yield curve relative to the date passed in
+
+        :param contract_code:   code of current code
+        :param date:            date to which relate the yield curve
+        :return:                list of tuples(code, price, volume, yield, relative-price-difference))
+        """
+        contract_data = [c for c in self.__contracts[contract_code] if c[Table.Market.PRICE_DATE] <= date][-1]
+        contract_codes = [k for k in self.__contract_keys if k > contract_code]
+        previous_price = contract_data[Table.Market.SETTLE_PRICE] if contract_data else 0
+        curve = []
+
+        for code in contract_codes:
+            next_contract_data = [c for c in self.__contracts[code] if c[Table.Market.PRICE_DATE] <= date]
+            if len(next_contract_data) and next_contract_data[-1][Table.Market.LAST_TRADING_DAY] > date:
+                next_contract = next_contract_data[-1]
+                days = (next_contract[Table.Market.LAST_TRADING_DAY] - date).days
+                price = next_contract[Table.Market.SETTLE_PRICE]
+                implied_yield = (price / contract_data[Table.Market.SETTLE_PRICE]) ** (365. / days) - 1
+                price_difference = price - previous_price
+                previous_price = price
+                curve.append((code, price, next_contract[Table.Market.VOLUME], implied_yield, price_difference, days))
+
+        return curve

@@ -81,6 +81,11 @@ class Interval:
     YEARLY = 'YEARLY'
 
 
+class RollStrategyType:
+    STANDARD_ROLL = 'standard_roll'
+    OPTIMAL_ROLL = 'optimal_roll'
+
+
 class Table:
     class Market:
         CODE = 0
@@ -135,6 +140,7 @@ class YieldCurve:
     VOLUME = 2
     YIELD = 3
     PRICE_DIFF = 4
+    DAYS = 5
 
 
 class RollSchedule:
