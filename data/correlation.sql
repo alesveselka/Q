@@ -6,6 +6,7 @@ CREATE TABLE `correlation`(
   `roll_strategy_id` int NOT NULL,
   `date` date NOT NULL,
   `volatility` double NULL,
+  `stdev` double NULL,
   `correlations` TEXT CHARACTER SET utf8 NULL,
   PRIMARY KEY (market_id, market_code, roll_strategy_id, date)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;
