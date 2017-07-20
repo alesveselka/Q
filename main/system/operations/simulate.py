@@ -44,7 +44,7 @@ class Simulate:
         Subscribe to listen timer's events
         """
         self.__timer.on(EventType.MARKET_OPEN, self.__on_market_open)
-        self.__timer.on(EventType.MARKET_CLOSE, self.__on_market_close)
+        # self.__timer.on(EventType.MARKET_CLOSE, self.__on_market_close)
         self.__timer.on(EventType.EOD_DATA, self.__on_eod_data)
 
     def __start(self, start_date, end_date):
