@@ -3,6 +3,7 @@
 import os
 import datetime as dt
 import MySQLdb as mysql
+from math import sqrt
 
 
 connection = mysql.connect(
@@ -66,6 +67,12 @@ def market_series(market_id, market_code, roll_strategy_id, start_date, end_date
     return cursor.fetchall()
 
 
+def __std(values):
+    length = len(values)
+    mean = sum(values) / length
+    return sqrt(sum((v - mean)**2 for v in values) / (length - 1))
+
+
 def main():
     roll_strategy = __roll_strategy('standard_roll_1')
     investment_universe = __investment_universe('25Y')
@@ -76,9 +83,11 @@ def main():
     markets = __markets(market_ids)
     series = market_series(33, 'W2', roll_strategy[0], start_contract_date, end_date)
 
-    print len(series)
-    for s in series[-10:]:
-        print s
+    # print len(series)
+    # for s in series[-10:]:
+    #     print s
+
+    print 'std: ', __std([-0.00031358, 0.00265584])
 
 
 if __name__ == '__main__':
