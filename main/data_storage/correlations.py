@@ -47,9 +47,11 @@ def market_series(market_id, start_date, end_date):
     cursor = connection.cursor()
     continuous_query = """
             SELECT price_date, settle_price
-            FROM continuous_spliced
+            # FROM continuous_spliced
+            FROM continuous_adjusted
             WHERE market_id = '%s'
             AND code = '%s'
+            AND roll_strategy_id = 2
             AND DATE(price_date) >= '%s'
             AND DATE(price_date) <= '%s'
             ORDER BY price_date;
@@ -80,15 +82,24 @@ def __volatility_series(price_series, lookback):
     smooth_factor = 5
     returns = []
     stdevs = []
-    result = [(price_series[0][0], price_series[0][1], 0.0, 0.0, 0.0)]
-    for i, item in enumerate(price_series[1:]):
+    devs = []
+    devs_squared = []
+    result = [(price_series[0][0], price_series[0][1], 0.0, 0.0, 0.0, 0.0)]
+    # TODO also calculate movement vol.
+    for i, item in enumerate(price_series[smooth_factor:]):
         price = item[1]
-        prev_price = price_series[max(0, i - smooth_factor + 1)][1]
+        prev_price = price_series[i][1]
         ret = abs(price / prev_price - 1)
         returns.append(ret * -1 if price < prev_price else ret)
-        stdevs.append(__stdev(returns[-lookback:]) if i else 0.0)
-        vol = sqrt(sum(stdevs[-lookback:]) / (lookback-1)) if i >= lookback - 1 else 0.0
-        result.append((item[0], price, returns[-1], stdevs[-1], vol))
+        return_window = returns[-lookback:]
+        devs.append(return_window[-1] - sum(return_window) / len(return_window))
+        devs_squared.append(devs[-1] ** 2)
+        vol = sqrt(sum(devs_squared[-lookback:]) / (lookback - 1)) if i >= lookback - 1 else 0.0
+        # print item[0], i, len(return_window), devs[-1], devs_squared[-1], vol
+
+        # stdevs.append(__stdev(returns[-lookback:]) if i else 0.0)
+        # vol = sqrt(sum(stdevs[-lookback:]) / (lookback-1)) if i >= lookback - 1 else 0.0
+        result.append((item[0], price, returns[-1], devs[-1], devs_squared[-1], vol))
 
     return result
 
@@ -111,15 +122,21 @@ def main():
 
     lookback = 25
     volas = {}
-    for market_id in market_ids:
-    # for market_id in [27]:
+    # for market_id in market_ids:
+    for market_id in [55]:
         print 'calculating', market_id
-        # price_series = market_series(market_id, dt.date(2007, 1, 3), dt.date(2008, 12, 31))
-        price_series = market_series(market_id, start_date, end_date)
+        price_series = market_series(market_id, dt.date(2007, 1, 3), dt.date(2007, 12, 31))
+        # price_series = market_series(market_id, start_date, end_date)
         volas[market_id] = __volatility_series(price_series, lookback)
+
+        # for p in price_series[5:30]:
+        #     print p
 
     # for v in volas[27]:
     #     print v
+
+    # for pair in market_id_pairs:
+    # for pair in [(55, 79)]:
 
 
 if __name__ == '__main__':
