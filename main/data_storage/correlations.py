@@ -42,7 +42,9 @@ def __market_codes(market_id):
     return cursor.fetchone()
 
 
-def market_series(market_id, market_code, roll_strategy_id, start_date, end_date):
+def market_series(market_id, roll_strategy_id, start_date, end_date):
+    codes = __market_codes(market_id)
+    code = ''.join([codes[1], '2']) if 'C' in codes[2] else codes[1]
     cursor = connection.cursor()
     continuous_query = """
             SELECT price_date, settle_price
@@ -56,7 +58,7 @@ def market_series(market_id, market_code, roll_strategy_id, start_date, end_date
         """
     cursor.execute(continuous_query % (
         market_id,
-        market_code,
+        code,
         roll_strategy_id,
         start_date.strftime('%Y-%m-%d'),
         end_date.strftime('%Y-%m-%d')
@@ -70,11 +72,7 @@ def __std(values):
     return sqrt(sum((v - mean)**2 for v in values) / (length - 1))
 
 
-def __volatility_series(market_id, roll_strategy_id, start_date, end_date, lookback):
-    codes = __market_codes(market_id)
-    code = ''.join([codes[1], '2']) if 'C' in codes[2] else codes[1]
-    price_series = market_series(market_id, code, roll_strategy_id, start_date, end_date)
-
+def __volatility_series(price_series, lookback):
     log_returns = []
     returns_squared = []
     result = [price_series[0]]
@@ -84,18 +82,9 @@ def __volatility_series(market_id, roll_strategy_id, start_date, end_date, lookb
         returns_squared.append(log_returns[-1] ** 2)
         std = __std(log_returns[-lookback:]) if i else 0.0
         vol = sqrt(sum(returns_squared[-lookback:]) / lookback) if i >= lookback - 1 else 0.0
-
         result.append((item[0], price, log_returns[-1], returns_squared[-1], vol, std))
 
-        print '%s, %.2f, %.8f, %.8f, %.8f, %.8f' % (
-            result[-1][0],
-            result[-1][1],
-            result[-1][2],
-            result[-1][3],
-            result[-1][4],
-            result[-1][5]
-        )
-
+    return result
 
 
 # def __correlations(market_id1, market_id2):
@@ -111,8 +100,8 @@ def main():
     end_date = dt.date(9999, 12, 31)
     market_ids = investment_universe[2].split(',')
     # markets = __market_codes(market_ids)
-    series_w = market_series(33, 'W2', roll_strategy[0], start_date, end_date)
-    series_kw = market_series(25, 'KW2', roll_strategy[0], start_date, end_date)
+    series_w = market_series(33, roll_strategy[0], start_date, end_date)
+    series_kw = market_series(25, roll_strategy[0], start_date, end_date)
 
     print 'start_contract_date', investment_universe
 
@@ -135,8 +124,9 @@ def main():
     print len(market_ids)
     print len(market_id_pairs)
 
+    price_series = market_series(55, roll_strategy[0], dt.date(2007, 1, 3), dt.date(2008, 12, 31))
     # __volatility_series(33, roll_strategy[0], start_date, end_date, 25)
-    __volatility_series(55, roll_strategy[0], dt.date(2007, 1, 3), dt.date(2008, 12, 31), 25)
+    __volatility_series(price_series, 25)
 
 
 if __name__ == '__main__':
