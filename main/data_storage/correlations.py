@@ -81,11 +81,9 @@ def __volatility_series(price_series, lookback):
     """
     smooth_factor = 5
     returns = []
-    stdevs = []
     devs = []
     devs_squared = []
-    result = [(price_series[0][0], price_series[0][1], 0.0, 0.0, 0.0, 0.0)]
-    # TODO also calculate movement vol.
+    result = [(price_series[0][0], price_series[0][1], 0.0, 0.0, 0.0, 0.0, 0.0)]
     for i, item in enumerate(price_series[smooth_factor:]):
         price = item[1]
         prev_price = price_series[i][1]
@@ -93,13 +91,10 @@ def __volatility_series(price_series, lookback):
         returns.append(ret * -1 if price < prev_price else ret)
         return_window = returns[-lookback:]
         devs.append(return_window[-1] - sum(return_window) / len(return_window))
-        devs_squared.append(devs[-1] ** 2)
-        vol = sqrt(sum(devs_squared[-lookback:]) / (lookback - 1)) if i >= lookback - 1 else 0.0
-        # print item[0], i, len(return_window), devs[-1], devs_squared[-1], vol
-
-        # stdevs.append(__stdev(returns[-lookback:]) if i else 0.0)
-        # vol = sqrt(sum(stdevs[-lookback:]) / (lookback-1)) if i >= lookback - 1 else 0.0
-        result.append((item[0], price, returns[-1], devs[-1], devs_squared[-1], vol))
+        devs_squared.append(devs[-1]**2)
+        dev_vol = sqrt(sum(devs_squared[-lookback:]) / (lookback - 1)) if i >= lookback - 1 else 0.0
+        movement_vol = sqrt(sum(r**2 for r in return_window) / lookback) if i >= lookback - 1 else 0.0
+        result.append((item[0], price, returns[-1], devs[-1], devs_squared[-1], dev_vol, movement_vol))
 
     return result
 
