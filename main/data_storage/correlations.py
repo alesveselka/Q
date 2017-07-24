@@ -77,12 +77,13 @@ def __volatility_series(price_series, lookback):
     :param lookback:        lookback number for the vol. calculation
     :return:                list of tuples(date, price, return, stdev, volatility)
     """
+    smooth_factor = 5
     returns = []
     stdevs = []
     result = [(price_series[0][0], price_series[0][1], 0.0, 0.0, 0.0)]
     for i, item in enumerate(price_series[1:]):
         price = item[1]
-        prev_price = price_series[i][1]
+        prev_price = price_series[max(0, i - smooth_factor + 1)][1]
         ret = abs(price / prev_price - 1)
         returns.append(ret * -1 if price < prev_price else ret)
         stdevs.append(__stdev(returns[-lookback:]) if i else 0.0)
@@ -111,10 +112,14 @@ def main():
     lookback = 25
     volas = {}
     for market_id in market_ids:
+    # for market_id in [27]:
         print 'calculating', market_id
-        # price_series = market_series(id, dt.date(2007, 1, 3), dt.date(2008, 12, 31))
+        # price_series = market_series(market_id, dt.date(2007, 1, 3), dt.date(2008, 12, 31))
         price_series = market_series(market_id, start_date, end_date)
         volas[market_id] = __volatility_series(price_series, lookback)
+
+    # for v in volas[27]:
+    #     print v
 
 
 if __name__ == '__main__':
