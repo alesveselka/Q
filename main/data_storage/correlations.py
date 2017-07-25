@@ -45,34 +45,33 @@ def __investment_universe(name):
     return cursor.fetchone()
 
 
-def __market_codes(market_id):
+def __market_code(market_id):
     cursor = connection.cursor()
     cursor.execute("""
         SELECT name, code, data_codes
         FROM market
         WHERE id = '%s';
     """ % market_id)
-    return cursor.fetchone()
+    codes = cursor.fetchone()
+    return ''.join([codes[1], '2']) if 'C' in codes[2] else codes[1]
 
 
-def market_series(market_id, start_date, end_date):
-    codes = __market_codes(market_id)
-    code = ''.join([codes[1], '2']) if 'C' in codes[2] else codes[1]
+def market_series(market_id, market_code, start_date, end_date):
     cursor = connection.cursor()
     continuous_query = """
             SELECT price_date, settle_price
-            FROM continuous_spliced
-            # FROM continuous_adjusted
+            # FROM continuous_spliced
+            FROM continuous_adjusted
             WHERE market_id = '%s'
             AND code = '%s'
-            # AND roll_strategy_id = 2
+            AND roll_strategy_id = 2
             AND DATE(price_date) >= '%s'
             AND DATE(price_date) <= '%s'
             ORDER BY price_date;
         """
     cursor.execute(continuous_query % (
         market_id,
-        code,
+        market_code,
         start_date.strftime('%Y-%m-%d'),
         end_date.strftime('%Y-%m-%d')
     ))
@@ -123,16 +122,17 @@ def __volatility_series(price_series, lookback):
     return result, indexes
 
 
-def calculate_volatility(market_id, start_date, end_date, lookback):
+def calculate_volatility(market_id, market_code, start_date, end_date, lookback):
     """
     Calculate volatility for market specified by the id passed in
     
     :param market_id:   ID of the market for which to calculate volatility
+    :param market_code: Code symbol of the market instrument
     :param start_date:  starting date of calculation
     :param end_date:    end date of calculation
     :param lookback:    lookback window
     """
-    price_series = market_series(market_id, start_date, end_date)
+    price_series = market_series(market_id, market_code, start_date, end_date)
     volatility[market_id] = __volatility_series(price_series, lookback)
 
 
@@ -182,16 +182,18 @@ def calculate_correlation(market_id_a, market_id_b, lookback):
 def main():
     start = time.time()
     investment_universe = __investment_universe('25Y')
-    start_date = dt.date(1900, 1, 1)
-    end_date = dt.date(9999, 12, 31)
-    market_ids = investment_universe[2].split(',')
+    start_date = dt.date(2007, 1, 1)#dt.date(1900, 1, 1)
+    end_date = dt.date(2007, 12, 31)#dt.date(9999, 12, 31)
+    # market_ids = investment_universe[2].split(',')
+    market_ids = ['55','79', '9']
     market_id_pairs = [c for c in combinations(map(str, market_ids), 2)]
+    market_codes = {market_id: __market_code(market_id) for market_id in market_ids}
     lookback = 25
 
     msg = 'Calculating volatility'
     length = float(len(market_ids))
     map(lambda i: log(msg, i[1], i[0], length)
-                  and calculate_volatility(i[1], start_date, end_date, lookback), enumerate(market_ids))
+                  and calculate_volatility(i[1], market_codes[i[1]], start_date, end_date, lookback), enumerate(market_ids))
 
     msg = 'Calculating correlation'
     length = float(len(market_id_pairs))
