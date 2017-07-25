@@ -61,11 +61,11 @@ def market_series(market_id, market_code, start_date, end_date):
     cursor = connection.cursor()
     continuous_query = """
             SELECT price_date, settle_price
-            # FROM continuous_spliced
-            FROM continuous_adjusted
+            FROM continuous_spliced
+            # FROM continuous_adjusted
             WHERE market_id = '%s'
             AND code = '%s'
-            AND roll_strategy_id = 2
+            # AND roll_strategy_id = 2
             AND DATE(price_date) >= '%s'
             AND DATE(price_date) <= '%s'
             ORDER BY price_date;
@@ -189,15 +189,19 @@ def aggregate_values(market_ids, market_codes, lookback):
     :param lookback:        lookback window used for calculating the values
     :return:                list of tuples(market_id, market_code, lookback, date, move_vol, dev_vol, move_corr, dev_corr)
     """
+    msg = 'Aggregating values'
+    length = float(len(market_ids))
+
     DEVIATION_VOL, MOVEMENT_VOL, MOVEMENT_CORR, DEVIATION_CORR = tuple([5, 6, 1, 2])
     values = []
     corr_keys = correlation.keys()
-    for market_id in market_ids:
-        code = market_codes[market_id]
+    for i, market_id in enumerate(market_ids):
+        market_code = market_codes[market_id]
+        log(msg, market_code, i, length)
+
         vol, vol_indexes = volatility[market_id]
         pairs = [k for k in corr_keys if market_id in k.split('_')]
         other_ids = filter(lambda i: i != market_id, reduce(lambda r, p: r + p.split('_'), pairs, []))
-        print market_id, pairs, other_ids
         for date in sorted(vol_indexes.keys()):
             v = vol[vol_indexes[date]]
             if v[MOVEMENT_VOL] and v[DEVIATION_VOL]:
@@ -209,17 +213,49 @@ def aggregate_values(market_ids, market_codes, lookback):
                     move_corrs[other_id] = corr[corr_index[date]][MOVEMENT_CORR] if date in corr_index else 0.0
                     dev_corrs[other_id] = corr[corr_index[date]][DEVIATION_CORR] if date in corr_index else 0.0
 
-                print date, code, v[MOVEMENT_VOL], v[DEVIATION_VOL], move_corrs, dev_corrs
-                values.append((market_id, code, lookback, date, v[MOVEMENT_VOL], v[DEVIATION_VOL], move_corrs, dev_corrs))
+                values.append((
+                    int(market_id),
+                    market_code,
+                    lookback,
+                    date,
+                    v[MOVEMENT_VOL],
+                    v[DEVIATION_VOL],
+                    json.dumps(move_corrs),
+                    json.dumps(dev_corrs)
+                ))
+
+    return values
+
+
+def insert_values(values, lookback):
+    connection.cursor().execute('DELETE FROM `market_correlation` WHERE lookback = %s' % lookback)
+
+    columns = [
+        'market_id',
+        'market_code',
+        'lookback',
+        'date',
+        'movement_volatility',
+        'dev_volatility',
+        'movement_correlations',
+        'dev_correlations'
+    ]
+    command = 'INSERT INTO `market_correlation` (%s) VALUES(%s)' % (', '.join(columns), ('%s, ' * len(columns))[:-2])
+
+    with connection:
+        cursor = connection.cursor()
+        cursor.executemany(command, values)
 
 
 def main(lookback):
     start = time.time()
     investment_universe = __investment_universe('25Y')
-    start_date = dt.date(2007, 1, 1)#dt.date(1900, 1, 1)
-    end_date = dt.date(2007, 12, 31)#dt.date(9999, 12, 31)
-    # market_ids = investment_universe[2].split(',')
-    market_ids = ['55','79', '9']
+    start_date = dt.date(1900, 1, 1)
+    # start_date = dt.date(2007, 1, 1)
+    end_date = dt.date(9999, 12, 31)
+    # end_date = dt.date(2007, 12, 31)
+    market_ids = investment_universe[2].split(',')
+    # market_ids = ['55','79', '9']
     market_id_pairs = [c for c in combinations(map(str, market_ids), 2)]
     market_codes = {market_id: __market_code(market_id) for market_id in market_ids}
 
@@ -235,7 +271,12 @@ def main(lookback):
 
     log(msg, index=int(length), length=length, complete=True)
 
-    aggregate_values(market_ids, market_codes, lookback)
+    msg = 'Aggregating values'
+    values = aggregate_values(market_ids, market_codes, lookback)
+    log(msg, index=len(market_ids), length=float(len(market_ids)), complete=True)
+
+    print 'Inserting values'
+    insert_values(values, lookback)
 
     print 'Time:', time.time() - start, (time.time() - start) / 60
 
