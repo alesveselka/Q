@@ -1,6 +1,8 @@
 #!/usr/bin/python
 
 import os
+import sys
+import time
 import datetime as dt
 import MySQLdb as mysql
 from math import sqrt
@@ -13,6 +15,18 @@ connection = mysql.connect(
     os.environ['DB_PASS'],
     os.environ['DB_NAME']
 )
+volatility = {}
+correlation = {}
+
+
+def log(message, code='', index=0, length=0.0, complete=False):
+    sys.stdout.write('%s\r' % (' ' * 80))
+    if complete:
+        sys.stdout.write('%s complete\r\n' % message)
+    else:
+        sys.stdout.write('%s %s (%d of %d) [%d %%]\r' % (message, code, index, length, index / length * 100))
+    sys.stdout.flush()
+    return True
 
 
 def __roll_strategy(name):
@@ -47,11 +61,11 @@ def market_series(market_id, start_date, end_date):
     cursor = connection.cursor()
     continuous_query = """
             SELECT price_date, settle_price
-            # FROM continuous_spliced
-            FROM continuous_adjusted
+            FROM continuous_spliced
+            # FROM continuous_adjusted
             WHERE market_id = '%s'
             AND code = '%s'
-            AND roll_strategy_id = 2
+            # AND roll_strategy_id = 2
             AND DATE(price_date) >= '%s'
             AND DATE(price_date) <= '%s'
             ORDER BY price_date;
@@ -109,34 +123,28 @@ def __volatility_series(price_series, lookback):
     return result, indexes
 
 
-# def __correlations(market_id1, market_id2):
+def calculate_volatility(market_id, start_date, end_date, lookback):
+    """
+    Calculate volatility for market specified by the id passed in
+    
+    :param market_id:   ID of the market for which to calculate volatility
+    :param start_date:  starting date of calculation
+    :param end_date:    end date of calculation
+    :param lookback:    lookback window
+    """
+    price_series = market_series(market_id, start_date, end_date)
+    volatility[market_id] = __volatility_series(price_series, lookback)
 
 
-def main():
-    investment_universe = __investment_universe('25Y')
-    start_date = dt.date(1900, 1, 1)
-    end_date = dt.date(9999, 12, 31)
-    market_ids = investment_universe[2].split(',')
-    market_id_pairs = [c for c in combinations(map(int, market_ids), 2)]
-
-    # W = 33
-    # KW = 25
-    # MW = 27
-    # SP = 55
-    # TU = 79
-
-    start_date = dt.date(2007, 1, 3)
-    end_date = dt.date(2008, 12, 31)
-    lookback = 25
-    volas = {}
-    # for market_id in market_ids:
-    for market_id in [55, 79]:
-        print 'calculating volatility', market_id
-        price_series = market_series(market_id, start_date, end_date)
-        volas[market_id] = __volatility_series(price_series, lookback)
-
-    date_range = [start_date + dt.timedelta(days=i) for i in xrange(0, (end_date - start_date).days + 1)]
-    DATE = 0
+def calculate_correlation(market_id_a, market_id_b, lookback):
+    """
+    Calculate correlations between two markets which IDs are passed in
+    
+    :param market_id_a:     ID of first market
+    :param market_id_b:     ID of second market
+    :param lookback:        lookback window for the correlation calculation
+    """
+    DATE = 0,
     PRICE = 1
     RETURN = 2
     DEVIATION = 3
@@ -144,27 +152,60 @@ def main():
     DEVIATION_VOL = 5
     MOVEMENT_VOL = 6
 
-    # for pair in market_id_pairs:
-    for pair in [(55, 79)]:
-        print 'calculating correlation', pair
-        vol_a, vol_a_indexes = volas[pair[0]]
-        vol_b, vol_b_indexes = volas[pair[1]]
+    result = []
+    indexes = {}
 
-        for i, date in enumerate(date_range):
-            if date in vol_a_indexes and vol_a[vol_a_indexes[date]][DEVIATION_VOL] and date in vol_b_indexes and vol_b[vol_b_indexes[date]][DEVIATION_VOL]:
-            # vol_a_record = [v for v in vol_a if v[DATE] == date]
-            # vol_b_record = [v for v in vol_a if v[DATE] == date]
-            # if date in vol_a and vol_a[date][DEVIATION_VOL] and date in vol_b and vol_b[date][DEVIATION_VOL]:
-            # if len(vol_a_record) and vol_a_record[0][DEVIATION_VOL] and len(vol_b_record) and vol_b_record[0][DEVIATION_VOL]:
+    vol_a, vol_a_indexes = volatility[market_id_a]
+    vol_b, vol_b_indexes = volatility[market_id_b]
+    first_date = max(vol_a[0][0], vol_b[0][0])
+    last_date = min(vol_a[-1][0], vol_b[-1][0])
+    date_range = [first_date + dt.timedelta(days=i) for i in xrange(0, (last_date - first_date).days + 1)]
+    for i, date in enumerate(date_range):
+        if date in vol_a_indexes and date in vol_b_indexes:
+            index_a = vol_a_indexes[date]
+            index_b = vol_b_indexes[date]
+            if vol_a[index_a][DEVIATION_VOL] and vol_b[index_b][DEVIATION_VOL]:
+                return_sum = sum(r[0] * r[1] for r in zip(
+                    [v[RETURN] for v in vol_a[index_a-lookback+1:index_a+1]],
+                    [v[RETURN] for v in vol_b[index_b-lookback+1:index_b+1]]
+                ))
+                deviation_sum = sum(d[0] * d[1] for d in zip(
+                    [v[DEVIATION] for v in vol_a[index_a-lookback+1:index_a+1]],
+                    [v[DEVIATION] for v in vol_b[index_b-lookback+1:index_b+1]]
+                ))
+                move_vol_a = vol_a[index_a][MOVEMENT_VOL]
+                move_vol_b = vol_b[index_b][MOVEMENT_VOL]
+                dev_vol_a = vol_a[index_a][DEVIATION_VOL]
+                dev_vol_b = vol_b[index_b][DEVIATION_VOL]
+                movement_corr = return_sum / (lookback * move_vol_a * move_vol_b) if move_vol_a and move_vol_b else 0.0
+                deviation_corr = deviation_sum / ((lookback - 1) * dev_vol_a * dev_vol_b) if dev_vol_a and dev_vol_b else 0.0
 
-                index_a = vol_a_indexes[date] + 1
-                index_b = vol_b_indexes[date] + 1
-                returns_a = [v[RETURN] for v in vol_a[index_a-lookback:index_a]]
-                returns_b = [v[RETURN] for v in vol_b[index_b-lookback:index_b]]
+                result.append((date, movement_corr, deviation_corr))
+                indexes[date] = len(result) - 1
 
-                movement_correlation = sum(r[0] * r[1] for r in zip(returns_a, returns_b)) / (lookback * vol_a[vol_a_indexes[date]][MOVEMENT_VOL] * vol_b[vol_b_indexes[date]][MOVEMENT_VOL])
+    correlation['%s_%s' % (market_id_a, market_id_b)] = result, indexes
 
-                print i, date, movement_correlation
+
+def main():
+    start = time.time()
+    investment_universe = __investment_universe('25Y')
+    start_date = dt.date(1900, 1, 1)
+    end_date = dt.date(9999, 12, 31)
+    market_ids = investment_universe[2].split(',')
+    market_id_pairs = [c for c in combinations(map(str, market_ids), 2)]
+    lookback = 25
+
+    msg = 'Calculating volatility'
+    length = float(len(market_ids))
+    map(lambda i: log(msg, i[1], i[0], length)
+                  and calculate_volatility(i[1], start_date, end_date, lookback), enumerate(market_ids))
+
+    msg = 'Calculating correlation'
+    length = float(len(market_id_pairs))
+    map(lambda i: log(msg, i[1], i[0], length)
+                  and calculate_correlation(i[1][0], i[1][1], lookback), enumerate(market_id_pairs))
+
+    print 'Time:', time.time() - start, (time.time() - start) / 60
 
 
 if __name__ == '__main__':
