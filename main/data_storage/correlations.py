@@ -198,6 +198,8 @@ def main():
     map(lambda i: log(msg, i[1], i[0], length)
                   and calculate_correlation(i[1][0], i[1][1], lookback), enumerate(market_id_pairs))
 
+    log(msg, index=int(length), length=length, complete=True)
+
     print 'Time:', time.time() - start, (time.time() - start) / 60
 
 
