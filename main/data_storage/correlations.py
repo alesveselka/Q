@@ -144,14 +144,7 @@ def calculate_correlation(market_id_a, market_id_b, lookback):
     :param market_id_b:     ID of second market
     :param lookback:        lookback window for the correlation calculation
     """
-    DATE = 0,
-    PRICE = 1
-    RETURN = 2
-    DEVIATION = 3
-    DEVIATION_SQUARED = 4
-    DEVIATION_VOL = 5
-    MOVEMENT_VOL = 6
-
+    DATE, PRICE, RETURN, DEVIATION, DEVIATION_SQUARED, DEVIATION_VOL, MOVEMENT_VOL = tuple(range(7))
     result = []
     indexes = {}
 
