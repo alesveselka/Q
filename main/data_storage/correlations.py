@@ -202,6 +202,28 @@ def main():
 
     log(msg, index=int(length), length=length, complete=True)
 
+    DATE, PRICE, RETURN, DEVIATION, DEVIATION_SQUARED, DEVIATION_VOL, MOVEMENT_VOL = tuple(range(7))
+
+    corr_keys = correlation.keys()
+    for market_id in market_ids:
+        vol, vol_indexes = volatility[market_id]
+        pairs = [k for k in corr_keys if market_id in k.split('_')]
+        other_ids = filter(lambda i: i != market_id, reduce(lambda r, p: r + p.split('_'), pairs, []))
+        print market_id, pairs, other_ids
+        for date in sorted(vol_indexes.keys()):
+            v = vol[vol_indexes[date]]
+            if v[MOVEMENT_VOL] and v[DEVIATION_VOL]:
+                correlations = {}
+                for other_id in other_ids:
+                    pair = [p for p in pairs if market_id in p.split('_') and other_id in p.split('_')][0]
+                    corr, corr_index = correlation[pair]
+                    correlations[other_id] = (
+                        corr[corr_index[date]][1] if date in corr_index else 0.0,
+                        corr[corr_index[date]][2] if date in corr_index else 0.0
+                    )
+
+                print date, v[MOVEMENT_VOL], v[DEVIATION_VOL], correlations
+
     print 'Time:', time.time() - start, (time.time() - start) / 60
 
 
