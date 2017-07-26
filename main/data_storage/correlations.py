@@ -227,9 +227,11 @@ def aggregate_values(market_ids, market_codes, lookback):
     return values
 
 
-def insert_values(values, lookback):
+def delete_values(lookback):
     connection.cursor().execute('DELETE FROM `market_correlation` WHERE lookback = %s' % lookback)
 
+
+def insert_values(values):
     columns = [
         'market_id',
         'market_code',
@@ -275,8 +277,14 @@ def main(lookback):
     values = aggregate_values(market_ids, market_codes, lookback)
     log(msg, index=len(market_ids), length=float(len(market_ids)), complete=True)
 
-    print 'Inserting values'
-    insert_values(values, lookback)
+    msg = 'Inserting values'
+    length = float(len(values))
+    block = int(length / 10)
+    delete_values(lookback)
+    for i in range(10 + 1):
+        log(msg, '', i, length)
+        insert_values(values[i*block:(i+1)*block])
+    log(msg, index=int(length), length=length, complete=True)
 
     print 'Time:', time.time() - start, (time.time() - start) / 60
 
