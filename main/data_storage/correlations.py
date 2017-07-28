@@ -18,6 +18,8 @@ connection = mysql.connect(
 )
 market_volatility = {}
 market_correlation = {}
+group_volatility = {}
+group_correlation = {}
 
 
 def log(message, code='', index=0, length=0.0, complete=False):
@@ -55,6 +57,12 @@ def __market_code(market_id):
     """ % market_id)
     codes = cursor.fetchone()
     return ''.join([codes[1], '2']) if 'C' in codes[2] else codes[1]
+
+
+def __group_id(market_id):
+    cursor = connection.cursor()
+    cursor.execute("SELECT group_id FROM `market` WHERE id = '%s';" % market_id)
+    return cursor.fetchone()
 
 
 def market_series(market_id, market_code, start_date, end_date):
@@ -255,14 +263,15 @@ def insert_values(values):
 def main(lookback):
     start = time.time()
     investment_universe = __investment_universe('25Y')
-    start_date = dt.date(1900, 1, 1)
-    # start_date = dt.date(2007, 1, 1)
-    end_date = dt.date(9999, 12, 31)
-    # end_date = dt.date(2007, 12, 31)
-    market_ids = investment_universe[2].split(',')
-    # market_ids = ['55','79']
+    # start_date = dt.date(1900, 1, 1)
+    start_date = dt.date(2007, 1, 1)
+    # end_date = dt.date(9999, 12, 31)
+    end_date = dt.date(2007, 12, 31)
+    # market_ids = investment_universe[2].split(',')
+    market_ids = ['55','79']
     market_id_pairs = [c for c in combinations(map(str, market_ids), 2)]
     market_codes = {market_id: __market_code(market_id) for market_id in market_ids}
+    groups = {market_id: __group_id(market_id)[0] for market_id in market_ids}
 
     msg = 'Calculating volatility'
     length = float(len(market_ids))
