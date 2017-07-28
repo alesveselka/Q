@@ -16,8 +16,8 @@ connection = mysql.connect(
     os.environ['DB_PASS'],
     os.environ['DB_NAME']
 )
-volatility = {}
-correlation = {}
+market_volatility = {}
+market_correlation = {}
 
 
 def log(message, code='', index=0, length=0.0, complete=False):
@@ -135,7 +135,7 @@ def calculate_volatility(market_id, market_code, start_date, end_date, lookback)
     :param lookback:    lookback window
     """
     price_series = market_series(market_id, market_code, start_date, end_date)
-    volatility[market_id] = __volatility_series(price_series, lookback)
+    market_volatility[market_id] = __volatility_series(price_series, lookback)
 
 
 def calculate_correlation(market_id_a, market_id_b, lookback):
@@ -150,8 +150,8 @@ def calculate_correlation(market_id_a, market_id_b, lookback):
     result = []
     indexes = {}
 
-    vol_a, vol_a_indexes = volatility[market_id_a]
-    vol_b, vol_b_indexes = volatility[market_id_b]
+    vol_a, vol_a_indexes = market_volatility[market_id_a]
+    vol_b, vol_b_indexes = market_volatility[market_id_b]
     first_date = max(vol_a[0][0], vol_b[0][0])
     last_date = min(vol_a[-1][0], vol_b[-1][0])
     date_range = [first_date + dt.timedelta(days=i) for i in xrange(0, (last_date - first_date).days + 1)]
@@ -178,7 +178,7 @@ def calculate_correlation(market_id_a, market_id_b, lookback):
                 result.append((date, movement_corr, deviation_corr))
                 indexes[date] = len(result) - 1
 
-    correlation['%s_%s' % (market_id_a, market_id_b)] = result, indexes
+    market_correlation['%s_%s' % (market_id_a, market_id_b)] = result, indexes
 
 
 def aggregate_values(market_ids, market_codes, lookback):
@@ -195,12 +195,12 @@ def aggregate_values(market_ids, market_codes, lookback):
 
     DEVIATION_VOL, MOVEMENT_VOL, MOVEMENT_CORR, DEVIATION_CORR = tuple([5, 6, 1, 2])
     values = []
-    corr_keys = correlation.keys()
+    corr_keys = market_correlation.keys()
     for i, market_id in enumerate(market_ids):
         market_code = market_codes[market_id]
         log(msg, market_code, i, length)
 
-        vol, vol_indexes = volatility[market_id]
+        vol, vol_indexes = market_volatility[market_id]
         pairs = [k for k in corr_keys if market_id in k.split('_')]
         other_ids = filter(lambda i: i != market_id, reduce(lambda r, p: r + p.split('_'), pairs, []))
         for date in sorted(vol_indexes.keys()):
@@ -210,7 +210,7 @@ def aggregate_values(market_ids, market_codes, lookback):
                 dev_corrs = {}
                 for other_id in other_ids:
                     pair = [p for p in pairs if market_id in p.split('_') and other_id in p.split('_')][0]
-                    corr, corr_index = correlation[pair]
+                    corr, corr_index = market_correlation[pair]
                     move_corrs[other_id] = corr[corr_index[date]][MOVEMENT_CORR] if date in corr_index \
                         else (json.loads(values[-1][6])[other_id] if len(values) and int(market_id) == values[-1][0] else 0.0)
                     dev_corrs[other_id] = corr[corr_index[date]][DEVIATION_CORR] if date in corr_index \
