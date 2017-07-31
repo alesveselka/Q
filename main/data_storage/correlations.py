@@ -8,6 +8,7 @@ import datetime as dt
 import MySQLdb as mysql
 from math import sqrt
 from itertools import combinations
+from collections import defaultdict
 
 
 connection = mysql.connect(
@@ -18,8 +19,8 @@ connection = mysql.connect(
 )
 market_volatility = {}
 market_correlation = {}
-group_volatility = {}
-group_correlation = {}
+group_volatility = ()
+group_correlation = ()
 
 
 def log(message, code='', index=0, length=0.0, complete=False):
@@ -93,22 +94,20 @@ def __stdev(values):
     return sqrt(sum((v - mean)**2 for v in values) / (length - 1))
 
 
-def __volatility_series(price_series, lookback):
+def calculate_volatility(market_id, market_code, start_date, end_date, lookback):
     """
-    Return calculated volatility
+    Calculate volatility for market specified by the id passed in.
+    Result is tuple of list of tuples(
+        date, price, return, deviation, deviation-squared, deviation-volatility, movement-volatility
+    ), and dict of indexes
     
-    :param price_series:    price series to calculate volatility on
-    :param lookback:        lookback number for the vol. calculation
-    :return:                tuple of list of tuples(
-                                date
-                                price, 
-                                return, 
-                                deviation, 
-                                deviation-squared, 
-                                deviation-volatility, 
-                                movement-volatility
-                            ), and dict of indexes
+    :param market_id:   ID of the market for which to calculate volatility
+    :param market_code: Code symbol of the market instrument
+    :param start_date:  starting date of calculation
+    :param end_date:    end date of calculation
+    :param lookback:    lookback window
     """
+    price_series = market_series(market_id, market_code, start_date, end_date)
     smooth_factor = 5
     returns = []
     deviations = []
@@ -129,21 +128,7 @@ def __volatility_series(price_series, lookback):
         result.append((item[0], price, returns[-1], deviations[-1], deviations_squared[-1], deviation_vol, movement_vol))
         indexes[item[0]] = len(result) - 1
 
-    return result, indexes
-
-
-def calculate_volatility(market_id, market_code, start_date, end_date, lookback):
-    """
-    Calculate volatility for market specified by the id passed in
-    
-    :param market_id:   ID of the market for which to calculate volatility
-    :param market_code: Code symbol of the market instrument
-    :param start_date:  starting date of calculation
-    :param end_date:    end date of calculation
-    :param lookback:    lookback window
-    """
-    price_series = market_series(market_id, market_code, start_date, end_date)
-    market_volatility[market_id] = __volatility_series(price_series, lookback)
+    market_volatility[market_id] = result, indexes
 
 
 def calculate_correlation(market_id_a, market_id_b, lookback):
@@ -187,6 +172,41 @@ def calculate_correlation(market_id_a, market_id_b, lookback):
                 indexes[date] = len(result) - 1
 
     market_correlation['%s_%s' % (market_id_a, market_id_b)] = result, indexes
+
+
+def calculate_groups(market_ids, groups, start_date, end_date):
+    """
+    Calculate group volatility as averages of markets volatility in each group
+     
+    :param market_ids:  IDs of markets
+    :param groups:      dict of market IDs and associated group IDs
+    :param start_date:  start date of the series
+    :param end_date:    end date of the series
+    """
+    DEVIATION_VOL, MOVEMENT_VOL, MOVEMENT_CORR, DEVIATION_CORR = tuple([5, 6, 1, 2])
+    result = []
+    indexes = {}
+    date_range = [start_date + dt.timedelta(days=i) for i in xrange(0, (end_date - start_date).days + 1)]
+    for i, date in enumerate(date_range):
+        mov_volas = defaultdict(list)
+        dev_volas = defaultdict(list)
+        for market_id in market_ids:
+            group_id = groups[market_id]
+            vol, vol_indexes = market_volatility[market_id]
+            if date in vol_indexes:
+                if vol[vol_indexes[date]][MOVEMENT_VOL]:
+                    mov_volas[group_id].append(vol[vol_indexes[date]][MOVEMENT_VOL])
+                if vol[vol_indexes[date]][DEVIATION_VOL]:
+                    dev_volas[group_id].append(vol[vol_indexes[date]][DEVIATION_VOL])
+
+        result.append((
+            date,
+            {k: sum(mov_volas[k]) / len(mov_volas[k]) for k in mov_volas.keys()},
+            {k: sum(dev_volas[k]) / len(dev_volas[k]) for k in dev_volas.keys()}
+        ))
+        indexes[date] = len(result) - 1
+
+    group_volatility = result, indexes
 
 
 def aggregate_values(market_ids, market_codes, lookback):
@@ -263,12 +283,13 @@ def insert_values(values):
 def main(lookback):
     start = time.time()
     investment_universe = __investment_universe('25Y')
-    # start_date = dt.date(1900, 1, 1)
-    start_date = dt.date(2007, 1, 1)
-    # end_date = dt.date(9999, 12, 31)
+    # start_date = dt.date(1979, 1, 1)
+    start_date = dt.date(2007, 1, 3)
+    # end_date = dt.date(2017, 12, 31)
     end_date = dt.date(2007, 12, 31)
     # market_ids = investment_universe[2].split(',')
     market_ids = ['55','79']
+    # market_ids = ['79', '80']
     market_id_pairs = [c for c in combinations(map(str, market_ids), 2)]
     market_codes = {market_id: __market_code(market_id) for market_id in market_ids}
     groups = {market_id: __group_id(market_id)[0] for market_id in market_ids}
@@ -283,22 +304,24 @@ def main(lookback):
     map(lambda i: log(msg, i[1], i[0], length)
                   and calculate_correlation(i[1][0], i[1][1], lookback), enumerate(market_id_pairs))
 
+    calculate_groups(market_ids, groups, start_date, end_date)
+
     log(msg, index=int(length), length=length, complete=True)
 
-    msg = 'Aggregating values'
-    values = aggregate_values(market_ids, market_codes, lookback)
-    log(msg, index=len(market_ids), length=float(len(market_ids)), complete=True)
-
-    msg = 'Inserting values'
-    length = float(len(values))
-    block = int(length / 10)
-    delete_values(lookback)
-    for i in range(10 + 1):
-        log(msg, '', i, length)
-        insert_values(values[i*block:(i+1)*block])
-    log(msg, index=int(length), length=length, complete=True)
-
-    print 'Time:', time.time() - start, (time.time() - start) / 60
+    # msg = 'Aggregating values'
+    # values = aggregate_values(market_ids, market_codes, lookback)
+    # log(msg, index=len(market_ids), length=float(len(market_ids)), complete=True)
+    #
+    # msg = 'Inserting values'
+    # length = float(len(values))
+    # block = int(length / 10)
+    # delete_values(lookback)
+    # for i in range(10 + 1):
+    #     log(msg, '', i, length)
+    #     insert_values(values[i*block:(i+1)*block])
+    # log(msg, index=int(length), length=length, complete=True)
+    #
+    # print 'Time:', time.time() - start, (time.time() - start) / 60
 
 
 if __name__ == '__main__':
