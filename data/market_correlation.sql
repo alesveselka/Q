@@ -11,5 +11,6 @@ CREATE TABLE `market_correlation`(
   `movement_correlations` TEXT CHARACTER SET utf8 NULL,
   `dev_correlations` TEXT CHARACTER SET utf8 NULL,
   PRIMARY KEY (`id`),
+  KEY `index_lookback` (`lookback`),
   KEY `index_market_id` (`market_id`, `market_code`, `lookback`)
 ) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;
