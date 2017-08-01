@@ -5,6 +5,7 @@ CREATE TABLE `group_correlation`(
   `group_id` int NOT NULL,
   `lookback` int NOT NULL,
   `date` date NOT NULL,
+  `returns` double NULL,
   `movement_volatility` double NULL,
   `dev_volatility` double NULL,
   `movement_correlations` TEXT CHARACTER SET utf8 NULL,
