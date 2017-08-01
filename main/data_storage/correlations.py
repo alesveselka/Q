@@ -328,6 +328,7 @@ def aggregate_group_values(group_ids, lookback):
     msg = 'Aggregating group values'
     length = float(len(group_ids))
 
+    RETURN = 1
     MOVEMENT_VOL = 3
     DEVIATION_VOL = 4
     MOVEMENT_CORR = 1
@@ -341,11 +342,13 @@ def aggregate_group_values(group_ids, lookback):
         other_ids = filter(lambda i: i != group_id, reduce(lambda r, p: r + p.split('_'), pairs, []))
         for date in sorted(group_volatility_indexes):
             i = group_volatility_indexes[date]
+            rets = group_volatility[i][RETURN]
             move_vols = group_volatility[i][MOVEMENT_VOL]
             dev_vols = group_volatility[i][DEVIATION_VOL]
             if len(move_vols) and len(dev_vols):
-                move_vol = move_vols[group_id] if group_id in move_vols else (values[-1][3] if len(values) else 0.0)
-                dev_vol = dev_vols[group_id] if group_id in dev_vols else (values[-1][4] if len(values) else 0.0)
+                ret = rets[group_id] if group_id in rets else (values[-1][3] if len(values) else 0.0)
+                move_vol = move_vols[group_id] if group_id in move_vols else (values[-1][4] if len(values) else 0.0)
+                dev_vol = dev_vols[group_id] if group_id in dev_vols else (values[-1][5] if len(values) else 0.0)
                 move_corrs = {}
                 dev_corrs = {}
                 for other_id in other_ids:
@@ -354,7 +357,7 @@ def aggregate_group_values(group_ids, lookback):
                     move_corrs[other_id] = corr[corr_indexes[date]][MOVEMENT_CORR] if date in corr_indexes else 0.0
                     dev_corrs[other_id] = corr[corr_indexes[date]][DEVIATION_CORR] if date in corr_indexes else 0.0
 
-                values.append((int(group_id), lookback, date, move_vol, dev_vol, json.dumps(move_corrs), json.dumps(dev_corrs)))
+                values.append((int(group_id), lookback, date, ret, move_vol, dev_vol, json.dumps(move_corrs), json.dumps(dev_corrs)))
 
     return values
 
@@ -382,6 +385,7 @@ def insert_group_values(values):
         'group_id',
         'lookback',
         'date',
+        'returns',
         'movement_volatility',
         'dev_volatility',
         'movement_correlations',
