@@ -264,7 +264,7 @@ def calculate_group_correlation(group_id_a, group_id_b, lookback):
     group_correlation['%s_%s' % (group_id_a, group_id_b)] = result, indexes
 
 
-def aggregate_values(market_ids, market_codes, lookback):
+def aggregate_market_values(market_ids, market_codes, lookback):
     """
     Aggregate volatility, correlation and other values for inserting to the DB
     
@@ -370,7 +370,7 @@ def main(lookback):
     log(msg, index=int(length), length=length, complete=True)
 
     # msg = 'Aggregating values'
-    # values = aggregate_values(market_ids, market_codes, lookback)
+    # values = aggregate_market_values(market_ids, market_codes, lookback)
     # log(msg, index=len(market_ids), length=float(len(market_ids)), complete=True)
     #
     # msg = 'Inserting values'
