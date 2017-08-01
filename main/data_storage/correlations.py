@@ -250,13 +250,15 @@ def calculate_group_correlation(group_id_a, group_id_b, lookback):
             return_sum = sum(r[group_id_a] * r[group_id_b] for r in returns if group_id_a in r and group_id_b in r)
             move_vol_a = move_vol[group_id_a] if group_id_a in move_vol else None
             move_vol_b = move_vol[group_id_b] if group_id_b in move_vol else None
-            movement_corr = return_sum / (lookback * move_vol_a * move_vol_b) if move_vol_a and move_vol_b else 0.0
+            movement_corr = return_sum / (lookback * move_vol_a * move_vol_b) if move_vol_a and move_vol_b \
+                else (result[-1][1] if len(result) else 0.0)
 
             deviations = [w[DEVIATIONS] for w in lookback_window]
             deviation_sum = sum(d[group_id_a] * d[group_id_b] for d in deviations if group_id_a in d and group_id_b in d)
             dev_vol_a = dev_vol[group_id_a] if group_id_a in dev_vol else None
             dev_vol_b = dev_vol[group_id_b] if group_id_b in dev_vol else None
-            deviation_corr = deviation_sum / ((lookback - 1) * dev_vol_a * dev_vol_b) if dev_vol_a and dev_vol_b else 0.0
+            deviation_corr = deviation_sum / ((lookback - 1) * dev_vol_a * dev_vol_b) if dev_vol_a and dev_vol_b \
+                else (result[-1][2] if len(result) else 0.0)
 
             result.append((date, movement_corr, deviation_corr))
             indexes[date] = len(result) - 1
@@ -273,7 +275,7 @@ def aggregate_market_values(market_ids, market_codes, lookback):
     :param lookback:        lookback window used for calculating the values
     :return:                list of tuples(market_id, market_code, lookback, date, move_vol, dev_vol, move_corr, dev_corr)
     """
-    msg = 'Aggregating values'
+    msg = 'Aggregating market values'
     length = float(len(market_ids))
 
     DEVIATION_VOL, MOVEMENT_VOL, MOVEMENT_CORR, DEVIATION_CORR = tuple([5, 6, 1, 2])
@@ -309,6 +311,48 @@ def aggregate_market_values(market_ids, market_codes, lookback):
                     json.dumps(move_corrs),
                     json.dumps(dev_corrs)
                 ))
+
+    return values
+
+
+def aggregate_group_values(group_ids, lookback):
+    """
+    Aggregate volatility, correlation and other values for inserting to the DB
+    
+    :param group_ids:   list of group IDs
+    :param lookback:    lookback window used for calculating the values
+    :return:            list of tuples(group_id, lookback, date, move_vol, dev_vol, move_corr, dev_corr)
+    """
+    msg = 'Aggregating group values'
+    length = float(len(group_ids))
+
+    MOVEMENT_VOL = 3
+    DEVIATION_VOL = 4
+    MOVEMENT_CORR = 1
+    DEVIATION_CORR = 2
+    values = []
+    corr_keys = group_correlation.keys()
+    for i, group_id in enumerate(group_ids):
+        log(msg, group_id, i, length)
+
+        pairs = [k for k in corr_keys if group_id in k.split('_')]
+        other_ids = filter(lambda i: i != group_id, reduce(lambda r, p: r + p.split('_'), pairs, []))
+        for date in sorted(group_volatility_indexes):
+            i = group_volatility_indexes[date]
+            move_vols = group_volatility[i][MOVEMENT_VOL]
+            dev_vols = group_volatility[i][DEVIATION_VOL]
+            if len(move_vols) and len(dev_vols):
+                move_vol = move_vols[group_id] if group_id in move_vols else values[-1][3]
+                dev_vol = dev_vols[group_id] if group_id in dev_vols else values[-1][4]
+                move_corrs = {}
+                dev_corrs = {}
+                for other_id in other_ids:
+                    pair = [p for p in pairs if group_id in p.split('_') and other_id in p.split('_')][0]
+                    corr, corr_indexes = group_correlation[pair]
+                    move_corrs[other_id] = corr[corr_indexes[date]][MOVEMENT_CORR] if date in corr_indexes else 0.0
+                    dev_corrs[other_id] = corr[corr_indexes[date]][DEVIATION_CORR] if date in corr_indexes else 0.0
+
+                values.append((int(group_id), lookback, date, move_vol, dev_vol, json.dumps(move_corrs), json.dumps(dev_corrs)))
 
     return values
 
@@ -368,6 +412,11 @@ def main(lookback):
                   and calculate_group_correlation(i[1][0], i[1][1], lookback), enumerate(group_id_pairs))
 
     log(msg, index=int(length), length=length, complete=True)
+
+    group_values = aggregate_group_values(groups.values(), lookback)
+
+    for v in group_values:
+        print v
 
     # msg = 'Aggregating values'
     # values = aggregate_market_values(market_ids, market_codes, lookback)
