@@ -72,11 +72,11 @@ def market_series(market_id, market_code, start_date, end_date):
     cursor = connection.cursor()
     continuous_query = """
             SELECT price_date, settle_price
-            # FROM continuous_spliced
-            FROM continuous_adjusted
+            FROM continuous_spliced
+            # FROM continuous_adjusted
             WHERE market_id = '%s'
             AND code = '%s'
-            AND roll_strategy_id = 2
+            # AND roll_strategy_id = 2
             AND DATE(price_date) >= '%s'
             AND DATE(price_date) <= '%s'
             ORDER BY price_date;
@@ -176,29 +176,29 @@ def calculate_correlation(market_id_a, market_id_b, lookback):
     market_correlation['%s_%s' % (market_id_a, market_id_b)] = result, indexes
 
 
-def calculate_group_volatility(market_ids, groups, start_date, end_date, lookback):
+def calculate_group_volatility(market_ids, groups, lookback):
     """
     Calculate group volatility as averages of markets volatility in each group
      
     :param market_ids:  IDs of markets
     :param groups:      dict of market IDs and associated group IDs
-    :param start_date:  start date of the series
-    :param end_date:    end date of the series
     :param lookback:    lookback window
     """
     msg = 'Calculating group volatility'
-    length = float(len(market_ids))
 
     DATE, PRICE, RETURN, DEVIATION, DEVIATION_SQUARED, DEVIATION_VOL, MOVEMENT_VOL = tuple(range(7))
-    date_range = [start_date + dt.timedelta(days=i) for i in xrange(0, (end_date - start_date).days + 1)]
+    vol_dates = sorted(set(sum([market_volatility[m][1].keys() for m in market_ids], [])))
+    date_range = [vol_dates[0] + dt.timedelta(days=i) for i in xrange(0, (vol_dates[-1] - vol_dates[0]).days + 1)]
+
+    length = float(len(date_range))
     for i, date in enumerate(date_range):
         returns = defaultdict(list)
         mov_volas = defaultdict(list)
         dev_volas = defaultdict(list)
         for market_id in market_ids:
-            log(msg, market_id, i, length)
-
             group_id = groups[market_id]
+            log(msg, group_id, i, length)
+
             vol, vol_indexes = market_volatility[market_id]
             if date in vol_indexes:
                 if vol[vol_indexes[date]][RETURN]:
@@ -224,6 +224,8 @@ def calculate_group_volatility(market_ids, groups, start_date, end_date, lookbac
                 {k: sum(dev_volas[k]) / len(dev_volas[k]) for k in dev_volas.keys()}
             ))
             group_volatility_indexes[date] = len(group_volatility) - 1
+
+    log(msg, index=int(length), length=length, complete=True)
 
 
 def calculate_group_correlation(group_id_a, group_id_b, lookback):
@@ -342,8 +344,8 @@ def aggregate_group_values(group_ids, lookback):
             move_vols = group_volatility[i][MOVEMENT_VOL]
             dev_vols = group_volatility[i][DEVIATION_VOL]
             if len(move_vols) and len(dev_vols):
-                move_vol = move_vols[group_id] if group_id in move_vols else values[-1][3]
-                dev_vol = dev_vols[group_id] if group_id in dev_vols else values[-1][4]
+                move_vol = move_vols[group_id] if group_id in move_vols else (values[-1][3] if len(values) else 0.0)
+                dev_vol = dev_vols[group_id] if group_id in dev_vols else (values[-1][4] if len(values) else 0.0)
                 move_corrs = {}
                 dev_corrs = {}
                 for other_id in other_ids:
@@ -357,11 +359,11 @@ def aggregate_group_values(group_ids, lookback):
     return values
 
 
-def delete_values(lookback):
-    connection.cursor().execute('DELETE FROM `market_correlation` WHERE lookback = %s' % lookback)
+def delete_values(table, lookback):
+    connection.cursor().execute('DELETE FROM `%s` WHERE lookback = %s' % (table, lookback))
 
 
-def insert_values(values):
+def insert_market_values(values):
     columns = [
         'market_id',
         'market_code',
@@ -372,27 +374,41 @@ def insert_values(values):
         'movement_correlations',
         'dev_correlations'
     ]
-    command = 'INSERT INTO `market_correlation` (%s) VALUES(%s)' % (', '.join(columns), ('%s, ' * len(columns))[:-2])
+    insert_values('market_correlation', columns, values)
 
+
+def insert_group_values(values):
+    columns = [
+        'group_id',
+        'lookback',
+        'date',
+        'movement_volatility',
+        'dev_volatility',
+        'movement_correlations',
+        'dev_correlations'
+    ]
+    insert_values('group_correlation', columns, values)
+
+
+def insert_values(table, columns, values):
+    command = 'INSERT INTO `%s` (%s) VALUES(%s)' % (table, ', '.join(columns), ('%s, ' * len(columns))[:-2])
     with connection:
         cursor = connection.cursor()
         cursor.executemany(command, values)
 
 
-def main(lookback):
+def main(lookback, persist_market_values=True, persist_group_values=True):
     start = time.time()
     investment_universe = __investment_universe('25Y')
-    # start_date = dt.date(1979, 1, 1)
-    start_date = dt.date(2007, 1, 3)
-    # end_date = dt.date(2017, 12, 31)
-    end_date = dt.date(2007, 12, 31)
-    # market_ids = investment_universe[2].split(',')
-    market_ids = ['55','79']
+    start_date = dt.date(1979, 1, 1)
+    # start_date = dt.date(2007, 1, 3)
+    end_date = dt.date(2017, 12, 31)
+    # end_date = dt.date(1993, 12, 31)
+    market_ids = investment_universe[2].split(',')
+    # market_ids = ['55','79']
     # market_ids = ['79', '80']
     market_id_pairs = [c for c in combinations(map(str, market_ids), 2)]
     market_codes = {market_id: __market_code(market_id) for market_id in market_ids}
-    groups = {market_id: str(__group_id(market_id)[0]) for market_id in market_ids}
-    group_id_pairs = [c for c in combinations(map(str, set(groups.values())), 2)]
 
     msg = 'Calculating volatility'
     length = float(len(market_ids))
@@ -403,36 +419,51 @@ def main(lookback):
     length = float(len(market_id_pairs))
     map(lambda i: log(msg, i[1], i[0], length)
                   and calculate_correlation(i[1][0], i[1][1], lookback), enumerate(market_id_pairs))
-
-    calculate_group_volatility(market_ids, groups, start_date, end_date, lookback)
-
-    msg = 'Calculating group correlation'
-    length = float(len(group_id_pairs))
-    map(lambda i: log(msg, i[1], i[0], length)
-                  and calculate_group_correlation(i[1][0], i[1][1], lookback), enumerate(group_id_pairs))
-
     log(msg, index=int(length), length=length, complete=True)
 
-    group_values = aggregate_group_values(groups.values(), lookback)
+    if persist_market_values:
+        msg = 'Aggregating market values'
+        market_values = aggregate_market_values(market_ids, market_codes, lookback)
+        log(msg, index=len(market_ids), length=float(len(market_ids)), complete=True)
 
-    for v in group_values:
-        print v
+        msg = 'Inserting market values'
+        length = float(len(market_values))
+        block = int(length / 10)
+        print 'Deleting market values with lookback', lookback
+        delete_values('market_correlation', lookback)
+        for i in range(10 + 1):
+            log(msg, '', i, 10.0)
+            insert_market_values(market_values[i*block:(i+1)*block])
+        log(msg, index=10, length=10.0, complete=True)
 
-    # msg = 'Aggregating values'
-    # values = aggregate_market_values(market_ids, market_codes, lookback)
-    # log(msg, index=len(market_ids), length=float(len(market_ids)), complete=True)
-    #
-    # msg = 'Inserting values'
-    # length = float(len(values))
-    # block = int(length / 10)
-    # delete_values(lookback)
-    # for i in range(10 + 1):
-    #     log(msg, '', i, length)
-    #     insert_values(values[i*block:(i+1)*block])
-    # log(msg, index=int(length), length=length, complete=True)
-    #
-    # print 'Time:', time.time() - start, (time.time() - start) / 60
+    if persist_group_values:
+        groups = {market_id: str(__group_id(market_id)[0]) for market_id in market_ids}
+        group_id_pairs = [c for c in combinations(map(str, set(groups.values())), 2)]
+
+        calculate_group_volatility(market_ids, groups, lookback)
+
+        msg = 'Calculating group correlation'
+        length = float(len(group_id_pairs))
+        map(lambda i: log(msg, i[1], i[0], length)
+                      and calculate_group_correlation(i[1][0], i[1][1], lookback), enumerate(group_id_pairs))
+        log(msg, index=int(length), length=length, complete=True)
+
+        msg = 'Aggregating group values'
+        group_values = aggregate_group_values(groups.values(), lookback)
+        log(msg, index=len(groups.values()), length=float(len(groups.values())), complete=True)
+
+        msg = 'Inserting group values'
+        length = float(len(group_values))
+        block = int(length / 10)
+        print 'Deleting group values with lookback', lookback
+        delete_values('group_correlation', lookback)
+        for i in range(10 + 1):
+            log(msg, '', i, 10.0)
+            insert_group_values(group_values[i*block:(i+1)*block])
+        log(msg, index=10, length=10.0, complete=True)
+
+    print 'Time:', time.time() - start, (time.time() - start) / 60
 
 
 if __name__ == '__main__':
-    main(25)
+    main(25, persist_market_values=False, persist_group_values=True)
