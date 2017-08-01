@@ -226,42 +226,42 @@ def calculate_group_volatility(market_ids, groups, start_date, end_date, lookbac
             group_volatility_indexes[date] = len(group_volatility) - 1
 
 
-def calculate_group_correlation(group_id_pairs, lookback):
+def calculate_group_correlation(group_id_a, group_id_b, lookback):
     """
     Calculate correlations between two markets which IDs are passed in
     
-    :param group_id_pairs:  list of pairs of group IDs
-    :param lookback:        lookback window for the correlation calculation
+    :param group_id_a:  first group ID for the calculation
+    :param group_id_b:  second group ID for the calculation
+    :param lookback:    lookback window for the correlation calculation
     """
     # TODO generalize together with 'calculate_correlation' function - mostly duplicate
     DATE, RETURNS, DEVIATIONS, MOVEMENT_VOL, DEVIATION_VOL = tuple(range(5))
     result = []
     indexes = {}
+    lookback_window = deque([], lookback)
 
-    for group_id_a, group_id_b in group_id_pairs:
-        lookback_window = deque([], lookback)
-        for date in sorted(group_volatility_indexes):
-            i = group_volatility_indexes[date]
-            lookback_window.append(group_volatility[i])
-            returns = [w[RETURNS] for w in lookback_window]
-            move_vol = group_volatility[i][MOVEMENT_VOL]
-            dev_vol = group_volatility[i][DEVIATION_VOL]
-            if len(move_vol) and len(dev_vol):
-                return_sum = sum(r[group_id_a] * r[group_id_b] for r in returns if group_id_a in r and group_id_b in r)
-                move_vol_a = move_vol[group_id_a] if group_id_a in move_vol else None
-                move_vol_b = move_vol[group_id_b] if group_id_b in move_vol else None
-                movement_corr = return_sum / (lookback * move_vol_a * move_vol_b) if move_vol_a and move_vol_b else 0.0
+    for date in sorted(group_volatility_indexes):
+        i = group_volatility_indexes[date]
+        lookback_window.append(group_volatility[i])
+        returns = [w[RETURNS] for w in lookback_window]
+        move_vol = group_volatility[i][MOVEMENT_VOL]
+        dev_vol = group_volatility[i][DEVIATION_VOL]
+        if len(move_vol) and len(dev_vol):
+            return_sum = sum(r[group_id_a] * r[group_id_b] for r in returns if group_id_a in r and group_id_b in r)
+            move_vol_a = move_vol[group_id_a] if group_id_a in move_vol else None
+            move_vol_b = move_vol[group_id_b] if group_id_b in move_vol else None
+            movement_corr = return_sum / (lookback * move_vol_a * move_vol_b) if move_vol_a and move_vol_b else 0.0
 
-                deviations = [w[DEVIATIONS] for w in lookback_window]
-                deviation_sum = sum(d[group_id_a] * d[group_id_b] for d in deviations if group_id_a in d and group_id_b in d)
-                dev_vol_a = dev_vol[group_id_a] if group_id_a in dev_vol else None
-                dev_vol_b = dev_vol[group_id_b] if group_id_b in dev_vol else None
-                deviation_corr = deviation_sum / ((lookback - 1) * dev_vol_a * dev_vol_b) if dev_vol_a and dev_vol_b else 0.0
+            deviations = [w[DEVIATIONS] for w in lookback_window]
+            deviation_sum = sum(d[group_id_a] * d[group_id_b] for d in deviations if group_id_a in d and group_id_b in d)
+            dev_vol_a = dev_vol[group_id_a] if group_id_a in dev_vol else None
+            dev_vol_b = dev_vol[group_id_b] if group_id_b in dev_vol else None
+            deviation_corr = deviation_sum / ((lookback - 1) * dev_vol_a * dev_vol_b) if dev_vol_a and dev_vol_b else 0.0
 
-                result.append((date, movement_corr, deviation_corr))
-                indexes[date] = len(result) - 1
+            result.append((date, movement_corr, deviation_corr))
+            indexes[date] = len(result) - 1
 
-        group_correlation['%s_%s' % (group_id_a, group_id_b)] = result, indexes
+    group_correlation['%s_%s' % (group_id_a, group_id_b)] = result, indexes
 
 
 def aggregate_values(market_ids, market_codes, lookback):
@@ -362,7 +362,10 @@ def main(lookback):
 
     calculate_group_volatility(market_ids, groups, start_date, end_date, lookback)
 
-    calculate_group_correlation(group_id_pairs, lookback)
+    msg = 'Calculating group correlation'
+    length = float(len(group_id_pairs))
+    map(lambda i: log(msg, i[1], i[0], length)
+                  and calculate_group_correlation(i[1][0], i[1][1], lookback), enumerate(group_id_pairs))
 
     log(msg, index=int(length), length=length, complete=True)
 
