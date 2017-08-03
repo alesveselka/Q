@@ -393,10 +393,9 @@ def aggregate_group_values(group_ids, lookback, investment_universe_name):
                 values.append((
                     int(group_id),
                     lookback,
-                    # investment_universe_name,
+                    investment_universe_name,
                     date,
-                    # ret,
-                    ret + values[-1][4] if len(values) else ret,
+                    ret,
                     move_vol,
                     dev_vol,
                     json.dumps(move_corrs),
@@ -428,7 +427,7 @@ def insert_group_values(values):
     columns = [
         'group_id',
         'lookback',
-        # 'investment_universe_name',
+        'investment_universe_name',
         'date',
         'returns',
         'movement_volatility',
@@ -441,16 +440,10 @@ def insert_group_values(values):
 
 def insert_values(table, columns, values):
     command = 'INSERT INTO `%s` (%s) VALUES(%s)' % (table, ', '.join(columns), ('%s, ' * len(columns))[:-2])
-    # vals = [(v[0], v[1], v[2], v[4], v[5], v[6], v[7], v[8]) for v in values]
 
-    try:
-        with connection:
-            cursor = connection.cursor()
-            cursor.executemany(command, values)
-            # cursor.executemany(command, vals)
-    except:
-        for v in values[:50]:
-            print v[2:7]
+    with connection:
+        cursor = connection.cursor()
+        cursor.executemany(command, values)
 
 
 def calculate_markets(market_ids, start_date, end_date, lookback, persist=False):
@@ -486,7 +479,8 @@ def calculate_markets(market_ids, start_date, end_date, lookback, persist=False)
 
 def calculate_groups(market_ids, investment_universe_name, lookback, persist=False):
     groups = {market_id: str(__group_id(market_id)[0]) for market_id in market_ids}
-    group_id_pairs = [c for c in combinations(map(str, set(groups.values())), 2)]
+    group_ids = set([groups[k] for k in groups.keys()])
+    group_id_pairs = [c for c in combinations(map(str, group_ids), 2)]
 
     calculate_group_volatility(market_ids, groups, lookback)
     clean_group_volatility(groups)
@@ -499,8 +493,8 @@ def calculate_groups(market_ids, investment_universe_name, lookback, persist=Fal
 
     if persist:
         msg = 'Aggregating group values'
-        group_values = aggregate_group_values(groups.values(), lookback, investment_universe_name)
-        log(msg, index=len(groups.values()), length=float(len(groups.values())), complete=True)
+        group_values = aggregate_group_values(group_ids, lookback, investment_universe_name)
+        log(msg, index=len(group_ids), length=float(len(group_ids)), complete=True)
 
         msg = 'Inserting group values'
         length = float(len(group_values))
@@ -517,9 +511,9 @@ def main(lookback, investment_universe_name, persist_market_values=True, persist
     start = time.time()
     investment_universe = __investment_universe(investment_universe_name)
     start_date = dt.date(1979, 1, 1)
-    # start_date = dt.date(1990, 11, 1)
+    # start_date = dt.date(1991, 11, 1)
     end_date = dt.date(2017, 12, 31)
-    # end_date = dt.date(1992, 9, 30)
+    # end_date = dt.date(1992, 5, 30)
     market_ids = investment_universe[2].split(',')
     # market_ids = ['55','79']
     # market_ids = ['79', '80']
