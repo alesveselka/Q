@@ -147,7 +147,7 @@ def calculate_correlation(market_id_a, market_id_b, lookback):
     DATE, PRICE, RETURN, DEVIATION, DEVIATION_SQUARED, DEVIATION_VOL, MOVEMENT_VOL = tuple(range(7))
     result = []
     indexes = {}
-    # TODO clean-up zero-value spikes at higher lookbacks ...
+
     vol_a, vol_a_indexes = market_volatility[market_id_a]
     vol_b, vol_b_indexes = market_volatility[market_id_b]
     first_date = max(vol_a[0][0], vol_b[0][0])
@@ -170,11 +170,13 @@ def calculate_correlation(market_id_a, market_id_b, lookback):
                 move_vol_b = vol_b[index_b][MOVEMENT_VOL]
                 dev_vol_a = vol_a[index_a][DEVIATION_VOL]
                 dev_vol_b = vol_b[index_b][DEVIATION_VOL]
-                movement_corr = return_sum / (lookback * move_vol_a * move_vol_b) if move_vol_a and move_vol_b else 0.0
+                movement_corr = return_sum / (lookback * move_vol_a * move_vol_b) if move_vol_a and move_vol_b \
+                    else (result[-1][1] if len(result) else 0.0)
                 last = result[-1][3] if len(result) else movement_corr
                 movement_corr_ew = (ew_const * movement_corr) + (1 - ew_const) * last
 
-                deviation_corr = deviation_sum / ((lookback - 1) * dev_vol_a * dev_vol_b) if dev_vol_a and dev_vol_b else 0.0
+                deviation_corr = deviation_sum / ((lookback - 1) * dev_vol_a * dev_vol_b) if dev_vol_a and dev_vol_b \
+                    else (result[-1][2] if len(result) else 0.0)
                 last = result[-1][4] if len(result) else movement_corr
                 deviation_corr_ew = (ew_const * deviation_corr) + (1 - ew_const) * last
 
@@ -372,6 +374,8 @@ def calculate_group_correlation(group_id_a, group_id_b, lookback):
             move_vol_b = move_vol[group_id_b] if group_id_b in move_vol else None
             movement_corr = return_sum / (lookback * move_vol_a * move_vol_b) if move_vol_a and move_vol_b \
                 else (result[-1][1] if len(result) else 0.0)
+            last = result[-1][3] if len(result) else movement_corr
+            movement_corr_ew = (ew_const * movement_corr) + (1 - ew_const) * last
 
             deviations = [w[DEVIATIONS] for w in lookback_window]
             deviation_sum = sum(d[group_id_a] * d[group_id_b] for d in deviations if group_id_a in d and group_id_b in d)
@@ -379,8 +383,10 @@ def calculate_group_correlation(group_id_a, group_id_b, lookback):
             dev_vol_b = dev_vol[group_id_b] if group_id_b in dev_vol else None
             deviation_corr = deviation_sum / ((lookback - 1) * dev_vol_a * dev_vol_b) if dev_vol_a and dev_vol_b \
                 else (result[-1][2] if len(result) else 0.0)
+            last = result[-1][4] if len(result) else deviation_corr
+            deviation_corr_ew = (ew_const * deviation_corr) + (1 - ew_const) * last
 
-            result.append((date, movement_corr, deviation_corr))
+            result.append((date, movement_corr, deviation_corr, movement_corr_ew, deviation_corr_ew))
             indexes[date] = len(result) - 1
 
     group_correlation['%s_%s' % (group_id_a, group_id_b)] = result, indexes
@@ -430,7 +436,7 @@ def aggregate_market_values(market_ids, market_codes, lookback):
     msg = 'Aggregating market values'
     length = float(len(market_ids))
 
-    DEVIATION_VOL, MOVEMENT_VOL, MOVEMENT_CORR, DEVIATION_CORR = tuple([5, 6, 1, 2])
+    MOVEMENT_CORR, DEVIATION_CORR, MOVEMENT_CORR_EW, DEVIATION_CORR_EW, DEVIATION_VOL, MOVEMENT_VOL = (1, 2, 3, 4, 5, 6)
     values = []
     corr_keys = market_correlation.keys()
     for i, market_id in enumerate(market_ids):
@@ -444,14 +450,20 @@ def aggregate_market_values(market_ids, market_codes, lookback):
             v = vol[vol_indexes[date]]
             if v[MOVEMENT_VOL] and v[DEVIATION_VOL]:
                 move_corrs = {}
+                move_corrs_ew = {}
                 dev_corrs = {}
+                dev_corrs_ew = {}
                 for other_id in other_ids:
                     pair = [p for p in pairs if market_id in p.split('_') and other_id in p.split('_')][0]
                     corr, corr_index = market_correlation[pair]
                     move_corrs[other_id] = corr[corr_index[date]][MOVEMENT_CORR] if date in corr_index \
                         else (json.loads(values[-1][6])[other_id] if len(values) and int(market_id) == values[-1][0] else 0.0)
-                    dev_corrs[other_id] = corr[corr_index[date]][DEVIATION_CORR] if date in corr_index \
+                    move_corrs_ew[other_id] = corr[corr_index[date]][MOVEMENT_CORR_EW] if date in corr_index \
                         else (json.loads(values[-1][7])[other_id] if len(values) and int(market_id) == values[-1][0] else 0.0)
+                    dev_corrs[other_id] = corr[corr_index[date]][DEVIATION_CORR] if date in corr_index \
+                        else (json.loads(values[-1][8])[other_id] if len(values) and int(market_id) == values[-1][0] else 0.0)
+                    dev_corrs_ew[other_id] = corr[corr_index[date]][DEVIATION_CORR_EW] if date in corr_index \
+                        else (json.loads(values[-1][9])[other_id] if len(values) and int(market_id) == values[-1][0] else 0.0)
 
                 values.append((
                     int(market_id),
@@ -461,7 +473,9 @@ def aggregate_market_values(market_ids, market_codes, lookback):
                     v[MOVEMENT_VOL],
                     v[DEVIATION_VOL],
                     json.dumps(move_corrs),
-                    json.dumps(dev_corrs)
+                    json.dumps(move_corrs_ew),
+                    json.dumps(dev_corrs),
+                    json.dumps(dev_corrs_ew)
                 ))
 
     return values
@@ -484,6 +498,8 @@ def aggregate_group_values(group_ids, lookback, investment_universe_name):
     DEVIATION_VOL = 4
     MOVEMENT_CORR = 1
     DEVIATION_CORR = 2
+    MOVEMENT_CORR_EW = 3
+    DEVIATION_CORR_EW = 4
     values = []
     corr_keys = group_correlation.keys()
     for i, group_id in enumerate(group_ids):
@@ -501,12 +517,20 @@ def aggregate_group_values(group_ids, lookback, investment_universe_name):
                 move_vol = move_vols[group_id] if group_id in move_vols else (values[-1][4] if len(values) else 0.0)
                 dev_vol = dev_vols[group_id] if group_id in dev_vols else (values[-1][5] if len(values) else 0.0)
                 move_corrs = {}
+                move_corrs_ew = {}
                 dev_corrs = {}
+                dev_corrs_ew = {}
                 for other_id in other_ids:
                     pair = [p for p in pairs if group_id in p.split('_') and other_id in p.split('_')][0]
                     corr, corr_indexes = group_correlation[pair]
-                    move_corrs[other_id] = corr[corr_indexes[date]][MOVEMENT_CORR] if date in corr_indexes else 0.0
-                    dev_corrs[other_id] = corr[corr_indexes[date]][DEVIATION_CORR] if date in corr_indexes else 0.0
+                    move_corrs[other_id] = corr[corr_indexes[date]][MOVEMENT_CORR] if date in corr_indexes \
+                        else (json.loads(values[-1][7])[other_id] if len(values) and int(group_id) == values[-1][0] else 0.0)
+                    move_corrs_ew[other_id] = corr[corr_indexes[date]][MOVEMENT_CORR_EW] if date in corr_indexes \
+                        else (json.loads(values[-1][8])[other_id] if len(values) and int(group_id) == values[-1][0] else 0.0)
+                    dev_corrs[other_id] = corr[corr_indexes[date]][DEVIATION_CORR] if date in corr_indexes \
+                        else (json.loads(values[-1][9])[other_id] if len(values) and int(group_id) == values[-1][0] else 0.0)
+                    dev_corrs_ew[other_id] = corr[corr_indexes[date]][DEVIATION_CORR_EW] if date in corr_indexes \
+                        else (json.loads(values[-1][10])[other_id] if len(values) and int(group_id) == values[-1][0] else 0.0)
 
                 values.append((
                     int(group_id),
@@ -517,8 +541,10 @@ def aggregate_group_values(group_ids, lookback, investment_universe_name):
                     move_vol,
                     dev_vol,
                     json.dumps(move_corrs),
-                    json.dumps(dev_corrs))
-                )
+                    json.dumps(move_corrs_ew),
+                    json.dumps(dev_corrs),
+                    json.dumps(dev_corrs_ew)
+                ))
 
     return values
 
@@ -536,7 +562,9 @@ def insert_market_values(values):
         'movement_volatility',
         'dev_volatility',
         'movement_correlations',
-        'dev_correlations'
+        'movement_correlations_ew',
+        'dev_correlations',
+        'dev_correlations_ew'
     ]
     insert_values('market_correlation', columns, values)
 
@@ -551,7 +579,9 @@ def insert_group_values(values):
         'movement_volatility',
         'dev_volatility',
         'movement_correlations',
-        'dev_correlations'
+        'movement_correlations_ew',
+        'dev_correlations',
+        'dev_correlations_ew'
     ]
     insert_values('group_correlation', columns, values)
 
@@ -584,15 +614,15 @@ def calculate_markets(market_ids, start_date, end_date, lookback, persist=False)
         market_values = aggregate_market_values(market_ids, market_codes, lookback)
         log(msg, index=len(market_ids), length=float(len(market_ids)), complete=True)
 
-        # msg = 'Inserting market values'
-        # length = float(len(market_values))
-        # block = int(length / 10)
-        # print 'Deleting market values with lookback', lookback
-        # delete_values('market_correlation', lookback)
-        # for i in range(10 + 1):
-        #     log(msg, '', i, 10.0)
-        #     insert_market_values(market_values[i*block:(i+1)*block])
-        # log(msg, index=10, length=10.0, complete=True)
+        msg = 'Inserting market values'
+        length = float(len(market_values))
+        block = int(length / 10)
+        print 'Deleting market values with lookback', lookback
+        delete_values('market_correlation', lookback)
+        for i in range(10 + 1):
+            log(msg, '', i, 10.0)
+            insert_market_values(market_values[i*block:(i+1)*block])
+        log(msg, index=10, length=10.0, complete=True)
 
 
 def calculate_groups(market_ids, investment_universe_name, lookback, persist=False):
@@ -628,18 +658,18 @@ def calculate_groups(market_ids, investment_universe_name, lookback, persist=Fal
 def main(lookback, investment_universe_name, persist_market_values=True, persist_group_values=True):
     start = time.time()
     investment_universe = __investment_universe(investment_universe_name)
-    # start_date = dt.date(1979, 1, 1)
-    start_date = dt.date(1991, 1, 1)
-    # end_date = dt.date(2017, 12, 31)
-    end_date = dt.date(1992, 12, 31)
-    # market_ids = investment_universe[2].split(',')
-    market_ids = ['55','79']
+    start_date = dt.date(1979, 1, 1)
+    # start_date = dt.date(1991, 1, 1)
+    end_date = dt.date(2017, 12, 31)
+    # end_date = dt.date(1992, 12, 31)
+    market_ids = investment_universe[2].split(',')
+    # market_ids = ['55','79']
 
     calculate_markets(market_ids, start_date, end_date, lookback, persist=persist_market_values)
-    # calculate_groups(market_ids, investment_universe_name, lookback, persist=persist_group_values)
+    calculate_groups(market_ids, investment_universe_name, lookback, persist=persist_group_values)
 
     print 'Time:', time.time() - start, (time.time() - start) / 60
 
 
 if __name__ == '__main__':
-    main(25, '25Y', persist_market_values=True, persist_group_values=False)
+    main(25, '25Y', persist_market_values=True, persist_group_values=True)
