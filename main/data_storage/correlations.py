@@ -13,7 +13,7 @@ from operator import itemgetter
 from collections import defaultdict
 from collections import deque
 
-
+ew_const = 2.0 / (36 + 1)
 connection = mysql.connect(
     os.environ['DB_HOST'],
     os.environ['DB_USER'],
@@ -147,7 +147,7 @@ def calculate_correlation(market_id_a, market_id_b, lookback):
     DATE, PRICE, RETURN, DEVIATION, DEVIATION_SQUARED, DEVIATION_VOL, MOVEMENT_VOL = tuple(range(7))
     result = []
     indexes = {}
-
+    # TODO clean-up zero-value spikes at higher lookbacks ...
     vol_a, vol_a_indexes = market_volatility[market_id_a]
     vol_b, vol_b_indexes = market_volatility[market_id_b]
     first_date = max(vol_a[0][0], vol_b[0][0])
@@ -171,9 +171,14 @@ def calculate_correlation(market_id_a, market_id_b, lookback):
                 dev_vol_a = vol_a[index_a][DEVIATION_VOL]
                 dev_vol_b = vol_b[index_b][DEVIATION_VOL]
                 movement_corr = return_sum / (lookback * move_vol_a * move_vol_b) if move_vol_a and move_vol_b else 0.0
-                deviation_corr = deviation_sum / ((lookback - 1) * dev_vol_a * dev_vol_b) if dev_vol_a and dev_vol_b else 0.0
+                last = result[-1][3] if len(result) else movement_corr
+                movement_corr_ew = (ew_const * movement_corr) + (1 - ew_const) * last
 
-                result.append((date, movement_corr, deviation_corr))
+                deviation_corr = deviation_sum / ((lookback - 1) * dev_vol_a * dev_vol_b) if dev_vol_a and dev_vol_b else 0.0
+                last = result[-1][4] if len(result) else movement_corr
+                deviation_corr_ew = (ew_const * deviation_corr) + (1 - ew_const) * last
+
+                result.append((date, movement_corr, deviation_corr, movement_corr_ew, deviation_corr_ew))
                 indexes[date] = len(result) - 1
 
     market_correlation['%s_%s' % (market_id_a, market_id_b)] = result, indexes
@@ -579,15 +584,15 @@ def calculate_markets(market_ids, start_date, end_date, lookback, persist=False)
         market_values = aggregate_market_values(market_ids, market_codes, lookback)
         log(msg, index=len(market_ids), length=float(len(market_ids)), complete=True)
 
-        msg = 'Inserting market values'
-        length = float(len(market_values))
-        block = int(length / 10)
-        print 'Deleting market values with lookback', lookback
-        delete_values('market_correlation', lookback)
-        for i in range(10 + 1):
-            log(msg, '', i, 10.0)
-            insert_market_values(market_values[i*block:(i+1)*block])
-        log(msg, index=10, length=10.0, complete=True)
+        # msg = 'Inserting market values'
+        # length = float(len(market_values))
+        # block = int(length / 10)
+        # print 'Deleting market values with lookback', lookback
+        # delete_values('market_correlation', lookback)
+        # for i in range(10 + 1):
+        #     log(msg, '', i, 10.0)
+        #     insert_market_values(market_values[i*block:(i+1)*block])
+        # log(msg, index=10, length=10.0, complete=True)
 
 
 def calculate_groups(market_ids, investment_universe_name, lookback, persist=False):
@@ -623,18 +628,18 @@ def calculate_groups(market_ids, investment_universe_name, lookback, persist=Fal
 def main(lookback, investment_universe_name, persist_market_values=True, persist_group_values=True):
     start = time.time()
     investment_universe = __investment_universe(investment_universe_name)
-    start_date = dt.date(1979, 1, 1)
-    # start_date = dt.date(1991, 1, 1)
-    end_date = dt.date(2017, 12, 31)
-    # end_date = dt.date(1992, 12, 31)
-    market_ids = investment_universe[2].split(',')
-    # market_ids = ['55','79']
+    # start_date = dt.date(1979, 1, 1)
+    start_date = dt.date(1991, 1, 1)
+    # end_date = dt.date(2017, 12, 31)
+    end_date = dt.date(1992, 12, 31)
+    # market_ids = investment_universe[2].split(',')
+    market_ids = ['55','79']
 
     calculate_markets(market_ids, start_date, end_date, lookback, persist=persist_market_values)
-    calculate_groups(market_ids, investment_universe_name, lookback, persist=persist_group_values)
+    # calculate_groups(market_ids, investment_universe_name, lookback, persist=persist_group_values)
 
     print 'Time:', time.time() - start, (time.time() - start) / 60
 
 
 if __name__ == '__main__':
-    main(25, '25Y', persist_market_values=False, persist_group_values=True)
+    main(25, '25Y', persist_market_values=True, persist_group_values=False)
