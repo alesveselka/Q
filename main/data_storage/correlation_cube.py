@@ -141,6 +141,7 @@ def aggregated_values(investment_universe_name, lookback, market_ids, market_dat
     flat_market_ids = [item for sublist in [grouped_market_ids[k] for k in grouped_market_ids.keys()] for item in sublist]
     market_id_idx = {k: i for i, k in enumerate(flat_market_ids)}
 
+    precision = 4
     MOVEMENT_CORR = 1
     MOVEMENT_CORR_EW = 2
     DEV_CORR = 3
@@ -157,34 +158,42 @@ def aggregated_values(investment_universe_name, lookback, market_ids, market_dat
 
         corrs = json.loads(market_correlation_data[market_id][-1][MOVEMENT_CORR])
         keys = [k for k in map(int, corrs.keys()) if k in market_ids]
-        data[market_id]['movement_correlations'] = [[index, market_id_idx[k], corrs[str(k)]] for k in keys] + [[index, index, 1.0]]
+        data[market_id]['movement_correlations'] = [[index, market_id_idx[k], round(corrs[str(k)], precision)]
+                                                    for k in keys] + [[index, index, 1.0]]
 
         corrs = json.loads(market_correlation_data[market_id][-1][MOVEMENT_CORR_EW])
         keys = [k for k in map(int, corrs.keys()) if k in market_ids]
-        data[market_id]['movement_correlations_ew'] = [[index, market_id_idx[k], corrs[str(k)]] for k in keys] + [[index, index, 1.0]]
+        data[market_id]['movement_correlations_ew'] = [[index, market_id_idx[k], round(corrs[str(k)], precision)]
+                                                       for k in keys] + [[index, index, 1.0]]
 
         corrs = json.loads(market_correlation_data[market_id][-1][DEV_CORR])
         keys = [k for k in map(int, corrs.keys()) if k in market_ids]
-        data[market_id]['dev_correlations'] = [[index, market_id_idx[k], corrs[str(k)]] for k in keys] + [[index, index, 1.0]]
+        data[market_id]['dev_correlations'] = [[index, market_id_idx[k], round(corrs[str(k)], precision)]
+                                               for k in keys] + [[index, index, 1.0]]
 
         corrs = json.loads(market_correlation_data[market_id][-1][DEV_CORR_EW])
         keys = [k for k in map(int, corrs.keys()) if k in market_ids]
-        data[market_id]['dev_correlations_ew'] = [[index, market_id_idx[k], corrs[str(k)]] for k in keys] + [[index, index, 1.0]]
+        data[market_id]['dev_correlations_ew'] = [[index, market_id_idx[k], round(corrs[str(k)], precision)]
+                                                  for k in keys] + [[index, index, 1.0]]
 
     # group correlations
     group_correlations = defaultdict(dict)
     for group_id in group_ids:
         corrs = json.loads(group_correlation_data[group_id][-1][MOVEMENT_CORR])
-        group_correlations[group_id]['movement_correlations'] = {k: corrs[k] for k in corrs.keys() if int(k) in group_ids}
+        group_correlations[group_id]['movement_correlations'] = {k: round(corrs[k], precision)
+                                                                 for k in corrs.keys() if int(k) in group_ids}
 
         corrs = json.loads(group_correlation_data[group_id][-1][MOVEMENT_CORR_EW])
-        group_correlations[group_id]['movement_correlations_ew'] = {k: corrs[k] for k in corrs.keys() if int(k) in group_ids}
+        group_correlations[group_id]['movement_correlations_ew'] = {k: round(corrs[k], precision)
+                                                                    for k in corrs.keys() if int(k) in group_ids}
 
         corrs = json.loads(group_correlation_data[group_id][-1][DEV_CORR])
-        group_correlations[group_id]['dev_correlations'] = {k: corrs[k] for k in corrs.keys() if int(k) in group_ids}
+        group_correlations[group_id]['dev_correlations'] = {k: round(corrs[k], precision)
+                                                            for k in corrs.keys() if int(k) in group_ids}
 
         corrs = json.loads(group_correlation_data[group_id][-1][DEV_CORR_EW])
-        group_correlations[group_id]['dev_correlations_ew'] = {k: corrs[k] for k in corrs.keys() if int(k) in group_ids}
+        group_correlations[group_id]['dev_correlations_ew'] = {k: round(corrs[k], precision)
+                                                               for k in corrs.keys() if int(k) in group_ids}
 
     result.append((
         investment_universe_name,
@@ -209,8 +218,8 @@ def main(investment_universe_name, lookback):
     start_date = dt.date(1991, 1, 1)
     # end_date = dt.date(2017, 12, 31)
     end_date = dt.date(1992, 12, 31)
-    # market_ids = __market_ids(investment_universe_name)
-    market_ids = [18, 19, 24, 25, 27]  # "OJ","SB","C","KW","MW"
+    market_ids = __market_ids(investment_universe_name)
+    # market_ids = [18, 19, 24, 25, 27]  # "OJ","SB","C","KW","MW"
     market_data = __market_data()
     groups = {m[0]: m[3] for m in market_data if m[0] in market_ids}
     group_ids = set(groups.values())
