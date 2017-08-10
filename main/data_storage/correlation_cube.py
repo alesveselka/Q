@@ -107,8 +107,9 @@ def fetch_group_correlation_data(group_ids, lookback):
 
 def delete_values(investment_universe_name, lookback):
     connection.cursor().execute("""
-        DELETE FROM correlation_matrix 
-        WHERE investment_universe_name = %s AND lookback = %s""" % (investment_universe_name, lookback))
+        DELETE FROM `correlation_matrix` 
+        WHERE `investment_universe_name` = '%s' AND `lookback` = %s
+    """ % (investment_universe_name, lookback))
 
 
 def insert_values(values):
@@ -135,27 +136,18 @@ def insert_values(values):
 
 def aggregated_values(investment_universe_name, lookback, market_ids, market_data, groups, group_ids):
     market_codes = {m[0]: m[2] for m in market_data}
-    group_names = {m[3]: m[4] for m in market_data if m[0] in market_ids}
     grouped_market_ids = {i[0]: map(lambda l: l[0], i[1]) for i in groupby(sorted(groups.items(), key=itemgetter(1)), key=itemgetter(1))}
     flat_market_ids = [item for sublist in [grouped_market_ids[k] for k in grouped_market_ids.keys()] for item in sublist]
     market_id_idx = {k: i for i, k in enumerate(flat_market_ids)}
-
-    result = []
-    dates = reduce(lambda r, market_id: r + [d[0] for d in market_correlation_data[market_id]], market_ids, [])
-    # for date in sorted(set(dates)):
-
-    print 'market_codes', market_codes
-    print 'groups', groups
-    print 'group_ids', group_ids
-    print 'group_names', group_names
-    print 'grouped_market_ids', grouped_market_ids
-    print 'flat_market_ids', flat_market_ids
-    print 'market_id_idx', market_id_idx
 
     MOVEMENT_CORR = 1
     MOVEMENT_CORR_EW = 2
     DEV_CORR = 3
     DEV_CORR_EW = 3
+
+    result = []
+    dates = reduce(lambda r, market_id: r + [d[0] for d in market_correlation_data[market_id]], market_ids, [])
+    # for date in sorted(set(dates)):
 
     # market correlations
     data = defaultdict(dict)
@@ -197,21 +189,17 @@ def aggregated_values(investment_universe_name, lookback, market_ids, market_dat
         investment_universe_name,
         dt.date(2017, 8, 10),
         lookback,
-        [market_codes[market_id] for market_id in market_ids],
-        [data[market_id]['movement_correlations'] for market_id in market_ids],
-        [data[market_id]['movement_correlations_ew'] for market_id in market_ids],
-        [group_correlations[group_id]['movement_correlations'] for group_id in group_ids],
-        [group_correlations[group_id]['movement_correlations_ew'] for group_id in group_ids],
-        [data[market_id]['dev_correlations'] for market_id in market_ids],
-        [data[market_id]['dev_correlations_ew'] for market_id in market_ids],
-        [group_correlations[group_id]['dev_correlations'] for group_id in group_ids],
-        [group_correlations[group_id]['dev_correlations_ew'] for group_id in group_ids]
+        json.dumps([market_codes[market_id] for market_id in market_ids]),
+        json.dumps([data[market_id]['movement_correlations'] for market_id in market_ids]),
+        json.dumps([data[market_id]['movement_correlations_ew'] for market_id in market_ids]),
+        json.dumps([group_correlations[group_id]['movement_correlations'] for group_id in group_ids]),
+        json.dumps([group_correlations[group_id]['movement_correlations_ew'] for group_id in group_ids]),
+        json.dumps([data[market_id]['dev_correlations'] for market_id in market_ids]),
+        json.dumps([data[market_id]['dev_correlations_ew'] for market_id in market_ids]),
+        json.dumps([group_correlations[group_id]['dev_correlations'] for group_id in group_ids]),
+        json.dumps([group_correlations[group_id]['dev_correlations_ew'] for group_id in group_ids])
     ))
-
-    for i, r in enumerate(result[-1]):
-        print i
-        print r
-        print
+    return result
 
 
 def main(investment_universe_name, lookback):
@@ -228,7 +216,22 @@ def main(investment_universe_name, lookback):
 
     fetch_market_correlation_data(market_ids, lookback)
     fetch_group_correlation_data(group_ids, lookback)
-    aggregated_values(investment_universe_name, lookback, market_ids, market_data, groups, group_ids)
+    values = aggregated_values(investment_universe_name, lookback, market_ids, market_data, groups, group_ids)
+
+    print 'Deleting values'
+    delete_values(investment_universe_name, lookback)
+    print 'Inserting values'
+    insert_values(values)
+
+    # msg = 'Inserting market values'
+    # length = float(len(market_values))
+    # block = int(length / 10)
+    # print 'Deleting market values with lookback', lookback
+    # delete_values('market_correlation', lookback)
+    # for i in range(10 + 1):
+    #     log(msg, '', i, 10.0)
+    #     insert_market_values(market_values[i*block:(i+1)*block])
+    # log(msg, index=10, length=10.0, complete=True)
 
     print 'Time:', time.time() - start, (time.time() - start) / 60
 
