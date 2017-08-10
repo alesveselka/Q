@@ -9,6 +9,7 @@ import MySQLdb as mysql
 from math import sqrt
 from itertools import combinations
 from itertools import groupby
+from itertools import chain
 from operator import itemgetter
 from collections import defaultdict
 from collections import deque
@@ -190,14 +191,14 @@ def aggregated_values(investment_universe_name, lookback, market_ids, market_dat
         dt.date(2017, 8, 10),
         lookback,
         json.dumps([market_codes[market_id] for market_id in market_ids]),
-        json.dumps([data[market_id]['movement_correlations'] for market_id in market_ids]),
-        json.dumps([data[market_id]['movement_correlations_ew'] for market_id in market_ids]),
-        json.dumps([group_correlations[group_id]['movement_correlations'] for group_id in group_ids]),
-        json.dumps([group_correlations[group_id]['movement_correlations_ew'] for group_id in group_ids]),
-        json.dumps([data[market_id]['dev_correlations'] for market_id in market_ids]),
-        json.dumps([data[market_id]['dev_correlations_ew'] for market_id in market_ids]),
-        json.dumps([group_correlations[group_id]['dev_correlations'] for group_id in group_ids]),
-        json.dumps([group_correlations[group_id]['dev_correlations_ew'] for group_id in group_ids])
+        json.dumps(list(chain(*[data[market_id]['movement_correlations'] for market_id in market_ids]))),
+        json.dumps(list(chain(*[data[market_id]['movement_correlations_ew'] for market_id in market_ids]))),
+        json.dumps({group_id: group_correlations[group_id]['movement_correlations'] for group_id in group_ids}),
+        json.dumps({group_id: group_correlations[group_id]['movement_correlations_ew'] for group_id in group_ids}),
+        json.dumps(list(chain(*[data[market_id]['dev_correlations'] for market_id in market_ids]))),
+        json.dumps(list(chain(*[data[market_id]['dev_correlations_ew'] for market_id in market_ids]))),
+        json.dumps({group_id: group_correlations[group_id]['dev_correlations'] for group_id in group_ids}),
+        json.dumps({group_id: group_correlations[group_id]['dev_correlations_ew'] for group_id in group_ids})
     ))
     return result
 
