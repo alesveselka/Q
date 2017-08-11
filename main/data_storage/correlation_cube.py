@@ -6,13 +6,10 @@ import time
 import json
 import datetime as dt
 import MySQLdb as mysql
-from math import sqrt
-from itertools import combinations
 from itertools import groupby
 from itertools import chain
 from operator import itemgetter
 from collections import defaultdict
-from collections import deque
 
 connection = mysql.connect(
     os.environ['DB_HOST'],
@@ -21,7 +18,9 @@ connection = mysql.connect(
     os.environ['DB_NAME']
 )
 market_correlation_data = {}
+market_correlation_indexes = {}
 group_correlation_data = {}
+group_correlation_indexes = {}
 
 
 def log(message, code='', index=0, length=0.0, complete=False):
@@ -58,7 +57,7 @@ def __market_data():
     return cursor.fetchall()
 
 
-def fetch_market_correlation_data(market_ids, lookback):
+def fetch_market_correlation_data(market_ids, lookback, start_date, end_date):
     market_correlation_query = """
         SELECT 
             date, 
@@ -67,7 +66,10 @@ def fetch_market_correlation_data(market_ids, lookback):
             dev_correlations, 
             dev_correlations_ew
         FROM market_correlation 
-        WHERE lookback = '%s' AND market_id = '%s'
+        WHERE lookback = '%s' 
+        AND market_id = '%s' 
+        AND DATE(date) >= '%s' 
+        AND DATE(date) <= '%s' 
         ORDER BY date;
     """
 
@@ -76,13 +78,14 @@ def fetch_market_correlation_data(market_ids, lookback):
     cursor = connection.cursor()
     for i, market_id in enumerate(market_ids):
         log(msg, market_id, i, length)
-        cursor.execute(market_correlation_query % (lookback, market_id))
+        cursor.execute(market_correlation_query % (lookback, market_id, start_date, end_date))
         market_correlation_data[market_id] = cursor.fetchall()
+        market_correlation_indexes[market_id] = {i[1][0]: i[0] for i in enumerate(market_correlation_data[market_id])}
 
     log(msg, index=int(length), length=length, complete=True)
 
 
-def fetch_group_correlation_data(group_ids, lookback):
+def fetch_group_correlation_data(group_ids, lookback, start_date, end_date):
     group_correlation_query = """
         SELECT 
             date, 
@@ -91,7 +94,10 @@ def fetch_group_correlation_data(group_ids, lookback):
             dev_correlations, 
             dev_correlations_ew
         FROM group_correlation 
-        WHERE lookback = '%s' AND group_id = '%s'
+        WHERE lookback = '%s' 
+        AND group_id = '%s' 
+        AND DATE(date) >= '%s' 
+        AND DATE(date) <= '%s' 
         ORDER BY date;
     """
 
@@ -100,8 +106,9 @@ def fetch_group_correlation_data(group_ids, lookback):
     cursor = connection.cursor()
     for i, group_id in enumerate(group_ids):
         log(msg, group_id, i, length)
-        cursor.execute(group_correlation_query % (lookback, group_id))
+        cursor.execute(group_correlation_query % (lookback, group_id, start_date, end_date))
         group_correlation_data[group_id] = cursor.fetchall()
+        group_correlation_indexes[group_id] = {i[1][0]: i[0] for i in enumerate(group_correlation_data[group_id])}
 
     log(msg, index=int(length), length=length, complete=True)
 
@@ -142,6 +149,7 @@ def aggregated_values(investment_universe_name, lookback, market_ids, market_dat
     market_id_idx = {k: i for i, k in enumerate(flat_market_ids)}
 
     precision = 4
+    DATE = 0
     MOVEMENT_CORR = 1
     MOVEMENT_CORR_EW = 2
     DEV_CORR = 3
@@ -149,99 +157,114 @@ def aggregated_values(investment_universe_name, lookback, market_ids, market_dat
 
     result = []
     dates = reduce(lambda r, market_id: r + [d[0] for d in market_correlation_data[market_id]], market_ids, [])
-    # for date in sorted(set(dates)):
+    for date in sorted(set(dates)):
+        # market correlations
+        data = defaultdict(dict)
+        for market_id in market_ids:
+            index = market_id_idx[market_id]
+            corr_data = market_correlation_data[market_id][market_correlation_indexes[market_id][date]] \
+                if date in market_correlation_indexes[market_id] else [d for d in market_correlation_data[market_id] if d[0] <= date]
 
-    # market correlations
-    data = defaultdict(dict)
-    for market_id in market_ids:
-        index = market_id_idx[market_id]
+            if len(corr_data):
+                corr_data = corr_data if type(corr_data[DATE]) is dt.date else corr_data[-1]
 
-        corrs = json.loads(market_correlation_data[market_id][-1][MOVEMENT_CORR])
-        keys = [k for k in map(int, corrs.keys()) if k in market_ids]
-        data[market_id]['movement_correlations'] = [[index, market_id_idx[k], round(corrs[str(k)], precision)]
-                                                    for k in keys] + [[index, index, 1.0]]
+                corrs = json.loads(corr_data[MOVEMENT_CORR])
+                keys = [k for k in map(int, corrs.keys()) if k in market_ids]
+                data[market_id]['movement_correlations'] = [[index, market_id_idx[k], round(corrs[str(k)], precision)]
+                                                            for k in keys] + [[index, index, 1.0]]
 
-        corrs = json.loads(market_correlation_data[market_id][-1][MOVEMENT_CORR_EW])
-        keys = [k for k in map(int, corrs.keys()) if k in market_ids]
-        data[market_id]['movement_correlations_ew'] = [[index, market_id_idx[k], round(corrs[str(k)], precision)]
+                corrs = json.loads(corr_data[MOVEMENT_CORR_EW])
+                keys = [k for k in map(int, corrs.keys()) if k in market_ids]
+                data[market_id]['movement_correlations_ew'] = [[index, market_id_idx[k], round(corrs[str(k)], precision)]
+                                                               for k in keys] + [[index, index, 1.0]]
+
+                corrs = json.loads(corr_data[DEV_CORR])
+                keys = [k for k in map(int, corrs.keys()) if k in market_ids]
+                data[market_id]['dev_correlations'] = [[index, market_id_idx[k], round(corrs[str(k)], precision)]
                                                        for k in keys] + [[index, index, 1.0]]
 
-        corrs = json.loads(market_correlation_data[market_id][-1][DEV_CORR])
-        keys = [k for k in map(int, corrs.keys()) if k in market_ids]
-        data[market_id]['dev_correlations'] = [[index, market_id_idx[k], round(corrs[str(k)], precision)]
-                                               for k in keys] + [[index, index, 1.0]]
+                corrs = json.loads(corr_data[DEV_CORR_EW])
+                keys = [k for k in map(int, corrs.keys()) if k in market_ids]
+                data[market_id]['dev_correlations_ew'] = [[index, market_id_idx[k], round(corrs[str(k)], precision)]
+                                                          for k in keys] + [[index, index, 1.0]]
+            else:
+                keys = [k for k in market_ids if k != market_id]
+                corr_data = [[index, market_id_idx[k], 1.0] for k in keys] + [[index, index, 1.0]]
+                data[market_id]['movement_correlations'] = corr_data
+                data[market_id]['movement_correlations_ew'] = corr_data
+                data[market_id]['dev_correlations'] = corr_data
+                data[market_id]['dev_correlations_ew'] = corr_data
 
-        corrs = json.loads(market_correlation_data[market_id][-1][DEV_CORR_EW])
-        keys = [k for k in map(int, corrs.keys()) if k in market_ids]
-        data[market_id]['dev_correlations_ew'] = [[index, market_id_idx[k], round(corrs[str(k)], precision)]
-                                                  for k in keys] + [[index, index, 1.0]]
+        # group correlations
+        group_correlations = defaultdict(dict)
+        for group_id in group_ids:
+            corr_data = group_correlation_data[group_id][group_correlation_indexes[group_id][date]] \
+                if date in group_correlation_indexes[group_id] else [d for d in group_correlation_indexes[group_id] if d[0] <= date]
 
-    # group correlations
-    group_correlations = defaultdict(dict)
-    for group_id in group_ids:
-        corrs = json.loads(group_correlation_data[group_id][-1][MOVEMENT_CORR])
-        group_correlations[group_id]['movement_correlations'] = {k: round(corrs[k], precision)
-                                                                 for k in corrs.keys() if int(k) in group_ids}
+            if len(corr_data):
+                corr_data = corr_data if type(corr_data[DATE]) is dt.date else corr_data[-1]
 
-        corrs = json.loads(group_correlation_data[group_id][-1][MOVEMENT_CORR_EW])
-        group_correlations[group_id]['movement_correlations_ew'] = {k: round(corrs[k], precision)
+                corrs = json.loads(corr_data[MOVEMENT_CORR])
+                group_correlations[group_id]['movement_correlations'] = {k: round(corrs[k], precision)
+                                                                         for k in corrs.keys() if int(k) in group_ids}
+
+                corrs = json.loads(corr_data[MOVEMENT_CORR_EW])
+                group_correlations[group_id]['movement_correlations_ew'] = {k: round(corrs[k], precision)
+                                                                            for k in corrs.keys() if int(k) in group_ids}
+
+                corrs = json.loads(corr_data[DEV_CORR])
+                group_correlations[group_id]['dev_correlations'] = {k: round(corrs[k], precision)
                                                                     for k in corrs.keys() if int(k) in group_ids}
 
-        corrs = json.loads(group_correlation_data[group_id][-1][DEV_CORR])
-        group_correlations[group_id]['dev_correlations'] = {k: round(corrs[k], precision)
-                                                            for k in corrs.keys() if int(k) in group_ids}
+                corrs = json.loads(corr_data[DEV_CORR_EW])
+                group_correlations[group_id]['dev_correlations_ew'] = {k: round(corrs[k], precision)
+                                                                       for k in corrs.keys() if int(k) in group_ids}
+            else:
+                keys = [k for k in group_id if k != group_ids]
+                corr_data = {k: 1.0 for k in keys}
+                group_correlations[group_id]['movement_correlations'] = corr_data
+                group_correlations[group_id]['movement_correlations_ew'] = corr_data
+                group_correlations[group_id]['dev_correlations'] = corr_data
+                group_correlations[group_id]['dev_correlations_ew'] = corr_data
 
-        corrs = json.loads(group_correlation_data[group_id][-1][DEV_CORR_EW])
-        group_correlations[group_id]['dev_correlations_ew'] = {k: round(corrs[k], precision)
-                                                               for k in corrs.keys() if int(k) in group_ids}
+        result.append((
+            investment_universe_name,
+            date,
+            lookback,
+            json.dumps([market_codes[market_id] for market_id in market_ids]),
+            json.dumps(list(chain(*[data[market_id]['movement_correlations'] for market_id in market_ids]))),
+            json.dumps(list(chain(*[data[market_id]['movement_correlations_ew'] for market_id in market_ids]))),
+            json.dumps({group_id: group_correlations[group_id]['movement_correlations'] for group_id in group_ids}),
+            json.dumps({group_id: group_correlations[group_id]['movement_correlations_ew'] for group_id in group_ids}),
+            json.dumps(list(chain(*[data[market_id]['dev_correlations'] for market_id in market_ids]))),
+            json.dumps(list(chain(*[data[market_id]['dev_correlations_ew'] for market_id in market_ids]))),
+            json.dumps({group_id: group_correlations[group_id]['dev_correlations'] for group_id in group_ids}),
+            json.dumps({group_id: group_correlations[group_id]['dev_correlations_ew'] for group_id in group_ids})
+        ))
 
-    result.append((
-        investment_universe_name,
-        dt.date(2017, 8, 10),
-        lookback,
-        json.dumps([market_codes[market_id] for market_id in market_ids]),
-        json.dumps(list(chain(*[data[market_id]['movement_correlations'] for market_id in market_ids]))),
-        json.dumps(list(chain(*[data[market_id]['movement_correlations_ew'] for market_id in market_ids]))),
-        json.dumps({group_id: group_correlations[group_id]['movement_correlations'] for group_id in group_ids}),
-        json.dumps({group_id: group_correlations[group_id]['movement_correlations_ew'] for group_id in group_ids}),
-        json.dumps(list(chain(*[data[market_id]['dev_correlations'] for market_id in market_ids]))),
-        json.dumps(list(chain(*[data[market_id]['dev_correlations_ew'] for market_id in market_ids]))),
-        json.dumps({group_id: group_correlations[group_id]['dev_correlations'] for group_id in group_ids}),
-        json.dumps({group_id: group_correlations[group_id]['dev_correlations_ew'] for group_id in group_ids})
-    ))
     return result
 
 
 def main(investment_universe_name, lookback):
     start = time.time()
-    # start_date = dt.date(1979, 1, 1)
-    start_date = dt.date(1991, 1, 1)
-    # end_date = dt.date(2017, 12, 31)
-    end_date = dt.date(1992, 12, 31)
+    start_date = dt.date(1979, 1, 1).strftime('%Y-%m-%d')
+    # start_date = dt.date(2017, 6, 1).strftime('%Y-%m-%d')
+    end_date = dt.date(2017, 12, 31).strftime('%Y-%m-%d')
+    # end_date = dt.date(2017, 6, 9).strftime('%Y-%m-%d')
     market_ids = __market_ids(investment_universe_name)
     # market_ids = [18, 19, 24, 25, 27]  # "OJ","SB","C","KW","MW"
     market_data = __market_data()
     groups = {m[0]: m[3] for m in market_data if m[0] in market_ids}
     group_ids = set(groups.values())
 
-    fetch_market_correlation_data(market_ids, lookback)
-    fetch_group_correlation_data(group_ids, lookback)
+    fetch_market_correlation_data(market_ids, lookback, start_date, end_date)
+    fetch_group_correlation_data(group_ids, lookback, start_date, end_date)
     values = aggregated_values(investment_universe_name, lookback, market_ids, market_data, groups, group_ids)
 
     print 'Deleting values'
     delete_values(investment_universe_name, lookback)
     print 'Inserting values'
     insert_values(values)
-
-    # msg = 'Inserting market values'
-    # length = float(len(market_values))
-    # block = int(length / 10)
-    # print 'Deleting market values with lookback', lookback
-    # delete_values('market_correlation', lookback)
-    # for i in range(10 + 1):
-    #     log(msg, '', i, 10.0)
-    #     insert_market_values(market_values[i*block:(i+1)*block])
-    # log(msg, index=10, length=10.0, complete=True)
 
     print 'Time:', time.time() - start, (time.time() - start) / 60
 
@@ -251,39 +274,3 @@ if __name__ == '__main__':
         main(sys.argv[1], sys.argv[2])
     else:
         print 'Expected two arguments -- name of the investment universe and lookback period'
-
-# correlations
-# [
-#     [0,2,0.07927669918845122],
-#     [0,3,0.32015183468943853],
-#     [0,4,-0.17574390685007296],
-#     [0,1,0.29177873952605005],
-#     [0,0,1.0],
-#
-#     [1,2,0.044201505646149004],
-#     [1,3,-0.00044234233449471754],
-#     [1,4,-0.43119303661405783],
-#     [1,0,0.29177873952605005],
-#     [1,1,1.0],
-#
-#     [2,3,0.6924798505088627],
-#     [2,4,0.7053141002145532],
-#     [2,1,0.044201505646149004],
-#     [2,0,0.07927669918845122],
-#     [2,2,1.0],
-#
-#     [3,2,0.6924798505088627],
-#     [3,4,0.6121392646679655],
-#     [3,1,-0.00044234233449471754],
-#     [3,0,0.32015183468943853],
-#     [3,3,1.0],
-#
-#     [4,2,0.7053141002145532],
-#     [4,3,0.6121392646679655],
-#     [4,1,-0.43119303661405783],
-#     [4,0,-0.17574390685007296],
-#     [4,4,1.0]
-# ]
-
-# group_correlations
-# {"2":{"3":-0.02961567104489264},"3":{"2":-0.02961567104489264}}
