@@ -40,15 +40,15 @@ class DataSeries:
             cursor = self.__connection.cursor()
             market_query = """
                 SELECT
-                  m.name,
-                  m.code,
-                  m.data_codes,
-                  m.currency,
-                  m.tick_value,
-                  m.point_value,
-                  m.overnight_initial_margin
-                FROM market as m INNER JOIN  `group` as g ON m.group_id = g.id
-                WHERE m.id = '%s';
+                  name,
+                  code,
+                  data_codes,
+                  currency,
+                  tick_value,
+                  point_value,
+                  overnight_initial_margin
+                FROM market 
+                WHERE id = '%s';
             """
             start_data_date = self.__investment_universe.start_data_date()
             self.__futures = []
