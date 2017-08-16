@@ -20,7 +20,6 @@ class Initialize:
 
     def __init__(self, simulation_name):
         self.__start_time = time.time()
-        # TODO move this connection to where it is needed and close it when done with an operation.
         connection = mysql.connect(
             os.environ['DB_HOST'],
             os.environ['DB_USER'],

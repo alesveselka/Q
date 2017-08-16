@@ -19,6 +19,9 @@ class MarketSeries(object):
         self._prices = []
         self._price_indexes = {}
 
+        self._correlations = []
+        self._correlation_indexes = {}
+
         self.__study_parameters = study_parameters
         self.__studies = defaultdict(list)
         self.__study_data = {}
@@ -146,6 +149,29 @@ class MarketSeries(object):
         for key in study_data_keys:
             column, window = key.split(':')
             self.__study_data['%s_%s' % (column, window)] = deque([], int(window))
+
+        cursor = connection.cursor()
+        correlation_query = """
+            SELECT date, movement_volatility, movement_correlations_ew
+            FROM market_correlation
+            WHERE market_id = '%s'
+            AND market_code = '%s'
+            AND lookback = '%s'
+            AND DATE(date) >= '%s'
+            AND DATE(date) <= '%s'
+            ORDER BY date;
+        """
+        cursor.execute(correlation_query % (
+            market_id,
+            market_code,
+            '25',
+            self._start_data_date.strftime('%Y-%m-%d'),
+            end_date.strftime('%Y-%m-%d')
+        ))
+        correlation_data = cursor.fetchall()
+        workdays = range(1, 6)
+        self._correlations = [p for p in correlation_data if p[0].isoweekday() in workdays]
+        self._correlation_indexes = {i[1][0]: i[0] for i in enumerate(self._correlations)}
 
     @abstractmethod
     def contract(self, date):
