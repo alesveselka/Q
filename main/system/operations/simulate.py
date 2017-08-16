@@ -17,8 +17,9 @@ from persist import Persist
 
 class Simulate:
 
-    def __init__(self, simulation, data_series, risk, account, broker, portfolio, trading_model):
+    def __init__(self, simulation, roll_strategy, data_series, risk, account, broker, portfolio, trading_model):
         self.__simulation = simulation
+        self.__roll_strategy = roll_strategy
         self.__data_series = data_series
         self.__risk = risk
         self.__account = account
@@ -34,7 +35,7 @@ class Simulate:
         # end_date = dt.date(1992, 6, 10)
         end_date = dt.date(1992, 12, 31)
 
-        self.__data_series.load(end_date, simulation[Table.Simulation.ROLL_STRATEGY_ID])
+        self.__data_series.load(end_date, roll_strategy[Table.RollStrategy.ID])
         self.__subscribe()
 
         self.__start(data_series.start_date(), end_date)
@@ -74,7 +75,8 @@ class Simulate:
         print full_report
 
         Persist(
-            self.__simulation,
+            self.__simulation[Table.Simulation.ID],
+            self.__roll_strategy,
             start_date,
             date,
             self.__order_results,

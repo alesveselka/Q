@@ -40,20 +40,27 @@ class DataSeries:
             cursor = self.__connection.cursor()
             market_query = """
                 SELECT
-                  m.name,
-                  m.code,
-                  m.data_codes,
-                  m.currency,
-                  m.tick_value,
-                  m.point_value,
-                  m.overnight_initial_margin
-                FROM market as m INNER JOIN  `group` as g ON m.group_id = g.id
-                WHERE m.id = '%s';
+                  name,
+                  code,
+                  data_codes,
+                  currency,
+                  tick_value,
+                  point_value,
+                  overnight_initial_margin
+                FROM market 
+                WHERE id = '%s';
             """
             start_data_date = self.__investment_universe.start_data_date()
             self.__futures = []
 
             series_class = NorgateSeries if roll_strategy[Table.RollStrategy.NAME] == 'norgate' else CustomSeries
+            loaded_roll_strategy = (
+                roll_strategy[Table.RollStrategy.ID],
+                roll_strategy[Table.RollStrategy.NAME],
+                roll_strategy[Table.RollStrategy.TYPE],
+                json.loads(roll_strategy[Table.RollStrategy.PARAMS])
+                if roll_strategy[Table.RollStrategy.PARAMS] else None,
+            )
 
             for market_id in self.__investment_universe.market_ids():
             # for market_id in [33]:  # 100 = CL2, 33 = W2, 19 = SB
@@ -61,12 +68,7 @@ class DataSeries:
                 self.__futures.append(Market(
                     market_id,
                     slippage_map,
-                    series_class(start_data_date, self.__study_parameters, (
-                        roll_strategy[Table.RollStrategy.ID],
-                        roll_strategy[Table.RollStrategy.NAME],
-                        roll_strategy[Table.RollStrategy.TYPE],
-                        json.loads(roll_strategy[Table.RollStrategy.PARAMS]),
-                    )),
+                    series_class(start_data_date, self.__study_parameters, loaded_roll_strategy),
                     *cursor.fetchone())
                 )
 

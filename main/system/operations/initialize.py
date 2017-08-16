@@ -54,7 +54,7 @@ class Initialize:
         )
 
         risk = Risk(params['risk_factor'], account)
-        Simulate(simulation, data_series, risk, account, broker, Portfolio(), trading_model)
+        Simulate(simulation, roll_strategy, data_series, risk, account, broker, Portfolio(), trading_model)
 
         print 'Time:', time.time() - self.__start_time, (time.time() - self.__start_time) / 60
 
