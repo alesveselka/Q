@@ -14,20 +14,20 @@ from decimal import Decimal, InvalidOperation
 
 class Persist:
 
-    def __init__(self, simulation, start_date, end_date, order_results, account, portfolio, data_series):
+    def __init__(self, simulation_id, roll_strategy, start_date, end_date, order_results, account, portfolio, data_series):
         self.__connection = mysql.connect(
             os.environ['DB_HOST'],
             os.environ['DB_USER'],
             os.environ['DB_PASS'],
             os.environ['DB_NAME']
         )
-        simulation_id = simulation[Table.Simulation.ID]
-        roll_strategy_id = simulation[Table.Simulation.ROLL_STRATEGY_ID]
+        roll_strategy_id = roll_strategy[Table.RollStrategy.ID]
+        roll_strategy_name = roll_strategy[Table.RollStrategy.NAME]
 
         # self.__save_orders(simulation_id, order_results)
         # self.__save_transactions(simulation_id, account.transactions(start_date, end_date))
         # self.__save_positions(simulation_id, portfolio)
-        # self.__save_price_series(simulation_id, roll_strategy_id, data_series.futures(None, None))
+        # self.__save_price_series(simulation_id, roll_strategy_id, roll_strategy_name, data_series.futures(None, None))
         # self.__save_studies(simulation_id, data_series.futures(None, None), data_series.study_parameters())
         # self.__save_equity(simulation_id, account, start_date, end_date)
 
@@ -144,75 +144,77 @@ class Persist:
              ) for p in portfolio.closed_positions() + portfolio.open_positions()]
         )
 
-    def __save_price_series(self, simulation_id, roll_strategy_id, markets):
+    def __save_price_series(self, simulation_id, roll_strategy_id, roll_strategy_name, markets):
         """
         Persist continuous adjusted price series of the markets passed in
         
         :param simulation_id:       ID of the simulation
         :param roll_strategy_id:    ID of the roll strategy
+        :param roll_strategy_name:  name of the roll strategy
         :param markets:             markets of which price series to persist
         """
         self.__log('Saving price series')
 
-        now = dt.datetime.now()
-        price_columns = [
-            'market_id',
-            'roll_strategy_id',
-            'code',
-            'price_date',
-            'open_price',
-            'high_price',
-            'low_price',
-            'last_price',
-            'settle_price',
-            'volume',
-            'open_interest',
-            'created_date',
-            'last_updated_date'
-        ]
-        roll_columns = [
-            'market_id',
-            'roll_strategy_id',
-            'date',
-            'gap',
-            'roll_out_contract',
-            'roll_in_contract'
-        ]
-        length = float(len(markets))
-        price_values = []
-        roll_values = []
-        for i, m in enumerate(markets):
-            self.__log('Saving price series', i, length)
+        if roll_strategy_name != 'norgate':
+            now = dt.datetime.now()
+            price_columns = [
+                'market_id',
+                'roll_strategy_id',
+                'code',
+                'price_date',
+                'open_price',
+                'high_price',
+                'low_price',
+                'last_price',
+                'settle_price',
+                'volume',
+                'open_interest',
+                'created_date',
+                'last_updated_date'
+            ]
+            roll_columns = [
+                'market_id',
+                'roll_strategy_id',
+                'date',
+                'gap',
+                'roll_out_contract',
+                'roll_in_contract'
+            ]
+            length = float(len(markets))
+            price_values = []
+            roll_values = []
+            for i, m in enumerate(markets):
+                self.__log('Saving price series', i, length)
 
-            market_id = m.id()
-            market_code = m.code()
-            price_values += [(
-                market_id,
-                roll_strategy_id,
-                market_code,
-                d[Table.Market.PRICE_DATE],
-                d[Table.Market.OPEN_PRICE],
-                d[Table.Market.HIGH_PRICE],
-                d[Table.Market.LOW_PRICE],
-                d[Table.Market.SETTLE_PRICE],
-                d[Table.Market.SETTLE_PRICE],
-                d[Table.Market.VOLUME],
-                0,
-                now,
-                now
-            ) for d in m.data_range()]
+                market_id = m.id()
+                market_code = m.code()
+                price_values += [(
+                    market_id,
+                    roll_strategy_id,
+                    market_code,
+                    d[Table.Market.PRICE_DATE],
+                    d[Table.Market.OPEN_PRICE],
+                    d[Table.Market.HIGH_PRICE],
+                    d[Table.Market.LOW_PRICE],
+                    d[Table.Market.SETTLE_PRICE],
+                    d[Table.Market.SETTLE_PRICE],
+                    d[Table.Market.VOLUME],
+                    0,
+                    now,
+                    now
+                ) for d in m.data_range()]
 
-            roll_values += [(
-                market_id,
-                roll_strategy_id,
-                r[Table.ContractRoll.DATE],
-                r[Table.ContractRoll.GAP],
-                r[Table.ContractRoll.ROLL_OUT_CONTRACT],
-                r[Table.ContractRoll.ROLL_IN_CONTRACT]
-            ) for r in m.contract_rolls()]
+                roll_values += [(
+                    market_id,
+                    roll_strategy_id,
+                    r[Table.ContractRoll.DATE],
+                    r[Table.ContractRoll.GAP],
+                    r[Table.ContractRoll.ROLL_OUT_CONTRACT],
+                    r[Table.ContractRoll.ROLL_IN_CONTRACT]
+                ) for r in m.contract_rolls()]
 
-        self.__insert_values('continuous_adjusted', 'roll_strategy_id', roll_strategy_id, price_columns, price_values)
-        self.__insert_values('contract_roll', 'roll_strategy_id', roll_strategy_id, roll_columns, roll_values)
+            self.__insert_values('continuous_adjusted', 'roll_strategy_id', roll_strategy_id, price_columns, price_values)
+            self.__insert_values('contract_roll', 'roll_strategy_id', roll_strategy_id, roll_columns, roll_values)
 
     def __save_studies(self, simulation_id, markets, study_parameters):
         """
