@@ -13,6 +13,8 @@ from order import Order
 from timer import Timer
 from order_result import OrderResult
 from persist import Persist
+from itertools import combinations
+from collections import defaultdict
 
 
 class Simulate:
@@ -110,6 +112,20 @@ class Simulate:
         self.__data_series.update_futures_data(date)
 
         self.__transfer_orders(self.__orders(date))
+
+        markets = [p.market() for p in self.__portfolio.open_positions()]
+        if len(markets) >= 2:
+            market_ids = {str(m.id()): m for m in markets}
+            pairs = list(combinations(market_ids.keys(), 2))
+            counter = defaultdict(int)
+            fraction = .25
+            print date, market_ids.keys(), pairs
+            for pair in pairs:
+                correlation = market_ids[pair[0]].correlation(date, pair[1])
+                rounded_correlation = abs(fraction * round(correlation/fraction)) if correlation else None
+                counter[rounded_correlation] += 1
+                print pair, correlation, rounded_correlation
+            print counter
 
     def __on_market_close(self, date, previous_date):
         """
