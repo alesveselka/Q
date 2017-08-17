@@ -1,5 +1,6 @@
 #!/usr/bin/python
 
+import json
 from enum import Table
 from operator import itemgetter
 from collections import deque
@@ -37,6 +38,19 @@ class MarketSeries(object):
         """
         index = self._price_indexes[date] if date in self._price_indexes else None
         return (self._prices[index], self._prices[index-1]) if index else (None, None)
+
+    def correlation(self, date, market_id):
+        """
+        Find and return correlation with the other market, which ID is passed in
+        
+        :param date:        date of the correlation record
+        :param market_id:   ID of second market to find correlation value for
+        :return:            correlation number if any found
+        """
+        index = self._correlation_indexes[date] if date in self._correlation_indexes else None
+        record = self._correlations[index] if index else [c for c in self._correlations if c[Table.MarketCorrelation.DATE] <= date][-1]
+        correlations = json.loads(record[Table.MarketCorrelation.CORRELATIONS]) if record else None
+        return correlations[market_id] if correlations else None  # TODO return 0.0 instead of None?
 
     def data_range(self, start_date, end_date):
         """
