@@ -133,6 +133,11 @@ class Table:
         TYPE = 2
         PARAMS = 3
 
+    class MarketCorrelation:
+        DATE = 0
+        VOLATILITY = 1
+        CORRELATIONS = 2
+
 
 class YieldCurve:
     CODE = 0

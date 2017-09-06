@@ -23,7 +23,7 @@ class Timer(EventDispatcher):
         previous_day = start_date
         days = Timer.daily_date_range(start_date, end_date)
         length = len(days)
-
+        # TODO filter by major holidays in major exchanges
         for i, day in enumerate(days):
             self.__log(day, i, length)
             self.dispatch(EventType.MARKET_OPEN, day, previous_day)  # execute orders

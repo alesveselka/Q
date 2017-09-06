@@ -128,6 +128,8 @@ def calculate_volatility(market_id, market_code, start_date, end_date, lookback)
         deviations.append(return_window[-1] - sum(return_window) / len(return_window))
         deviations_squared.append(deviations[-1]**2)
         variance = sum(deviations_squared[-lookback:]) / (lookback - 1) if i >= lookback - 1 else None
+        # TODO annualize
+        # TODO standardize the VOLs for comparable correlations
         deviation_vol = sqrt(variance) if variance else None
         movement_vol = sqrt(sum(r**2 for r in return_window) / lookback) if i >= lookback - 1 else None
         result.append((item[0], price, returns[-1], deviations[-1], deviations_squared[-1], deviation_vol, movement_vol))

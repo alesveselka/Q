@@ -36,6 +36,9 @@ class Market:
     def data(self, date):
         return self.__series.data(date)
 
+    def correlation(self, date, market_id):
+        return self.__series.correlation(date, market_id)
+
     def data_range(self, start_date=dt.date(1900, 1, 1), end_date=dt.date(9999, 12, 31)):
         return self.__series.data_range(start_date, end_date)
 
