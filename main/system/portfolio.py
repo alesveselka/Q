@@ -39,9 +39,9 @@ class Portfolio(object):
         cash_volatility_target = equity * self.__volatility_target
         daily_cash_volatility_target = cash_volatility_target / 16
         print date, equity, cash_volatility_target, daily_cash_volatility_target
-        # self.__correlation_weights(date)
-        self.__volatility_scalars(date, daily_cash_volatility_target)
-        self.__diversification_multiplier(date)
+        self.__correlation_weights(date)
+        # self.__volatility_scalars(date, daily_cash_volatility_target)
+        # self.__diversification_multiplier(date)
 
     def __correlation_weights(self, date):
         # TODO The 'Handcrafting' method assumes the assets have the same expected standard deviation of returns!
@@ -69,13 +69,34 @@ class Portfolio(object):
                 print pair, round(correlation, 2), rounded_correlation, volatility
 
             # print date, market_correlations, group_correlations
-            for k in market_correlations.keys():
-                print k, market_correlations[k], reduce(mul, market_correlations[k]), log(reduce(mul, market_correlations[k]))
 
             # TODO if there is only one group, no need to calculate average AND not need to use group at first place
-            if len(group_correlations) <= 1:
+            group_weights = {}
+            if len(group_correlations) > 1:
+                logs = 0
                 for k in group_correlations.keys():
-                    print k, group_correlations[k], sum(group_correlations[k]) / len(group_correlations[k]), log(sum(group_correlations[k]) / len(group_correlations[k]))
+                    avg = sum(group_correlations[k]) / len(group_correlations[k])
+                    logs += (log(avg) if avg else 1e-6)
+                for k in group_correlations.keys():
+                    avg = sum(group_correlations[k]) / len(group_correlations[k])
+                    ln = (log(avg) if avg else 1e-6)
+                    group_weights[k] = ln / logs
+                    print k, group_correlations[k], round(avg, 2), round(ln, 2), round(ln / logs, 3)
+
+            logs = 0
+            grp_logs = 0
+            for k in market_correlations.keys():
+                logs += log(reduce(mul, market_correlations[k]))
+                grp_logs += log(reduce(mul, market_correlations[k])**group_weights[k])
+            for k in market_correlations.keys():
+                product = reduce(mul, market_correlations[k])
+                print \
+                    k, \
+                    market_correlations[k], \
+                    round(product, 6), \
+                    round(log(product), 2), \
+                    round(log(product) / logs, 3), \
+                    round(log(product**group_weights[k]) / grp_logs, 3)
 
     def __volatility_scalars(self, date, daily_cash_volatility_target):
         markets = [p.market() for p in self.__positions]
