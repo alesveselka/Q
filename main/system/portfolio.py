@@ -81,10 +81,17 @@ class Portfolio(object):
         markets = [p.market() for p in self.__positions]
         for market in markets:
             market_data, previous_data = market.data(date)
-            correlation_data = market.correlation(date)
-            volatility = correlation_data[Table.MarketCorrelation.VOLATILITY]
-            # TODO don't have Settle prices at this point
-            print market.code(), market_data#[Table.Market.SETTLE_PRICE]
+            data = previous_data if previous_data else market.data_range(end_date=date)[-1]
+            price_date = data[Table.Market.PRICE_DATE]
+            price = data[Table.Market.SETTLE_PRICE]
+            point_value = market.point_value()
+            block_value = price * point_value
+            correlation_data = market.correlation(price_date)
+            price_volatility = correlation_data[Table.MarketCorrelation.VOLATILITY]
+            instrument_currency_volatility = price_volatility * block_value
+            instrument_value_volatility = self.__account.base_value(instrument_currency_volatility, market.currency(), price_date)
+            volatility_scalar = daily_cash_volatility_target / instrument_value_volatility
+            print market.code(), int(daily_cash_volatility_target), price, point_value, block_value, price_volatility, instrument_currency_volatility, instrument_value_volatility, volatility_scalar
 
     def __diversification_multiplier(self, date):
         return 1.0

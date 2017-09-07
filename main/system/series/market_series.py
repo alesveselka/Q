@@ -42,16 +42,6 @@ class MarketSeries(object):
         index = self._price_indexes[date] if date in self._price_indexes else None
         return (self._prices[index], self._prices[index-1]) if index else (None, None)
 
-    def correlation(self, date):
-        """
-        Find and return series volatility to the date and correlation with the other market, which ID is passed in
-        
-        :param date:        date of the correlation record
-        :return:            tuple(date, volatility number, and JSON(correlation dict))
-        """
-        index = self._correlation_indexes[date] if date in self._correlation_indexes else None
-        return self._correlations[index] if index else [c for c in self._correlations if c[Table.MarketCorrelation.DATE] <= date][-1]
-
     def data_range(self, start_date, end_date):
         """
         Return data between the start and end date passed in
@@ -61,6 +51,16 @@ class MarketSeries(object):
         :return:            list of data
         """
         return [d for d in self._prices if start_date <= d[Table.Market.PRICE_DATE] <= end_date]
+
+    def correlation(self, date):
+        """
+        Find and return series volatility to the date and correlation with the other market, which ID is passed in
+        
+        :param date:        date of the correlation record
+        :return:            tuple(date, volatility number, and JSON(correlation dict))
+        """
+        index = self._correlation_indexes[date] if date in self._correlation_indexes else None
+        return self._correlations[index] if index else [c for c in self._correlations if c[Table.MarketCorrelation.DATE] <= date][-1]
 
     def study(self, study_name, date=None):
         """
