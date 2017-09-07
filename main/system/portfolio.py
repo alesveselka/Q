@@ -49,8 +49,8 @@ class Portfolio(object):
             fraction = .25
             print date, market_ids.keys(), pairs
             for pair in pairs:
-                correlation = abs(market_ids[pair[0]].correlation(date, pair[1]))
-                correlation = 1e-6 if correlation == 0.0 else correlation
+                volatility, correlation = market_ids[pair[0]].correlation_data(date, pair[1])
+                correlation = 1e-6 if correlation == 0.0 else abs(correlation)
                 market_correlations[pair[0]].append(correlation)
                 market_correlations[pair[1]].append(correlation)
                 rounded_correlation = (fraction * round(correlation/fraction)) if correlation else None

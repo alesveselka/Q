@@ -36,8 +36,8 @@ class Market:
     def data(self, date):
         return self.__series.data(date)
 
-    def correlation(self, date, market_id):
-        return self.__series.correlation(date, market_id)
+    def correlation_data(self, date, market_id):
+        return self.__series.correlation_data(date, market_id)
 
     def data_range(self, start_date=dt.date(1900, 1, 1), end_date=dt.date(9999, 12, 31)):
         return self.__series.data_range(start_date, end_date)
@@ -57,7 +57,7 @@ class Market:
     def has_study_data(self):
         return self.__series.has_study_data()
 
-    def load_data(self, connection, end_date, delivery_months, roll_strategy_id):
+    def load_data(            self, connection, end_date, delivery_months, roll_strategy_id):
         self.__series.load(connection, end_date, delivery_months, self.__id, self.__instrument_code, roll_strategy_id)
 
         if self.__margin == 0:
