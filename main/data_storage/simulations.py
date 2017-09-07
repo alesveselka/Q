@@ -18,6 +18,13 @@ def insert_simulations(values):
         cursor.executemany(command, values)
 
 
+def update_simulation(simulation_id, column, value):
+    cursor = mysql_connection.cursor()
+    command = """UPDATE `simulation` SET `%s` = '%s' WHERE id = %s;"""
+    cursor.execute(command % (column, value, simulation_id))
+    mysql_connection.commit()
+
+
 def studies(data):
     return [{'name': '%s_%s' % (d[0], d[1]), 'study': d[2], 'window': d[3], 'columns': d[4]} for d in data]
 
@@ -28,11 +35,16 @@ def roll_strategy_id(roll_strategy_name):
     return [r for r in cursor.fetchall() if r[1] == roll_strategy_name][0][0]
 
 
-def simulation_params(initial_balance, risk_factor):
+def simulation_params(initial_balance=1e6, risk_factor=0.002, volatility_target=0.2, volatility_lookback=25):
     return {
         'initial_balance': initial_balance,
         'base_currency': 'EUR',
         'risk_factor': risk_factor,
+        'volatility_target': volatility_target,
+        'volatility_lookback': volatility_lookback,
+        'volatility_type': 'movement',
+        'use_ew_volatility': True,
+        'use_correlation_weights': True,
         'commission': 10.0,
         'commission_currency': 'USD',
         'interest_minimums': {
@@ -76,7 +88,7 @@ def simulations():
 
     return [(
         '%s_1' % trading_model_name,
-        json.dumps(simulation_params(1e6, 0.002)),
+        json.dumps(simulation_params()),
         trading_model_name,
         json.dumps(trading_params),
         json.dumps(study_map),
@@ -84,7 +96,7 @@ def simulations():
         '25Y'
     ), (
         '%s_2' % trading_model_name,
-        json.dumps(simulation_params(1e6, 0.002)),
+        json.dumps(simulation_params()),
         trading_model_name,
         json.dumps(trading_params),
         json.dumps(study_map),
@@ -92,7 +104,7 @@ def simulations():
         '25Y'
     ), (
         '%s_3' % trading_model_name,
-        json.dumps(simulation_params(1e6, 0.002)),
+        json.dumps(simulation_params()),
         trading_model_name,
         json.dumps(trading_params),
         json.dumps(study_map),
@@ -113,4 +125,5 @@ if __name__ == '__main__':
         'Highest-high and Lowest-low breakout with Moving Average trend filter and ATR volatility based exit stops'
     )]
     # insert_trading_models(trading_model_data)
-    insert_simulations(simulations())
+    # insert_simulations(simulations())
+    update_simulation(12, 'params', simulations()[-1][1])
