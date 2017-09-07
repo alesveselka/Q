@@ -43,7 +43,7 @@ def simulation_params(initial_balance=1e6, risk_factor=0.002, volatility_target=
         'volatility_target': volatility_target,
         'volatility_lookback': volatility_lookback,
         'volatility_type': 'movement',
-        'use_ew_volatility': True,
+        'use_ew_correlation': True,
         'use_correlation_weights': True,
         'commission': 10.0,
         'commission_currency': 'USD',
