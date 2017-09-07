@@ -13,9 +13,12 @@ class MarketSeries(object):
 
     __metaclass__ = ABCMeta
 
-    def __init__(self, start_data_date, study_parameters, roll_strategy):
+    def __init__(self, start_data_date, study_parameters, roll_strategy, volatility_type, volatility_lookback, use_ew_correlation):
         self._start_data_date = start_data_date
         self._roll_strategy = roll_strategy
+        self.__volatility_type = volatility_type
+        self.__volatility_lookback = volatility_lookback
+        self.__use_ew_correlation = use_ew_correlation
 
         self._prices = []
         self._price_indexes = {}
@@ -148,16 +151,7 @@ class MarketSeries(object):
         """
         return self.__has_study_data
 
-    def load(self,
-             connection,
-             end_date,
-             delivery_months,
-             market_id,
-             market_code,
-             roll_strategy_id,
-             volatility_type,
-             volatility_lookback,
-             use_ew_correlation):
+    def load(self, connection, end_date, delivery_months, market_id, market_code, roll_strategy_id):
         """
         Load series data
 
@@ -167,9 +161,6 @@ class MarketSeries(object):
         :param market_id:           ID of the series market
         :param market_code:         code symbol of the series market
         :param roll_strategy_id:    ID of the series roll strategy
-        :param volatility_type:     type of the volatility to load (either 'movement' or 'dev'(deviation))
-        :param volatility_lookback: number of days used for the volatility calculation lookback
-        :param use_ew_correlation:  boolean value to indicate if EW series should be used or not
         """
         study_data_keys = set('%s:%s' % (p['columns'][-1] if len(p['columns']) == 2 else 'tr', p['window']) for p in self.__study_parameters)
         for key in study_data_keys:
@@ -182,9 +173,9 @@ class MarketSeries(object):
         #     market_code,
         #     self._start_data_date,
         #     end_date,
-        #     volatility_type,
-        #     volatility_lookback,
-        #     use_ew_correlation
+        #     self.__volatility_type,
+        #     self.__volatility_lookback,
+        #     self.__use_ew_correlation
         # )
         self._correlations, self._correlation_indexes = MarketCorrelationProxy.from_files(market_code, self._start_data_date, end_date)
         # MarketCorrelationProxy.dump(market_code, self._correlations)

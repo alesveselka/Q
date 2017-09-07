@@ -12,16 +12,13 @@ from series.custom_series import CustomSeries
 
 class DataSeries:
 
-    def __init__(self, investment_universe, connection, study_parameters, volatility_type, volatility_lookback, use_ew_correlation):
+    def __init__(self, investment_universe, connection, study_parameters):
         self.__investment_universe = investment_universe
         self.__connection = connection
         self.__futures = None
         self.__currency_pairs = None
         self.__interest_rates = None
         self.__study_parameters = study_parameters
-        self.__volatility_type = volatility_type
-        self.__volatility_lookback = volatility_lookback
-        self.__use_ew_correlation = use_ew_correlation
 
     def start_date(self):
         """
@@ -30,12 +27,15 @@ class DataSeries:
         """
         return self.__investment_universe.start_data_date()
 
-    def futures(self, slippage_map, roll_strategy):
+    def futures(self, slippage_map, roll_strategy, volatility_type, volatility_lookback, use_ew_correlation):
         """
         Load futures data if not already loaded
 
         :param slippage_map:        list of dicts, each representing volume range to arrive at slippage estimate
         :param roll_strategy:       contract roll strategy
+        :param volatility_type:     type of the volatility to load (either 'movement' or 'dev'(deviation))
+        :param volatility_lookback: number of days used for the volatility calculation lookback
+        :param use_ew_correlation:  boolean value to indicate if EW series should be used or not
         :return:                    list of Market objects
         """
         if self.__futures is None:
@@ -71,7 +71,14 @@ class DataSeries:
                 self.__futures.append(Market(
                     market_id,
                     slippage_map,
-                    series_class(start_data_date, self.__study_parameters, loaded_roll_strategy),
+                    series_class(
+                        start_data_date,
+                        self.__study_parameters,
+                        loaded_roll_strategy,
+                        volatility_type,
+                        volatility_lookback,
+                        use_ew_correlation
+                    ),
                     *cursor.fetchone())
                 )
 
@@ -152,15 +159,8 @@ class DataSeries:
         # TODO load all at once and then filter in python?
         message = 'Loading Futures data ...'
         length = float(len(self.__futures))
-        map(lambda i: self.__log(message, i[1].code(), i[0], length) and i[1].load_data(
-            self.__connection,
-            end_date,
-            delivery_months,
-            roll_strategy_id,
-            self.__volatility_type,
-            self.__volatility_lookback,
-            self.__use_ew_correlation
-        ), enumerate(self.__futures))
+        map(lambda i: self.__log(message, i[1].code(), i[0], length)
+                      and i[1].load_data(self.__connection, end_date, delivery_months, roll_strategy_id), enumerate(self.__futures))
         self.__log(message, complete=True)
 
         # TODO load all at once and then filter in python?

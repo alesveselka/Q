@@ -6,22 +6,20 @@ from series.market_series import MarketSeries
 
 class NorgateSeries(MarketSeries):
 
-    def __init__(self, start_data_date, study_parameters, roll_strategy):
-        super(NorgateSeries, self).__init__(start_data_date, study_parameters, roll_strategy)
+    def __init__(self, start_data_date, study_parameters, roll_strategy, volatility_type, volatility_lookback, use_ew_correlation):
+        super(NorgateSeries, self).__init__(
+            start_data_date,
+            study_parameters,
+            roll_strategy,
+            volatility_type,
+            volatility_lookback,
+            use_ew_correlation
+        )
 
     def update_data(self, date):
         pass
 
-    def load(self,
-             connection,
-             end_date,
-             delivery_months,
-             market_id,
-             market_code,
-             roll_strategy_id,
-             volatility_type,
-             volatility_lookback,
-             use_ew_correlation):
+    def load(self, connection, end_date, delivery_months, market_id, market_code, roll_strategy_id):
         """
         Load market's data
 
@@ -31,21 +29,8 @@ class NorgateSeries(MarketSeries):
         :param market_id:           ID of the series market
         :param market_code:         code symbol of the series market
         :param roll_strategy_id:    ID of the series roll strategy
-        :param volatility_type:     type of the volatility to load (either 'movement' or 'dev'(deviation))
-        :param volatility_lookback: number of days used for the volatility calculation lookback
-        :param use_ew_correlation:  boolean value to indicate if EW series should be used or not
         """
-        super(NorgateSeries, self).load(
-            connection,
-            end_date,
-            delivery_months,
-            market_id,
-            market_code,
-            roll_strategy_id,
-            volatility_type,
-            volatility_lookback,
-            use_ew_correlation
-        )
+        super(NorgateSeries, self).load(connection, end_date, delivery_months, market_id, market_code, roll_strategy_id)
 
         # TODO use connection pool?
         cursor = connection.cursor()

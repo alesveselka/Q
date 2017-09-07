@@ -12,8 +12,15 @@ from series.market_series import MarketSeries
 
 class CustomSeries(MarketSeries):
 
-    def __init__(self, start_data_date, study_parameters, roll_strategy):
-        super(CustomSeries, self).__init__(start_data_date, study_parameters, roll_strategy)
+    def __init__(self, start_data_date, study_parameters, roll_strategy, volatility_type, volatility_lookback, use_ew_correlation):
+        super(CustomSeries, self).__init__(
+            start_data_date,
+            study_parameters,
+            roll_strategy,
+            volatility_type,
+            volatility_lookback,
+            use_ew_correlation
+        )
 
         self.__contracts = defaultdict(list)
         self.__contract_keys = []
@@ -67,16 +74,7 @@ class CustomSeries(MarketSeries):
 
             self._prices[index] = tuple(d - self.__gaps if isinstance(d, float) else d for d in self._prices[index])
 
-    def load(self,
-             connection,
-             end_date,
-             delivery_months,
-             market_id,
-             market_code,
-             roll_strategy_id,
-             volatility_type,
-             volatility_lookback,
-             use_ew_correlation):
+    def load(self, connection, end_date, delivery_months, market_id, market_code, roll_strategy_id):
         """
         Load market's data
 
@@ -86,21 +84,8 @@ class CustomSeries(MarketSeries):
         :param market_id:           ID of the series market
         :param market_code:         code symbol of the series market
         :param roll_strategy_id:    ID of the series roll strategy
-        :param volatility_type:     type of the volatility to load (either 'movement' or 'dev'(deviation))
-        :param volatility_lookback: number of days used for the volatility calculation lookback
-        :param use_ew_correlation:  boolean value to indicate if EW series should be used or not
         """
-        super(CustomSeries, self).load(
-            connection,
-            end_date,
-            delivery_months,
-            market_id,
-            market_code,
-            roll_strategy_id,
-            volatility_type,
-            volatility_lookback,
-            use_ew_correlation
-        )
+        super(CustomSeries, self).load(connection, end_date, delivery_months, market_id, market_code, roll_strategy_id)
 
         # TODO use connection pool?
         cursor = connection.cursor()

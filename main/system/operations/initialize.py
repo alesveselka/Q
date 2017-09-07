@@ -38,18 +38,11 @@ class Initialize:
         investment_universe = InvestmentUniverse(simulation[Table.Simulation.INVESTMENT_UNIVERSE], connection)
         investment_universe.load_data()
 
-        volatility_type = params['volatility_type']
-        volatility_lookback = params['volatility_lookback']
+        vol_type = params['volatility_type']
+        vol_lookback = params['volatility_lookback']
         use_ew_correlation = params['use_ew_correlation']
-        data_series = DataSeries(
-            investment_universe,
-            connection,
-            json.loads(simulation[Table.Simulation.STUDIES]),
-            volatility_type,
-            volatility_lookback,
-            use_ew_correlation
-        )
-        futures = data_series.futures(params['slippage_map'], roll_strategy)
+        data_series = DataSeries(investment_universe, connection, json.loads(simulation[Table.Simulation.STUDIES]))
+        futures = data_series.futures(params['slippage_map'], roll_strategy, vol_type, vol_lookback, use_ew_correlation)
         currency_pairs = data_series.currency_pairs(base_currency, commission_currency)
         interest_rates = data_series.interest_rates(base_currency, commission_currency)
 

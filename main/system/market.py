@@ -57,26 +57,8 @@ class Market:
     def has_study_data(self):
         return self.__series.has_study_data()
 
-    def load_data(
-            self,
-            connection,
-            end_date,
-            delivery_months,
-            roll_strategy_id,
-            volatility_type,
-            volatility_lookback,
-            use_ew_correlation):
-        self.__series.load(
-            connection,
-            end_date,
-            delivery_months,
-            self.__id,
-            self.__instrument_code,
-            roll_strategy_id,
-            volatility_type,
-            volatility_lookback,
-            use_ew_correlation
-        )
+    def load_data(self, connection, end_date, delivery_months, roll_strategy_id):
+        self.__series.load(connection, end_date, delivery_months, self.__id, self.__instrument_code, roll_strategy_id)
 
         if self.__margin == 0:
             self.__margin = self.__series.margin(end_date, self.__point_value)
