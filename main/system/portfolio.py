@@ -8,7 +8,13 @@ from collections import defaultdict
 
 class Portfolio(object):
 
-    def __init__(self):
+    def __init__(self, volatility_target, volatility_lookback, volatility_type, use_ew_volatility, use_correlation_weights):
+        self.__volatility_target = volatility_target
+        self.__volatility_lookback = volatility_lookback
+        self.__volatility_type = volatility_type
+        self.__use_ew_volatility = use_ew_volatility
+        self.__use_correlation_weights = use_correlation_weights
+
         self.__positions = []
         self.__closed_positions = []
 

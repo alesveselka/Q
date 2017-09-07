@@ -53,7 +53,14 @@ class Initialize:
         )
 
         risk = Risk(params['risk_factor'], account)
-        Simulate(simulation, roll_strategy, data_series, risk, account, broker, Portfolio(), trading_model)
+        portfolio = Portfolio(
+            params['volatility_target'],
+            params['volatility_lookback'],
+            params['volatility_type'],
+            params['use_ew_volatility'],
+            params['use_correlation_weights']
+        )
+        Simulate(simulation, roll_strategy, data_series, risk, account, broker, portfolio, trading_model)
 
         print 'Time:', time.time() - self.__start_time, (time.time() - self.__start_time) / 60
 
