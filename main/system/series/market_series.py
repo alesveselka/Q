@@ -42,19 +42,15 @@ class MarketSeries(object):
         index = self._price_indexes[date] if date in self._price_indexes else None
         return (self._prices[index], self._prices[index-1]) if index else (None, None)
 
-    def correlation_data(self, date, market_id):
+    def correlation(self, date):
         """
         Find and return series volatility to the date and correlation with the other market, which ID is passed in
         
         :param date:        date of the correlation record
-        :param market_id:   ID of second market to find correlation value for
-        :return:            volatility and correlation numbers if any found
+        :return:            tuple(date, volatility number, and JSON(correlation dict))
         """
         index = self._correlation_indexes[date] if date in self._correlation_indexes else None
-        record = self._correlations[index] if index else [c for c in self._correlations if c[Table.MarketCorrelation.DATE] <= date][-1]
-        volatility = record[Table.MarketCorrelation.VOLATILITY]
-        correlations = json.loads(record[Table.MarketCorrelation.CORRELATIONS])
-        return volatility, correlations[market_id]
+        return self._correlations[index] if index else [c for c in self._correlations if c[Table.MarketCorrelation.DATE] <= date][-1]
 
     def data_range(self, start_date, end_date):
         """

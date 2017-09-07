@@ -1,14 +1,17 @@
 #!/usr/bin/python
 
+import json
 from math import log
 from operator import mul
 from itertools import combinations
 from collections import defaultdict
+from enum import Table
 
 
 class Portfolio(object):
 
-    def __init__(self, volatility_target, use_correlation_weights):
+    def __init__(self, account, volatility_target, use_correlation_weights):
+        self.__account = account
         self.__volatility_target = volatility_target
         self.__use_correlation_weights = use_correlation_weights
         self.__positions = []
@@ -32,8 +35,12 @@ class Portfolio(object):
         return self.__closed_positions
 
     def candidate(self, date):
-        self.__correlation_weights(date)
-        self.__volatility_scalars(date)
+        equity = float(self.__account.equity(date))
+        cash_volatility_target = equity * self.__volatility_target
+        daily_cash_volatility_target = cash_volatility_target / 16
+        print date, equity, cash_volatility_target, daily_cash_volatility_target
+        # self.__correlation_weights(date)
+        self.__volatility_scalars(date, daily_cash_volatility_target)
         self.__diversification_multiplier(date)
 
     def __correlation_weights(self, date):
@@ -49,7 +56,9 @@ class Portfolio(object):
             fraction = .25
             print date, market_ids.keys(), pairs
             for pair in pairs:
-                volatility, correlation = market_ids[pair[0]].correlation_data(date, pair[1])
+                correlation_data = market_ids[pair[0]].correlation(date)
+                volatility = correlation_data[Table.MarketCorrelation.VOLATILITY]
+                correlation = json.loads(correlation_data[Table.MarketCorrelation.CORRELATIONS])[pair[1]]
                 correlation = 1e-6 if correlation == 0.0 else abs(correlation)
                 market_correlations[pair[0]].append(correlation)
                 market_correlations[pair[1]].append(correlation)
@@ -57,7 +66,7 @@ class Portfolio(object):
                 group_correlations[pair[0]].append(rounded_correlation)
                 group_correlations[pair[1]].append(rounded_correlation)
                 groups[rounded_correlation].append({pair: round(correlation, 2)})
-                print pair, round(correlation, 2), rounded_correlation
+                print pair, round(correlation, 2), rounded_correlation, volatility
 
             # print date, market_correlations, group_correlations
             for k in market_correlations.keys():
@@ -68,10 +77,14 @@ class Portfolio(object):
                 for k in group_correlations.keys():
                     print k, group_correlations[k], sum(group_correlations[k]) / len(group_correlations[k]), log(sum(group_correlations[k]) / len(group_correlations[k]))
 
-    def __volatility_scalars(self, date):
+    def __volatility_scalars(self, date, daily_cash_volatility_target):
         markets = [p.market() for p in self.__positions]
-        if len(markets) >= 2:
-            market_ids = {str(m.id()): m for m in markets}
+        for market in markets:
+            market_data, previous_data = market.data(date)
+            correlation_data = market.correlation(date)
+            volatility = correlation_data[Table.MarketCorrelation.VOLATILITY]
+            # TODO don't have Settle prices at this point
+            print market.code(), market_data#[Table.Market.SETTLE_PRICE]
 
     def __diversification_multiplier(self, date):
         return 1.0
