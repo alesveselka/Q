@@ -12,14 +12,16 @@ from series.custom_series import CustomSeries
 
 class DataSeries:
 
-    def __init__(self, investment_universe, connection, study_parameters):
-
+    def __init__(self, investment_universe, connection, study_parameters, volatility_type, volatility_lookback, use_ew_correlation):
         self.__investment_universe = investment_universe
         self.__connection = connection
         self.__futures = None
         self.__currency_pairs = None
         self.__interest_rates = None
         self.__study_parameters = study_parameters
+        self.__volatility_type = volatility_type
+        self.__volatility_lookback = volatility_lookback
+        self.__use_ew_correlation = use_ew_correlation
 
     def start_date(self):
         """
@@ -63,7 +65,8 @@ class DataSeries:
             )
 
             for market_id in self.__investment_universe.market_ids():
-            # for market_id in [33]:  # 100 = CL2, 33 = W2, 19 = SB
+            # for market_id in [19, 33, 55, 79, 88, 90, 100]:  # 19=SB, 33=W2, 55=SP, 79=TU, 88=LC, 90=GC, 100=CL2
+            # for market_id in [10, 13, 15, 74, 94, 96]:  # 10=CC, 13=KC, 15=LCC, 74=LES, 94=SI, 96=YI
                 cursor.execute(market_query % market_id)
                 self.__futures.append(Market(
                     market_id,
@@ -149,8 +152,15 @@ class DataSeries:
         # TODO load all at once and then filter in python?
         message = 'Loading Futures data ...'
         length = float(len(self.__futures))
-        map(lambda i: self.__log(message, i[1].code(), i[0], length)
-                      and i[1].load_data(self.__connection, end_date, delivery_months, roll_strategy_id), enumerate(self.__futures))
+        map(lambda i: self.__log(message, i[1].code(), i[0], length) and i[1].load_data(
+            self.__connection,
+            end_date,
+            delivery_months,
+            roll_strategy_id,
+            self.__volatility_type,
+            self.__volatility_lookback,
+            self.__use_ew_correlation
+        ), enumerate(self.__futures))
         self.__log(message, complete=True)
 
         # TODO load all at once and then filter in python?

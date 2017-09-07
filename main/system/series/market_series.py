@@ -148,7 +148,16 @@ class MarketSeries(object):
         """
         return self.__has_study_data
 
-    def load(self, connection, end_date, delivery_months, market_id, market_code, roll_strategy_id):
+    def load(self,
+             connection,
+             end_date,
+             delivery_months,
+             market_id,
+             market_code,
+             roll_strategy_id,
+             volatility_type,
+             volatility_lookback,
+             use_ew_correlation):
         """
         Load series data
 
@@ -158,6 +167,9 @@ class MarketSeries(object):
         :param market_id:           ID of the series market
         :param market_code:         code symbol of the series market
         :param roll_strategy_id:    ID of the series roll strategy
+        :param volatility_type:     type of the volatility to load (either 'movement' or 'dev'(deviation))
+        :param volatility_lookback: number of days used for the volatility calculation lookback
+        :param use_ew_correlation:  boolean value to indicate if EW series should be used or not
         """
         study_data_keys = set('%s:%s' % (p['columns'][-1] if len(p['columns']) == 2 else 'tr', p['window']) for p in self.__study_parameters)
         for key in study_data_keys:
@@ -169,7 +181,10 @@ class MarketSeries(object):
         #     market_id,
         #     market_code,
         #     self._start_data_date,
-        #     end_date
+        #     end_date,
+        #     volatility_type,
+        #     volatility_lookback,
+        #     use_ew_correlation
         # )
         self._correlations, self._correlation_indexes = MarketCorrelationProxy.from_files(market_code, self._start_data_date, end_date)
         # MarketCorrelationProxy.dump(market_code, self._correlations)

@@ -38,7 +38,17 @@ class Initialize:
         investment_universe = InvestmentUniverse(simulation[Table.Simulation.INVESTMENT_UNIVERSE], connection)
         investment_universe.load_data()
 
-        data_series = DataSeries(investment_universe, connection, json.loads(simulation[Table.Simulation.STUDIES]))
+        volatility_type = params['volatility_type']
+        volatility_lookback = params['volatility_lookback']
+        use_ew_correlation = params['use_ew_correlation']
+        data_series = DataSeries(
+            investment_universe,
+            connection,
+            json.loads(simulation[Table.Simulation.STUDIES]),
+            volatility_type,
+            volatility_lookback,
+            use_ew_correlation
+        )
         futures = data_series.futures(params['slippage_map'], roll_strategy)
         currency_pairs = data_series.currency_pairs(base_currency, commission_currency)
         interest_rates = data_series.interest_rates(base_currency, commission_currency)
@@ -53,13 +63,7 @@ class Initialize:
         )
 
         risk = Risk(params['risk_factor'], account)
-        portfolio = Portfolio(
-            params['volatility_target'],
-            params['volatility_lookback'],
-            params['volatility_type'],
-            params['use_ew_volatility'],
-            params['use_correlation_weights']
-        )
+        portfolio = Portfolio(params['volatility_target'], params['use_correlation_weights'])
         Simulate(simulation, roll_strategy, data_series, risk, account, broker, portfolio, trading_model)
 
         print 'Time:', time.time() - self.__start_time, (time.time() - self.__start_time) / 60
