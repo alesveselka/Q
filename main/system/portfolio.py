@@ -49,12 +49,13 @@ class Portfolio(object):
         if len(volatility):
             dm = self.__diversification_multiplier(date, volatility, correlations, market_weights)
             for market_id in volatility.keys():
+                w = market_weights[str(market_id)] if len(market_weights) else 1.0
                 print \
                     market_id, \
                     volatility[market_id][1], \
-                    market_weights[str(market_id)], \
+                    w, \
                     dm, \
-                    round(volatility[market_id][1] *market_weights[str(market_id)] * dm, 2)  # final position!
+                    round(volatility[market_id][1] * w * dm, 2)  # final position!
 
     def __correlation_weights(self, date):
         # TODO The 'Handcrafting' method assumes the assets have the same expected standard deviation of returns!
@@ -111,7 +112,8 @@ class Portfolio(object):
                 grp_logs += log(reduce(mul, market_correlations[k])**group_weights[k])
             for k in market_correlations.keys():
                 product = reduce(mul, market_correlations[k])
-                market_weights[k] = log(product) / logs
+                # market_weights[k] = log(product) / logs
+                market_weights[k] = log(product**group_weights[k]) / grp_logs
                 print \
                     k, \
                     market_correlations[k], \
@@ -168,9 +170,7 @@ class Portfolio(object):
 
             # print 'DM: ', pair, market_1_vol, market_2_vol, market_1_weight, market_2_weight, correlation
 
-        # deviations[group_id] = sum(terms)
-        portfolio_volatility = sqrt(abs(sum(terms)))
-        print date, portfolio_volatility, self.__volatility_target / portfolio_volatility
-        # print date, portfolio_volatility, 0.1 / portfolio_volatility
+        portfolio_volatility = sqrt(abs(sum(terms))) if len(terms) else self.__volatility_target
+        print date, terms, portfolio_volatility, self.__volatility_target / portfolio_volatility
 
         return self.__volatility_target / portfolio_volatility
