@@ -60,7 +60,9 @@ class MarketSeries(object):
         :return:            tuple(date, volatility number, and JSON(correlation dict))
         """
         index = self._correlation_indexes[date] if date in self._correlation_indexes else None
-        return self._correlations[index] if index else [c for c in self._correlations if c[Table.MarketCorrelation.DATE] <= date][-1]
+        return self._correlations[index] if index \
+            else ([c for c in self._correlations if c[Table.MarketCorrelation.DATE] <= date][-1]
+                  if len(self._correlations) and self._correlations[0][Table.MarketCorrelation.DATE] <= date else None)
 
     def study(self, study_name, date=None):
         """
