@@ -96,7 +96,8 @@ class Portfolio(object):
             for pair in pairs:
                 pair_1_id = pair[0]
                 pair_2_id = pair[1]
-                correlation = json.loads(correlation_data[pair_1_id][Table.MarketCorrelation.CORRELATIONS])[str(pair_2_id)]
+                correlation = json.loads(correlation_data[pair_1_id][Table.MarketCorrelation.CORRELATIONS])[str(pair_2_id)] \
+                    if correlation_data[pair_1_id] else 0.3
                 correlations[pair] = correlation
                 correlation = 1e-6 if correlation == 0.0 else abs(correlation)
                 market_correlations[pair_1_id].append(correlation)
@@ -158,7 +159,7 @@ class Portfolio(object):
         for market in [p.market() for p in self.__positions]:
             point_value = market.point_value()
             block_value = prices[market.id()] * point_value
-            price_volatility = correlation_data[market.id()][Table.MarketCorrelation.VOLATILITY]
+            price_volatility = correlation_data[market.id()][Table.MarketCorrelation.VOLATILITY] if correlation_data[market.id()] else 0.02
             instrument_currency_volatility = price_volatility * block_value
             instrument_value_volatility = self.__account.base_value(instrument_currency_volatility, market.currency(), date)
             volatility_scalar = daily_cash_volatility_target / instrument_value_volatility
