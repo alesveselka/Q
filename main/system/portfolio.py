@@ -39,17 +39,29 @@ class Portfolio(object):
         equity = float(self.__account.equity(date))
         cash_volatility_target = equity * self.__volatility_target
         daily_cash_volatility_target = cash_volatility_target / 16
+        
         print date, equity, cash_volatility_target, daily_cash_volatility_target
-        correlations, market_weights = self.__correlation_weights(date)
-        volatility = self.__volatility_scalars(date, daily_cash_volatility_target)
 
-        # volatility = {1: (0.00625, 10), 2: (0.00625, 10)}
-        # correlations = {('1', '2'): -0.6}
-        # market_weights = {'1': 0.5, '2': 0.5}
-        if len(volatility):
-            dm = self.__diversification_multiplier(date, volatility, correlations, market_weights)
+        markets = [p.market() for p in self.__positions]
+        if len(markets):
+            price_date = date
+            correlation_data = {}
+            for market in markets:
+                market_data, previous_data = market.data(date)
+                data = previous_data if previous_data else market.data_range(end_date=date)[-1]
+                price_date = data[Table.Market.PRICE_DATE]
+                correlation_data[market.id()] = market.correlation(price_date)
+
+            correlations, market_weights = self.__correlation_weights(correlation_data)
+            volatility = self.__volatility_scalars(price_date, correlation_data, daily_cash_volatility_target)
+
+            # volatility = {1: (0.00625, 10), 2: (0.00625, 10)}
+            # correlations = {('1', '2'): -0.6}
+            # market_weights = {'1': 0.5, '2': 0.5}
+
+            dm = self.__diversification_multiplier(volatility, correlations, market_weights)
             for market_id in volatility.keys():
-                w = market_weights[str(market_id)] if len(market_weights) else 1.0
+                w = market_weights[market_id] if len(market_weights) else 1.0
                 print \
                     market_id, \
                     volatility[market_id][1], \
@@ -57,74 +69,45 @@ class Portfolio(object):
                     dm, \
                     round(volatility[market_id][1] * w * dm, 2)  # final position!
 
-    def __correlation_weights(self, date):
+    def __correlation_weights(self, correlation_data):
         # TODO The 'Handcrafting' method assumes the assets have the same expected standard deviation of returns!
-        # TODO also incorporate new orders and create DIFF
-        markets = [p.market() for p in self.__positions]
+        market_ids = correlation_data.keys()
         correlations = {}
         market_weights = {}
-        if len(markets) >= 2:
-            market_ids = {str(m.id()): m for m in markets}
-            pairs = list(combinations(market_ids.keys(), 2))
-            groups = defaultdict(list)
+        if len(market_ids) >= 2:
+            pairs = list(combinations(market_ids, 2))
             market_correlations = defaultdict(list)
             group_correlations = defaultdict(list)
             fraction = .25
-            # print date, market_ids.keys(), pairs
             for pair in pairs:
-                # TODO receive date as in vol. scalars
-                correlation_data = market_ids[pair[0]].correlation(date)
-                volatility = correlation_data[Table.MarketCorrelation.VOLATILITY]
-                correlation = json.loads(correlation_data[Table.MarketCorrelation.CORRELATIONS])[pair[1]]
+                pair_1_id = pair[0]
+                pair_2_id = pair[1]
+                correlation = json.loads(correlation_data[pair_1_id][Table.MarketCorrelation.CORRELATIONS])[str(pair_2_id)]
+                correlations[pair] = correlation
                 correlation = 1e-6 if correlation == 0.0 else abs(correlation)
-                # correlations[pair] = correlation
-                correlations[pair] = 1e-6 if correlation == 0.0 else correlation
-                market_correlations[pair[0]].append(correlation)
-                market_correlations[pair[1]].append(correlation)
-                rounded_correlation = (fraction * round(correlation/fraction)) if correlation else None
-                group_correlations[pair[0]].append(rounded_correlation)
-                group_correlations[pair[1]].append(rounded_correlation)
-                groups[rounded_correlation].append({pair: round(correlation, 2)})
-                print pair, round(correlation, 2), rounded_correlation, volatility, correlation
+                market_correlations[pair_1_id].append(correlation)
+                market_correlations[pair_2_id].append(correlation)
+                rounded_correlation = (fraction * round(correlation / fraction)) if correlation else None
+                group_correlations[pair_1_id].append(rounded_correlation)
+                group_correlations[pair_2_id].append(rounded_correlation)
 
-            # print date, market_correlations, group_correlations
-
-            # TODO if there is only one group, no need to calculate average AND not need to use group at first place
             group_weights = {}
-            if len(group_correlations) > 1:
-                logs = 0
-                for k in group_correlations.keys():
-                    avg = sum(group_correlations[k]) / len(group_correlations[k])
-                    ln = (log(avg) if avg else log(1e-6))
-                    ln = 1-1e-6 if avg == 1.0 else ln
-                    logs += ln
-                for k in group_correlations.keys():
-                    avg = sum(group_correlations[k]) / len(group_correlations[k])
-                    ln = (log(avg) if avg else log(1e-6))
-                    ln = 1-1e-6 if avg == 1.0 else ln
-                    group_weights[k] = ln / logs
-                    # print k, group_correlations[k], round(avg, 2), round(ln, 2), round(ln / logs, 3)
+            for market_id in market_ids:
+                avg = sum(group_correlations[market_id]) / len(group_correlations[market_id])
+                ln = log(avg) if avg else log(1e-6)
+                ln = 1-1e-6 if avg == 1.0 else ln
+                group_weights[market_id] = ln
 
-            logs = 0
-            grp_logs = 0
-            for k in market_correlations.keys():
-                logs += log(reduce(mul, market_correlations[k]))
-                grp_logs += log(reduce(mul, market_correlations[k])**group_weights[k])
-            for k in market_correlations.keys():
-                product = reduce(mul, market_correlations[k])
-                # market_weights[k] = log(product) / logs
-                market_weights[k] = log(product**group_weights[k]) / grp_logs
-                print \
-                    k, \
-                    market_correlations[k], \
-                    round(product, 6), \
-                    round(log(product), 2), \
-                    round(log(product) / logs, 3), \
-                    round(log(product**group_weights[k]) / grp_logs, 3)
+            logs = sum(group_weights[k] for k in market_ids)
+            group_weights = {k: group_weights[k] / logs for k in market_ids}
+
+            market_weights = {m: reduce(mul, market_correlations[m]) for m in market_ids}
+            group_logs = sum(log(market_weights[k]**group_weights[k]) for k in market_ids)
+            market_weights = {m: log(market_weights[m]**group_weights[m]) / group_logs for m in market_ids}
 
         return correlations, market_weights
 
-    def __volatility_scalars(self, date, daily_cash_volatility_target):
+    def __volatility_scalars(self, date, correlation_data, daily_cash_volatility_target):
         markets = [p.market() for p in self.__positions]
         # scalars = {}
         volatility = {}
@@ -155,8 +138,8 @@ class Portfolio(object):
 
         return volatility
 
-    def __diversification_multiplier(self, date, volatility, correlations, market_weights):
-        print date, volatility, correlations, market_weights
+    def __diversification_multiplier(self, volatility, correlations, market_weights):
+        print volatility, correlations, market_weights
         terms = []
         for pair in correlations.keys():
             market_1_vol = volatility[int(pair[0])][0] * 16
@@ -171,6 +154,6 @@ class Portfolio(object):
             # print 'DM: ', pair, market_1_vol, market_2_vol, market_1_weight, market_2_weight, correlation
 
         portfolio_volatility = sqrt(abs(sum(terms))) if len(terms) else self.__volatility_target
-        print date, terms, portfolio_volatility, self.__volatility_target / portfolio_volatility
+        print portfolio_volatility, self.__volatility_target / portfolio_volatility
 
         return self.__volatility_target / portfolio_volatility
