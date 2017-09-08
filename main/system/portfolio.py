@@ -76,10 +76,13 @@ class Portfolio(object):
                 logs = 0
                 for k in group_correlations.keys():
                     avg = sum(group_correlations[k]) / len(group_correlations[k])
-                    logs += (log(avg) if avg else 1e-6)
+                    ln = (log(avg) if avg else 1e-6)
+                    ln = 1-1e-6 if avg == 1.0 else ln
+                    logs += ln
                 for k in group_correlations.keys():
                     avg = sum(group_correlations[k]) / len(group_correlations[k])
                     ln = (log(avg) if avg else 1e-6)
+                    ln = 1-1e-6 if avg == 1.0 else ln
                     group_weights[k] = ln / logs
                     print k, group_correlations[k], round(avg, 2), round(ln, 2), round(ln / logs, 3)
 
