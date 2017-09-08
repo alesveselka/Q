@@ -71,7 +71,7 @@ class Portfolio(object):
                     dm, \
                     round(volatility[market_id][1] * w * dm, 2)  # final position!
 
-    def __correlation_weights(self, correlation_data):
+    def __correlation_weights(self, correlation_data, use_group_correlations=False):
         """
         Calculate weights for each market based on correlations
         
@@ -105,21 +105,44 @@ class Portfolio(object):
                 group_correlations[pair_1_id].append(rounded_correlation)
                 group_correlations[pair_2_id].append(rounded_correlation)
 
-            group_weights = {}
-            for market_id in market_ids:
-                avg = sum(group_correlations[market_id]) / len(group_correlations[market_id])
-                ln = log(avg) if avg else log(1e-6)
-                ln = 1-1e-6 if avg == 1.0 else ln
-                group_weights[market_id] = ln
-
-            logs = sum(group_weights[k] for k in market_ids)
-            group_weights = {k: group_weights[k] / logs for k in market_ids}
-
-            market_weights = {m: reduce(mul, market_correlations[m]) for m in market_ids}
-            group_logs = sum(log(market_weights[k]**group_weights[k]) for k in market_ids)
-            market_weights = {m: log(market_weights[m]**group_weights[m]) / group_logs for m in market_ids}
+            market_weights = self.__grouped_market_weights(market_correlations, group_correlations) \
+                if use_group_correlations else self.__market_weights(market_correlations)
 
         return correlations, market_weights
+
+    def __market_weights(self, market_correlations):
+        """
+        Calculate market weights based on inter-market correlations
+        
+        :param market_correlations:     dict{market ID: list of correlations with every other market}
+        :return:                        dict of market position weights
+        """
+        market_ids = market_correlations.keys()
+        market_weights = {m: reduce(mul, market_correlations[m]) for m in market_ids}
+        logs = sum(log(market_weights[m]) for m in market_ids)
+        return {m: log(market_weights[m]) / logs for m in market_ids}
+
+    def __grouped_market_weights(self, market_correlations, group_correlations):
+        """
+        Calculate market weights based on inter-market correlations and also 'grouped' inter-correlations
+        
+        :param market_correlations:     dict{market ID: list of correlations with every other market}
+        :return:                        dict of market position weights
+        """
+        market_ids = market_correlations.keys()
+        group_weights = {}
+        for market_id in market_ids:
+            avg = sum(group_correlations[market_id]) / len(group_correlations[market_id])
+            ln = log(avg) if avg else log(1e-6)
+            ln = 1-1e-6 if avg == 1.0 else ln
+            group_weights[market_id] = ln
+
+        logs = sum(group_weights[k] for k in market_ids)
+        group_weights = {k: group_weights[k] / logs for k in market_ids}
+
+        market_weights = {m: reduce(mul, market_correlations[m]) for m in market_ids}
+        group_logs = sum(log(market_weights[k]**group_weights[k]) for k in market_ids)
+        return {m: log(market_weights[m]**group_weights[m]) / group_logs for m in market_ids}
 
     def __volatility_scalars(self, date, prices, correlation_data, daily_cash_volatility_target):
         """
@@ -160,7 +183,7 @@ class Portfolio(object):
             market_2_vol = volatility[pair_2_id][0] * 16
             market_1_weight = market_weights[pair_1_id]
             market_2_weight = market_weights[pair_2_id]
-            correlation = correlations[pair] if correlations[pair] >= 0.0 else 0.0
+            correlation = correlations[pair] if correlations[pair] >= 0.0 else 0.0  # Cap to avoid very big numbers
             terms.append(market_1_weight**2 * market_1_vol**2)
             terms.append(market_2_weight**2 * market_2_vol**2)
             terms.append(2 * market_1_weight * market_1_vol * market_2_weight * market_2_vol * correlation)
