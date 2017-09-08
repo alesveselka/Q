@@ -19,7 +19,7 @@ from trading_models.breakout_ma_filter_atr_stop import BreakoutMAFilterATRStop
 class Initialize:
 
     def __init__(self, simulation_name):
-        self.__start_time = time.time()
+        start_time = time.time()
         connection = mysql.connect(
             os.environ['DB_HOST'],
             os.environ['DB_USER'],
@@ -59,7 +59,7 @@ class Initialize:
         portfolio = Portfolio(account, params['volatility_target'], params['use_correlation_weights'])
         Simulate(simulation, roll_strategy, data_series, risk, account, broker, portfolio, trading_model)
 
-        print 'Time:', time.time() - self.__start_time, (time.time() - self.__start_time) / 60
+        print 'Time:', time.time() - start_time, (time.time() - start_time) / 60
 
     def __simulation(self, name, connection):
         """
