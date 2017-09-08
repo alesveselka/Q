@@ -144,21 +144,26 @@ class Portfolio(object):
         return volatility
 
     def __diversification_multiplier(self, volatility, correlations, market_weights):
-        print volatility, correlations, market_weights
+        """
+        Calculate diversification multiplier based on markets volatility and correlations
+        
+        :param volatility:      dict of markets volatility
+        :param correlations:    dict of markets correlations
+        :param market_weights:  dict of market weights
+        :return:                return diversification multiplier based on portfolio volatility and volatility target
+        """
         terms = []
         for pair in correlations.keys():
-            market_1_vol = volatility[int(pair[0])][0] * 16
-            market_2_vol = volatility[int(pair[1])][0] * 16
-            market_1_weight = market_weights[pair[0]]
-            market_2_weight = market_weights[pair[1]]
+            pair_1_id = pair[0]
+            pair_2_id = pair[1]
+            market_1_vol = volatility[pair_1_id][0] * 16
+            market_2_vol = volatility[pair_2_id][0] * 16
+            market_1_weight = market_weights[pair_1_id]
+            market_2_weight = market_weights[pair_2_id]
             correlation = correlations[pair] if correlations[pair] >= 0.0 else 0.0
             terms.append(market_1_weight**2 * market_1_vol**2)
             terms.append(market_2_weight**2 * market_2_vol**2)
             terms.append(2 * market_1_weight * market_1_vol * market_2_weight * market_2_vol * correlation)
 
-            # print 'DM: ', pair, market_1_vol, market_2_vol, market_1_weight, market_2_weight, correlation
-
         portfolio_volatility = sqrt(abs(sum(terms))) if len(terms) else self.__volatility_target
-        print portfolio_volatility, self.__volatility_target / portfolio_volatility
-
         return self.__volatility_target / portfolio_volatility
