@@ -27,16 +27,17 @@ class DataSeries:
         """
         return self.__investment_universe.start_data_date()
 
-    def futures(self, slippage_map, roll_strategy, volatility_type, volatility_lookback, use_ew_correlation):
+    def futures(self, slippage_map, roll_strategy, correlation_data_params):
         """
         Load futures data if not already loaded
 
-        :param slippage_map:        list of dicts, each representing volume range to arrive at slippage estimate
-        :param roll_strategy:       contract roll strategy
-        :param volatility_type:     type of the volatility to load (either 'movement' or 'dev'(deviation))
-        :param volatility_lookback: number of days used for the volatility calculation lookback
-        :param use_ew_correlation:  boolean value to indicate if EW series should be used or not
-        :return:                    list of Market objects
+        :param slippage_map:            list of dicts, each representing volume range to arrive at slippage estimate
+        :param roll_strategy:           contract roll strategy
+        :param correlation_data_params: dict of params for loading correlation data (
+                                            volatility_type, 
+                                            volatility_lookback, 
+                                            and use_ew_correlation)
+        :return:                        list of Market objects
         """
         if self.__futures is None:
             cursor = self.__connection.cursor()
@@ -63,10 +64,13 @@ class DataSeries:
                 json.loads(roll_strategy[Table.RollStrategy.PARAMS])
                 if roll_strategy[Table.RollStrategy.PARAMS] else None,
             )
+            volatility_type = correlation_data_params['volatility_type']
+            volatility_lookback = correlation_data_params['volatility_lookback']
+            use_ew_correlation = correlation_data_params['use_ew_correlation']
 
             for market_id in self.__investment_universe.market_ids():
             # for market_id in [19, 33, 55, 79, 88, 90, 100]:  # 19=SB, 33=W2, 55=SP, 79=TU, 88=LC, 90=GC, 100=CL2
-            # for market_id in [10, 13, 15, 74, 94, 96]:  # 10=CC, 13=KC, 15=LCC, 74=LES, 94=SI, 96=YI
+            # for market_id in [10, 13, 15, 74, 94, 96, 26]:  # 10=CC, 13=KC, 15=LCC, 74=LES, 94=SI, 96=YI, 26=LWB
                 cursor.execute(market_query % market_id)
                 self.__futures.append(Market(
                     market_id,

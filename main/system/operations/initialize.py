@@ -38,11 +38,8 @@ class Initialize:
         investment_universe = InvestmentUniverse(simulation[Table.Simulation.INVESTMENT_UNIVERSE], connection)
         investment_universe.load_data()
 
-        vol_type = params['volatility_type']
-        vol_lookback = params['volatility_lookback']
-        use_ew_correlation = params['use_ew_correlation']
         data_series = DataSeries(investment_universe, connection, json.loads(simulation[Table.Simulation.STUDIES]))
-        futures = data_series.futures(params['slippage_map'], roll_strategy, vol_type, vol_lookback, use_ew_correlation)
+        futures = data_series.futures(params['slippage_map'], roll_strategy, self.__correlation_data_params(params))
         currency_pairs = data_series.currency_pairs(base_currency, commission_currency)
         interest_rates = data_series.interest_rates(base_currency, commission_currency)
 
@@ -55,8 +52,8 @@ class Initialize:
             roll_strategy
         )
 
-        risk = Risk(params['risk_factor'], account)
-        portfolio = Portfolio(account, params['volatility_target'], params['use_correlation_weights'])
+        risk = Risk(params['risk_factor'], params['volatility_target'], params['use_correlation_weights'], account)
+        portfolio = Portfolio(account)
         Simulate(simulation, roll_strategy, data_series, risk, account, broker, portfolio, trading_model)
 
         print 'Time:', time.time() - start_time, (time.time() - start_time) / 60
@@ -82,6 +79,20 @@ class Initialize:
         cursor = connection.cursor()
         cursor.execute("SELECT * FROM `roll_strategy` WHERE id = '%s'" % roll_strategy_id)
         return cursor.fetchone()
+
+    def __correlation_data_params(self, params):
+        """
+        Construct and return dict with correlation data pulled from params passed in, 
+        optionally defaulted to hard-coded values
+        
+        :param params:  dict with loaded params
+        :return:        dict with correlation-date related params
+        """
+        return {
+            'volatility_type': params.get('volatility_type', 'movement'),
+            'volatility_lookback': params.get('volatility_lookback', 25),
+            'use_ew_correlation': params.get('use_ew_correlation', True),
+        }
 
     def __trading_model(self, name):
         """
