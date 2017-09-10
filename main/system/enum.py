@@ -86,6 +86,12 @@ class RollStrategyType:
     OPTIMAL_ROLL = 'optimal_roll'
 
 
+class PositionSizing:
+    RISK_FACTOR = 'risk_factor'
+    EQUAL_WEIGHTS = 'volatility_target_equal_weights'
+    CORRELATION_WEIGHTS = 'volatility_target_correlation_weights'
+
+
 class Table:
     class Market:
         CODE = 0
