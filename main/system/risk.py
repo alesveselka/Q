@@ -12,11 +12,12 @@ from enum import Table
 
 class Risk(object):
 
-    def __init__(self, position_sizing, volatility_target, use_correlation_weights, account):
-        self.__position_sizing = position_sizing
-        self.__volatility_target = volatility_target
-        self.__use_correlation_weights = use_correlation_weights
+    def __init__(self, account, position_sizing, risk_factor, volatility_target, use_group_correlation_weights):
         self.__account = account
+        self.__position_sizing = position_sizing
+        self.__risk_factor = risk_factor
+        self.__volatility_target = volatility_target
+        self.__use_group_correlation_weights = use_group_correlation_weights
 
     def position_size(self, point_value, currency, atr, date):
         """
@@ -30,7 +31,7 @@ class Risk(object):
         """
         equity = float(self.__account.equity(date))
         base_point_value = float(self.__account.base_value(point_value, currency, date))
-        return floor((self.__position_sizing * equity) / (atr * base_point_value))
+        return floor((self.__risk_factor * equity) / (atr * base_point_value))
 
     def candidate(self, date, positions):
         equity = float(self.__account.equity(date))

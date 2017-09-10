@@ -27,17 +27,16 @@ class DataSeries:
         """
         return self.__investment_universe.start_data_date()
 
-    def futures(self, slippage_map, roll_strategy, correlation_data_params):
+    def futures(self, slippage_map, roll_strategy, volatility_type, volatility_lookback, use_ew_correlation):
         """
         Load futures data if not already loaded
 
-        :param slippage_map:            list of dicts, each representing volume range to arrive at slippage estimate
-        :param roll_strategy:           contract roll strategy
-        :param correlation_data_params: dict of params for loading correlation data (
-                                            volatility_type, 
-                                            volatility_lookback, 
-                                            and use_ew_correlation)
-        :return:                        list of Market objects
+        :param slippage_map:        list of dicts, each representing volume range to arrive at slippage estimate
+        :param roll_strategy:       contract roll strategy
+        :param volatility_type:     type of volatility ('movement' or 'dev')
+        :param volatility_lookback: lookback window (as number)
+        :param use_ew_correlation:  boolean value indicating if EW corr. data should be loaded
+        :return:                    list of Market objects
         """
         if self.__futures is None:
             cursor = self.__connection.cursor()
@@ -64,9 +63,6 @@ class DataSeries:
                 json.loads(roll_strategy[Table.RollStrategy.PARAMS])
                 if roll_strategy[Table.RollStrategy.PARAMS] else None,
             )
-            volatility_type = correlation_data_params['volatility_type']
-            volatility_lookback = correlation_data_params['volatility_lookback']
-            use_ew_correlation = correlation_data_params['use_ew_correlation']
 
             for market_id in self.__investment_universe.market_ids():
             # for market_id in [19, 33, 55, 79, 88, 90, 100]:  # 19=SB, 33=W2, 55=SP, 79=TU, 88=LC, 90=GC, 100=CL2
