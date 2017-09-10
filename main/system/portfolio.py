@@ -4,6 +4,7 @@ import json
 from math import log
 from math import sqrt
 from operator import mul
+from operator import itemgetter
 from itertools import combinations
 from collections import defaultdict
 from enum import Table
@@ -54,22 +55,42 @@ class Portfolio(object):
                 prices[market.id()] = data[Table.Market.SETTLE_PRICE]
                 correlation_data[market.id()] = market.correlation(price_date)
 
-            correlations, market_weights = self.__correlation_weights(correlation_data)
-            volatility = self.__volatility_scalars(price_date, prices, correlation_data, daily_cash_volatility_target)
+            self.__calculate_positions(price_date, prices, correlation_data, daily_cash_volatility_target)
 
-            # volatility = {1: (0.00625, 10), 2: (0.00625, 10)}
-            # correlations = {('1', '2'): -0.6}
-            # market_weights = {'1': 0.5, '2': 0.5}
+    def __calculate_positions(self, price_date, prices, correlation_data, daily_cash_volatility_target):
+        correlations, market_weights = self.__correlation_weights(correlation_data)
+        volatility = self.__volatility_scalars(price_date, prices, correlation_data, daily_cash_volatility_target)
 
-            dm = self.__diversification_multiplier(volatility, correlations, market_weights)
-            for market_id in volatility.keys():
-                w = market_weights[market_id] if len(market_weights) else 1.0
-                print \
-                    market_id, \
-                    volatility[market_id][1], \
-                    w, \
-                    dm, \
-                    round(volatility[market_id][1] * w * dm, 2)  # final position!
+        # volatility = {1: (0.00625, 10), 2: (0.00625, 10)}
+        # correlations = {('1', '2'): -0.6}
+        # market_weights = {'1': 0.5, '2': 0.5}
+
+        dm = self.__diversification_multiplier(volatility, correlations, market_weights)
+        position_sizes = {k: volatility[k][1] * (market_weights[k] if len(market_weights) else 1.0) * dm for k in volatility.keys()}
+        fractional_sizes = filter(lambda k: position_sizes[k] < 1, position_sizes.keys())
+        print 'position_sizes', position_sizes
+        # print 'fractional_sizes', fractional_sizes
+        print 'sorted by weight', sorted(market_weights, key=market_weights.get)
+
+        # TODO need to re-calculate if weights is less than 1
+        # TODO take first out the one with highest internal correlation
+        for market_id in volatility.keys():
+            w = market_weights[market_id] if len(market_weights) else 1.0
+            print \
+                market_id, \
+                volatility[market_id][1], \
+                w, \
+                dm, \
+                round(volatility[market_id][1] * w * dm, 2)  # final position!
+
+        print '-' * 50
+
+        market_ids = sorted(market_weights, key=market_weights.get)[1:]
+        if len(fractional_sizes) and len(market_ids):
+            correlation_data = {m: correlation_data[m] for m in market_ids}
+            prices = {m: prices[m] for m in market_ids}
+
+            self.__calculate_positions(price_date, prices, correlation_data, daily_cash_volatility_target)
 
     def __correlation_weights(self, correlation_data, use_group_correlations=False):
         """
@@ -99,7 +120,7 @@ class Portfolio(object):
                 correlation = json.loads(correlation_data[pair_1_id][Table.MarketCorrelation.CORRELATIONS])[str(pair_2_id)] \
                     if correlation_data[pair_1_id] else 0.3
                 correlations[pair] = correlation
-                correlation = 1e-6 if correlation == 0.0 else abs(correlation)
+                correlation = 1e-3 if correlation == 0.0 else abs(correlation)
                 market_correlations[pair_1_id].append(correlation)
                 market_correlations[pair_2_id].append(correlation)
                 rounded_correlation = (fraction * round(correlation / fraction)) if correlation else None
@@ -108,6 +129,10 @@ class Portfolio(object):
 
             market_weights = self.__grouped_market_weights(market_correlations, group_correlations) \
                 if use_group_correlations else self.__market_weights(market_correlations)
+
+            print 'correlations and weights'
+            for m in market_weights.keys():
+                print m, market_correlations[m], market_weights[m]
 
         return correlations, market_weights
 
@@ -156,14 +181,19 @@ class Portfolio(object):
         :return:                                dict of tuples(price volatility, volatility scalar) with market IDs as keys
         """
         volatility = {}
-        for market in [p.market() for p in self.__positions]:
+        market_ids = correlation_data.keys()
+        print 'volatility'
+        for market in [p.market() for p in self.__positions if p.market().id() in market_ids]:
+            market_id = market.id()
             point_value = market.point_value()
-            block_value = prices[market.id()] * point_value
-            price_volatility = correlation_data[market.id()][Table.MarketCorrelation.VOLATILITY] if correlation_data[market.id()] else 0.02
+            block_value = prices[market_id] * point_value
+            price_volatility = correlation_data[market_id][Table.MarketCorrelation.VOLATILITY] if correlation_data[market_id] else 0.02
             instrument_currency_volatility = price_volatility * block_value
             instrument_value_volatility = self.__account.base_value(instrument_currency_volatility, market.currency(), date)
             volatility_scalar = daily_cash_volatility_target / instrument_value_volatility
-            volatility[market.id()] = price_volatility, volatility_scalar
+            volatility[market_id] = price_volatility, volatility_scalar
+
+            print market_id, instrument_value_volatility, volatility_scalar
 
         return volatility
 
@@ -190,4 +220,5 @@ class Portfolio(object):
             terms.append(2 * market_1_weight * market_1_vol * market_2_weight * market_2_vol * correlation)
 
         portfolio_volatility = sqrt(abs(sum(terms))) if len(terms) else self.__volatility_target
+        # TODO rename to 'optimal_portfolio_volatility' and calculate div. multiplier elsewhere?
         return self.__volatility_target / portfolio_volatility
