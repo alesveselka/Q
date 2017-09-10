@@ -148,6 +148,7 @@ class Simulate:
                            or OrderResult(OrderResultType.REJECTED, order, 0, 0, 0, 0)
             result_type = order_result.type()
 
+            # TODO keep 'PARTIALLY_FILLED' signal to try fill rest next day?
             if result_type == OrderResultType.FILLED or result_type == OrderResultType.PARTIALLY_FILLED:
                 signal_type = order.signal_type()
                 if signal_type == SignalType.ENTER:
