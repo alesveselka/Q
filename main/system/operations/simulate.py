@@ -173,6 +173,9 @@ class Simulate:
         """
         orders = []
         signals_to_remove = []
+        enter_signals = [s for s in self.__trading_signals if s.type() == SignalType.ENTER]
+        exit_signals = [s for s in self.__trading_signals if s.type() == SignalType.EXIT]
+        roll_signals = [s for s in self.__trading_signals if s.type() == SignalType.ROLL_ENTER or s.type() == SignalType.ROLL_EXIT]
 
         for signal in self.__trading_signals:
             market = signal.market()
@@ -181,9 +184,6 @@ class Simulate:
             if market_data:
                 atr_long = market.study(Study.ATR_LONG, previous_data[Table.Market.PRICE_DATE])[Table.Study.VALUE]
                 open_price = market_data[Table.Market.OPEN_PRICE]
-                enter_signals = [s for s in self.__trading_signals if s.type() == SignalType.ENTER]
-                exit_signals = [s for s in self.__trading_signals if s.type() == SignalType.EXIT]
-                roll_signals = [s for s in self.__trading_signals if s.type() == SignalType.ROLL_ENTER or s.type() == SignalType.ROLL_EXIT]
                 market_position = self.__portfolio.market_position(market)
 
                 if market_position and (signal in exit_signals or signal in roll_signals):
