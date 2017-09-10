@@ -35,16 +35,33 @@ def roll_strategy_id(roll_strategy_name):
     return [r for r in cursor.fetchall() if r[1] == roll_strategy_name][0][0]
 
 
-def simulation_params(initial_balance=1e6, risk_factor=0.002, volatility_target=0.2, volatility_lookback=25):
+def __risk_params(position_sizing, risk_factor=0.002, vol_target=0.2, vol_lookback=25, use_ew=True, group_weights=False):
     return {
+        RISK_FACTOR: {
+            'risk_factor': risk_factor
+        },
+        EQUAL_WEIGHTS: {
+            'volatility_target': vol_target,
+            'volatility_lookback': vol_lookback,
+            'volatility_type': 'movement'
+        },
+        CORRELATION_WEIGHTS: {
+            'volatility_target': vol_target,
+            'volatility_lookback': vol_lookback,
+            'volatility_type': 'movement',
+            'use_ew_correlation': use_ew,
+            'use_group_correlation_weights': group_weights
+        }
+    }[position_sizing]
+
+
+def simulation_params(position_sizing, risk_params, initial_balance=1e6):
+    # TODO also 'rebalance', 'capital_correction'
+
+    return dict(risk_params.items() + {
         'initial_balance': initial_balance,
         'base_currency': 'EUR',
-        'risk_factor': risk_factor,
-        'volatility_target': volatility_target,
-        'volatility_lookback': volatility_lookback,
-        'volatility_type': 'movement',
-        'use_ew_correlation': True,
-        'use_correlation_weights': True,
+        'position_sizing': position_sizing,
         'commission': 10.0,
         'commission_currency': 'USD',
         'interest_minimums': {
@@ -64,7 +81,7 @@ def simulation_params(initial_balance=1e6, risk_factor=0.002, volatility_target=
             {'atr': 0.05, 'min': 50000, 'max': 200000},
             {'atr': 0.01, 'min': 200000, 'max': 1e9}
         ]
-    }
+    }.items())
 
 
 def simulations():
@@ -86,9 +103,10 @@ def simulations():
         ('hhll', 'short', 'HHLL', 50, ['price_date', 'settle_price'])
     ])
 
+    # TODO also use 'EMA' in volatility_MA_type
     return [(
         '%s_1' % trading_model_name,
-        json.dumps(simulation_params()),
+        json.dumps(simulation_params(RISK_FACTOR, __risk_params(RISK_FACTOR))),
         trading_model_name,
         json.dumps(trading_params),
         json.dumps(study_map),
@@ -96,7 +114,7 @@ def simulations():
         '25Y'
     ), (
         '%s_2' % trading_model_name,
-        json.dumps(simulation_params()),
+        json.dumps(simulation_params(RISK_FACTOR, __risk_params(RISK_FACTOR))),
         trading_model_name,
         json.dumps(trading_params),
         json.dumps(study_map),
@@ -104,11 +122,19 @@ def simulations():
         '25Y'
     ), (
         '%s_3' % trading_model_name,
-        json.dumps(simulation_params()),
+        json.dumps(simulation_params(RISK_FACTOR, __risk_params(RISK_FACTOR))),
         trading_model_name,
         json.dumps(trading_params),
         json.dumps(study_map),
         roll_strategy_id('optimal_roll_1'),
+        '25Y'
+    ), (
+        '%s_4' % trading_model_name,
+        json.dumps(simulation_params(EQUAL_WEIGHTS, __risk_params(EQUAL_WEIGHTS), initial_balance=1e7)),
+        trading_model_name,
+        json.dumps(trading_params),
+        json.dumps(study_map),
+        roll_strategy_id('standard_roll_1'),
         '25Y'
     )]
 
@@ -124,6 +150,9 @@ if __name__ == '__main__':
         'breakout_with_MA_filter_and_ATR_stop',
         'Highest-high and Lowest-low breakout with Moving Average trend filter and ATR volatility based exit stops'
     )]
+    RISK_FACTOR = 'risk_factor'
+    EQUAL_WEIGHTS = 'volatility_target_equal_weights'
+    CORRELATION_WEIGHTS = 'volatility_target_correlation_weights'
     # insert_trading_models(trading_model_data)
-    # insert_simulations(simulations())
-    update_simulation(12, 'params', simulations()[-1][1])
+    # insert_simulations([simulations()[-1]])
+    # update_simulation(13, 'params', simulations()[-1][1])
