@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 import json
+import datetime as dt
 from math import log
 from math import sqrt
 from operator import mul
@@ -61,31 +62,33 @@ class Portfolio(object):
         correlations, market_weights = self.__correlation_weights(correlation_data)
         volatility = self.__volatility_scalars(price_date, prices, correlation_data, daily_cash_volatility_target)
 
-        # volatility = {1: (0.00625, 10), 2: (0.00625, 10)}
-        # correlations = {('1', '2'): -0.6}
-        # market_weights = {'1': 0.5, '2': 0.5}
+        # correlations, market_weights = self.__correlation_weights({
+        #     'SP': (dt.date(1992, 5, 31), 0.03, '{"NQ": 0.8, "US": -0.3}'),
+        #     'NQ': (dt.date(1992, 5, 31), 0.03, '{"SP": 0.8, "US": -0.3}'),
+        #     'US': (dt.date(1992, 5, 31), 0.005, '{"SP": -0.3, "NQ": -0.3}')
+        # })
+        # volatility = {'SP': (0.00625, 10), 'NQ': (0.00625, 10), 'US': (0.00625, 10)}
 
-        dm = self.__diversification_multiplier(volatility, correlations, market_weights)
-        position_sizes = {k: volatility[k][1] * (market_weights[k] if len(market_weights) else 1.0) * dm for k in volatility.keys()}
+        diversification_multiplier = self.__volatility_target / self.__optimal_volatility(volatility, correlations, market_weights)
+        position_sizes = {k: volatility[k][1] * (market_weights[k] if len(market_weights) else 1.0) * diversification_multiplier for k in volatility.keys()}
         fractional_sizes = filter(lambda k: position_sizes[k] < 1, position_sizes.keys())
         print 'position_sizes', position_sizes
         # print 'fractional_sizes', fractional_sizes
         print 'sorted by weight', sorted(market_weights, key=market_weights.get)
 
-        # TODO need to re-calculate if weights is less than 1
-        # TODO take first out the one with highest internal correlation
         for market_id in volatility.keys():
             w = market_weights[market_id] if len(market_weights) else 1.0
             print \
                 market_id, \
                 volatility[market_id][1], \
                 w, \
-                dm, \
-                round(volatility[market_id][1] * w * dm, 2)  # final position!
+                diversification_multiplier, \
+                round(volatility[market_id][1] * w * diversification_multiplier, 2)  # final position!
 
         print '-' * 50
 
         market_ids = sorted(market_weights, key=market_weights.get)[1:]
+        # TODO mark as 'Rejected'
         if len(fractional_sizes) and len(market_ids):
             correlation_data = {m: correlation_data[m] for m in market_ids}
             prices = {m: prices[m] for m in market_ids}
@@ -132,7 +135,7 @@ class Portfolio(object):
 
             print 'correlations and weights'
             for m in market_weights.keys():
-                print m, market_correlations[m], market_weights[m]
+                print m, [round(c, 3) for c in market_correlations[m]], market_weights[m]
 
         return correlations, market_weights
 
@@ -197,7 +200,7 @@ class Portfolio(object):
 
         return volatility
 
-    def __diversification_multiplier(self, volatility, correlations, market_weights):
+    def __optimal_volatility(self, volatility, correlations, market_weights):
         """
         Calculate diversification multiplier based on markets volatility and correlations
         
@@ -219,6 +222,4 @@ class Portfolio(object):
             terms.append(market_2_weight**2 * market_2_vol**2)
             terms.append(2 * market_1_weight * market_1_vol * market_2_weight * market_2_vol * correlation)
 
-        portfolio_volatility = sqrt(abs(sum(terms))) if len(terms) else self.__volatility_target
-        # TODO rename to 'optimal_portfolio_volatility' and calculate div. multiplier elsewhere?
-        return self.__volatility_target / portfolio_volatility
+        return sqrt(abs(sum(terms))) if len(terms) else self.__volatility_target
