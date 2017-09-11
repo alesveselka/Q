@@ -8,6 +8,7 @@ from operator import mul
 from itertools import combinations
 from collections import defaultdict
 from enum import Table
+from enum import PositionSizing
 
 
 class Risk(object):
@@ -15,8 +16,9 @@ class Risk(object):
     def __init__(self, account, position_sizing, risk_factor, volatility_target, use_group_correlation_weights):
         self.__account = account
         self.__position_sizing = position_sizing
+        # self.__position_sizing = PositionSizing.CORRELATION_WEIGHTS
         self.__risk_factor = risk_factor
-        self.__volatility_target = volatility_target
+        self.__volatility_target = 0.125#volatility_target
         self.__use_group_correlation_weights = use_group_correlation_weights
 
     def position_size(self, point_value, currency, atr, date):
@@ -52,12 +54,9 @@ class Risk(object):
                 prices[market.id()] = data[Table.Market.SETTLE_PRICE]
                 correlation_data[market.id()] = market.correlation(price_date)
 
-            self.__calculate_positions(price_date, prices, correlation_data, daily_cash_volatility_target, positions)
+            self.__calculate_positions(price_date, prices, correlation_data, daily_cash_volatility_target, markets)
 
-    def __calculate_positions(self, price_date, prices, correlation_data, daily_cash_volatility_target, positions):
-        correlations, market_weights = self.__correlation_weights(correlation_data)
-        volatility = self.__volatility_scalars(price_date, prices, correlation_data, daily_cash_volatility_target, positions)
-
+    def __calculate_positions(self, price_date, prices, correlation_data, daily_cash_volatility_target, markets):
         # correlations, market_weights = self.__correlation_weights({
         #     'SP': (dt.date(1992, 5, 31), 0.03, '{"NQ": 0.8, "US": -0.3}'),
         #     'NQ': (dt.date(1992, 5, 31), 0.03, '{"SP": 0.8, "US": -0.3}'),
@@ -65,33 +64,83 @@ class Risk(object):
         # })
         # volatility = {'SP': (0.00625, 10), 'NQ': (0.00625, 10), 'US': (0.00625, 10)}
 
-        diversification_multiplier = self.__volatility_target / self.__optimal_volatility(volatility, correlations, market_weights)
-        position_sizes = {k: volatility[k][1] * (market_weights[k] if len(market_weights) else 1.0) * diversification_multiplier for k in volatility.keys()}
-        fractional_sizes = filter(lambda k: position_sizes[k] < 1, position_sizes.keys())
-        print 'position_sizes', position_sizes
-        # print 'fractional_sizes', fractional_sizes
-        print 'sorted by weight', sorted(market_weights, key=market_weights.get)
+        position_sizes = {
+            PositionSizing.EQUAL_WEIGHTS: self.__equally_weighted_sizes,
+            PositionSizing.CORRELATION_WEIGHTS: self.__correlation_weighted_sizes
+        }[self.__position_sizing](price_date, prices, correlation_data, daily_cash_volatility_target, markets)
 
-        for market_id in volatility.keys():
-            w = market_weights[market_id] if len(market_weights) else 1.0
-            print \
-                market_id, \
-                volatility[market_id][1], \
-                w, \
-                diversification_multiplier, \
-                round(volatility[market_id][1] * w * diversification_multiplier, 2)  # final position!
+    def __equally_weighted_sizes(self, price_date, prices, correlation_data, vol_target, markets):
+        """
+        Calculate position sizes for the markets passed in based on volatility data
+        
+        :param price_date:          date of the data
+        :param prices:              dict of prices and market IDs as keys
+        :param correlation_data:    correlation data among individual markets
+        :param vol_target:          daily cash volatility target
+        :param markets:             list of markets to use in calculation
+        :return:                    dict of position sizes and market IDs as keys
+        """
+        market_ids = [m.id() for m in markets]
+        volatility, volatility_scalars = self.__volatility_scalars(price_date, prices, correlation_data, vol_target, markets)
+        weight = 1.0 / len(volatility)
+        position_sizes = {market_id: volatility_scalars[market_id] * weight for market_id in market_ids}
+        fractional_sizes = filter(lambda market_id: position_sizes[market_id] < 1, market_ids)
 
-        print '-' * 50
+        print 'fractional sizes', fractional_sizes
+        print 'position sizes'
+        for k in position_sizes.keys():
+            print k, position_sizes[k]
 
-        market_ids = sorted(market_weights, key=market_weights.get)[1:]
         # TODO mark as 'Rejected'
-        if len(fractional_sizes) and len(market_ids):
-            correlation_data = {m: correlation_data[m] for m in market_ids}
-            prices = {m: prices[m] for m in market_ids}
+        # TODO use volatility scalar as filter?
+        # Sort by volatility and remove the one with lowest price volatility
+        updated_market_ids = sorted(volatility, key=volatility.get)[1:]
 
-            self.__calculate_positions(price_date, prices, correlation_data, daily_cash_volatility_target, positions)
+        return self.__equally_weighted_sizes(
+            price_date,
+            prices,
+            correlation_data,
+            vol_target,
+            [m for m in markets if m.id() in updated_market_ids]
+        ) if len(fractional_sizes) and len(updated_market_ids) else position_sizes
 
-    def __correlation_weights(self, correlation_data, use_group_correlations=False):
+    def __correlation_weighted_sizes(self, price_date, prices, correlation_data, vol_target, markets):
+        """
+        Calculate position sizes for the markets passed in based on correlation and volatility data
+        
+        :param price_date:          date of the data
+        :param prices:              dict of prices and market IDs as keys
+        :param correlation_data:    correlation data among individual markets
+        :param vol_target:          daily cash volatility target
+        :param markets:             list of markets to use in calculation
+        :return:                    dict of position sizes and market IDs as keys
+        """
+        market_ids = [m.id() for m in markets]
+        correlations, market_weights = self.__correlation_weights(correlation_data, markets)
+        volatility, volatility_scalars = self.__volatility_scalars(price_date, prices, correlation_data, vol_target, markets)
+        # Diversification multiplier
+        DM = self.__volatility_target / self.__optimal_volatility(volatility, correlations, market_weights)
+        position_sizes = {m: volatility_scalars[m] * (market_weights[m] if len(market_weights) else 1.0) * DM for m in market_ids}
+        fractional_sizes = filter(lambda market_id: position_sizes[market_id] < 1, market_ids)
+
+        print 'fractional sizes', fractional_sizes
+        print 'position sizes'
+        for k in position_sizes.keys():
+            print k, position_sizes[k]
+
+        # TODO mark as 'Rejected'
+        # Sort by correlation weights and remove the one with lowest weight
+        updated_market_ids = sorted(market_weights, key=market_weights.get)[1:]
+
+        return self.__correlation_weighted_sizes(
+            price_date,
+            prices,
+            correlation_data,
+            vol_target,
+            [m for m in markets if m.id() in updated_market_ids]
+        ) if len(fractional_sizes) and len(updated_market_ids) else position_sizes
+
+    def __correlation_weights(self, correlation_data, markets):
         """
         Calculate weights for each market based on correlations
         
@@ -99,16 +148,17 @@ class Risk(object):
         2. group market correlations and also sum these as 'group_weights';
         3. final weight for each market equals 'log(market correlations ^ group correlations) / sum of all correlations'
         
-        :param correlation_data:    dict of market ID as a key and record from 'market_correlation' as a value
+        :param correlation_data     correlation data of the markets
+        :param markets              list of markets to use in calculation
         :return:                    tuple of
                                         dict of market correlations with market IDs as keys, and
                                         dict of correlation weights for each market with market IDs as keys
         """
         # TODO The 'Handcrafting' method assumes the assets have the same expected standard deviation of returns!
-        market_ids = correlation_data.keys()
         correlations = {}
         market_weights = {}
-        if len(market_ids) >= 2:
+        if len(markets) >= 2:
+            market_ids = [m.id() for m in markets]
             pairs = list(combinations(market_ids, 2))
             market_correlations = defaultdict(list)
             group_correlations = defaultdict(list)
@@ -126,8 +176,8 @@ class Risk(object):
                 group_correlations[pair_1_id].append(rounded_correlation)
                 group_correlations[pair_2_id].append(rounded_correlation)
 
-            market_weights = self.__grouped_market_weights(market_correlations, group_correlations) \
-                if use_group_correlations else self.__market_weights(market_correlations)
+            market_weights = self.__grouped_market_weights(market_correlations, group_correlations, market_ids) \
+                if self.__use_group_correlation_weights else self.__market_weights(market_correlations, market_ids)
 
             print 'correlations and weights'
             for m in market_weights.keys():
@@ -135,41 +185,41 @@ class Risk(object):
 
         return correlations, market_weights
 
-    def __market_weights(self, market_correlations):
+    def __market_weights(self, market_correlations, market_ids):
         """
         Calculate market weights based on inter-market correlations
         
         :param market_correlations:     dict{market ID: list of correlations with every other market}
+        :param market_ids:              list of market IDs
         :return:                        dict of market position weights
         """
-        market_ids = market_correlations.keys()
-        market_weights = {m: reduce(mul, market_correlations[m]) for m in market_ids}
-        logs = sum(log(market_weights[m]) for m in market_ids)
-        return {m: log(market_weights[m]) / logs for m in market_ids}
+        inner_correlation = {market_id: reduce(mul, market_correlations[market_id]) for market_id in market_ids}
+        logs = sum(log(inner_correlation[market_id]) for market_id in market_ids)
+        return {market_id: log(inner_correlation[market_id]) / logs for market_id in market_ids}
 
-    def __grouped_market_weights(self, market_correlations, group_correlations):
+    def __grouped_market_weights(self, market_correlations, group_correlations, market_ids):
         """
         Calculate market weights based on inter-market correlations and also 'grouped' inter-correlations
         
         :param market_correlations:     dict{market ID: list of correlations with every other market}
+        :param market_ids:              list of market IDs
         :return:                        dict of market position weights
         """
-        market_ids = market_correlations.keys()
-        group_weights = {}
+        group_logs = {}
         for market_id in market_ids:
             avg = sum(group_correlations[market_id]) / len(group_correlations[market_id])
             ln = log(avg) if avg else log(1e-6)
             ln = 1-1e-6 if avg == 1.0 else ln
-            group_weights[market_id] = ln
+            group_logs[market_id] = ln
 
-        logs = sum(group_weights[k] for k in market_ids)
-        group_weights = {k: group_weights[k] / logs for k in market_ids}
+        total_group_logs = sum(group_logs[market_id] for market_id in market_ids)
+        group_weights = {market_id: group_logs[market_id] / total_group_logs for market_id in market_ids}
 
-        market_weights = {m: reduce(mul, market_correlations[m]) for m in market_ids}
-        group_logs = sum(log(market_weights[k]**group_weights[k]) for k in market_ids)
-        return {m: log(market_weights[m]**group_weights[m]) / group_logs for m in market_ids}
+        inner_correlation = {market_id: reduce(mul, market_correlations[market_id]) for market_id in market_ids}
+        logs = sum(log(inner_correlation[market_id]**group_weights[market_id]) for market_id in market_ids)
+        return {market_id: log(inner_correlation[market_id]**group_weights[market_id]) / logs for market_id in market_ids}
 
-    def __volatility_scalars(self, date, prices, correlation_data, daily_cash_volatility_target, positions):
+    def __volatility_scalars(self, date, prices, correlation_data, daily_cash_volatility_target, markets):
         """
         Calculate price volatility and volatility scalars for each market
         
@@ -177,12 +227,13 @@ class Risk(object):
         :param prices:                          dict of prices and their respective market IDs as keys
         :param correlation_data:                dict of market ID as a key and record from 'market_correlation' as a value
         :param daily_cash_volatility_target:    equity x volatility target / sqrt(256)
+        :param markets:                         list of markets to use in calculation
         :return:                                dict of tuples(price volatility, volatility scalar) with market IDs as keys
         """
         volatility = {}
-        market_ids = correlation_data.keys()
+        scalars = {}
         print 'volatility'
-        for market in [p.market() for p in positions if p.market().id() in market_ids]:
+        for market in markets:
             market_id = market.id()
             point_value = market.point_value()
             block_value = prices[market_id] * point_value
@@ -190,11 +241,12 @@ class Risk(object):
             instrument_currency_volatility = price_volatility * block_value
             instrument_value_volatility = self.__account.base_value(instrument_currency_volatility, market.currency(), date)
             volatility_scalar = daily_cash_volatility_target / instrument_value_volatility
-            volatility[market_id] = price_volatility, volatility_scalar
+            volatility[market_id] = price_volatility
+            scalars[market_id] = volatility_scalar
 
-            print market_id, instrument_value_volatility, volatility_scalar
+            print market_id, price_volatility, instrument_value_volatility, volatility_scalar
 
-        return volatility
+        return volatility, scalars
 
     def __optimal_volatility(self, volatility, correlations, market_weights):
         """
@@ -209,8 +261,8 @@ class Risk(object):
         for pair in correlations.keys():
             pair_1_id = pair[0]
             pair_2_id = pair[1]
-            market_1_vol = volatility[pair_1_id][0] * 16
-            market_2_vol = volatility[pair_2_id][0] * 16
+            market_1_vol = volatility[pair_1_id] * 16
+            market_2_vol = volatility[pair_2_id] * 16
             market_1_weight = market_weights[pair_1_id]
             market_2_weight = market_weights[pair_2_id]
             correlation = correlations[pair] if correlations[pair] >= 0.0 else 0.0  # Cap to avoid very big numbers
