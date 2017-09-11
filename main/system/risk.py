@@ -7,6 +7,7 @@ from math import floor
 from operator import mul
 from itertools import combinations
 from collections import defaultdict
+from enum import Study
 from enum import Table
 from enum import PositionSizing
 
@@ -16,9 +17,8 @@ class Risk(object):
     def __init__(self, account, position_sizing, risk_factor, volatility_target, use_group_correlation_weights):
         self.__account = account
         self.__position_sizing = position_sizing
-        # self.__position_sizing = PositionSizing.CORRELATION_WEIGHTS
         self.__risk_factor = risk_factor
-        self.__volatility_target = 0.125#volatility_target
+        self.__volatility_target = volatility_target
         self.__use_group_correlation_weights = use_group_correlation_weights
 
     def position_size(self, point_value, currency, atr, date):
@@ -35,7 +35,14 @@ class Risk(object):
         base_point_value = float(self.__account.base_value(point_value, currency, date))
         return floor((self.__risk_factor * equity) / (atr * base_point_value))
 
-    def candidate(self, date, positions):
+    def position_sizes(self, date, positions):
+        """
+        Calculate position sized based on position sizing type and params
+        
+        :param date:        date of data
+        :param positions:   open positions
+        :return:            dict of position sizes as values and market IDs as keys
+        """
         equity = float(self.__account.equity(date))
         cash_volatility_target = equity * self.__volatility_target
         daily_cash_volatility_target = cash_volatility_target / 16
@@ -54,26 +61,38 @@ class Risk(object):
                 prices[market.id()] = data[Table.Market.SETTLE_PRICE]
                 correlation_data[market.id()] = market.correlation(price_date)
 
-            self.__calculate_positions(price_date, prices, correlation_data, daily_cash_volatility_target, markets)
+            position_sizes = {
+                PositionSizing.RISK_FACTOR: self.__fixed_risk_sizes,
+                PositionSizing.EQUAL_WEIGHTS: self.__equally_weighted_sizes,
+                PositionSizing.CORRELATION_WEIGHTS: self.__correlation_weighted_sizes
+            }[self.__position_sizing](price_date, prices, correlation_data, daily_cash_volatility_target, markets)
 
-    def __calculate_positions(self, price_date, prices, correlation_data, daily_cash_volatility_target, markets):
-        # correlations, market_weights = self.__correlation_weights({
-        #     'SP': (dt.date(1992, 5, 31), 0.03, '{"NQ": 0.8, "US": -0.3}'),
-        #     'NQ': (dt.date(1992, 5, 31), 0.03, '{"SP": 0.8, "US": -0.3}'),
-        #     'US': (dt.date(1992, 5, 31), 0.005, '{"SP": -0.3, "NQ": -0.3}')
-        # })
-        # volatility = {'SP': (0.00625, 10), 'NQ': (0.00625, 10), 'US': (0.00625, 10)}
+    def __fixed_risk_sizes(self, date, prices, correlation_data, vol_target, markets):
+        """
+        Calculate position sizes based on recent volatility
+        
+        :param date:                date of the data
+        :param prices:              dict of prices and market IDs as keys
+        :param correlation_data:    correlation data among individual markets
+        :param vol_target:          daily cash volatility target
+        :param markets:             list of markets to use in calculation
+        :return:                    dict of position sizes and market IDs as keys
+        """
+        position_sizes = {}
+        equity = float(self.__account.equity(date))
+        for market in markets:
+            base_point_value = float(self.__account.base_value(market.point_value(), market.currency(), date))
+            study = market.study(Study.ATR_LONG, date)
+            atr = study[Table.Study.VALUE] if study else market.study_range(Study.ATR_LONG, end_date=date)[-1][Table.Study.VALUE]
+            position_sizes[market.id()] = floor((self.__risk_factor * equity) / (atr * base_point_value))
 
-        position_sizes = {
-            PositionSizing.EQUAL_WEIGHTS: self.__equally_weighted_sizes,
-            PositionSizing.CORRELATION_WEIGHTS: self.__correlation_weighted_sizes
-        }[self.__position_sizing](price_date, prices, correlation_data, daily_cash_volatility_target, markets)
+        return position_sizes
 
-    def __equally_weighted_sizes(self, price_date, prices, correlation_data, vol_target, markets):
+    def __equally_weighted_sizes(self, date, prices, correlation_data, vol_target, markets):
         """
         Calculate position sizes for the markets passed in based on volatility data
         
-        :param price_date:          date of the data
+        :param date:                date of the data
         :param prices:              dict of prices and market IDs as keys
         :param correlation_data:    correlation data among individual markets
         :param vol_target:          daily cash volatility target
@@ -81,7 +100,7 @@ class Risk(object):
         :return:                    dict of position sizes and market IDs as keys
         """
         market_ids = [m.id() for m in markets]
-        volatility, volatility_scalars = self.__volatility_scalars(price_date, prices, correlation_data, vol_target, markets)
+        volatility, volatility_scalars = self.__volatility_scalars(date, prices, correlation_data, vol_target, markets)
         weight = 1.0 / len(volatility)
         position_sizes = {market_id: volatility_scalars[market_id] * weight for market_id in market_ids}
         fractional_sizes = filter(lambda market_id: position_sizes[market_id] < 1, market_ids)
@@ -97,18 +116,18 @@ class Risk(object):
         updated_market_ids = sorted(volatility, key=volatility.get)[1:]
 
         return self.__equally_weighted_sizes(
-            price_date,
+            date,
             prices,
             correlation_data,
             vol_target,
             [m for m in markets if m.id() in updated_market_ids]
         ) if len(fractional_sizes) and len(updated_market_ids) else position_sizes
 
-    def __correlation_weighted_sizes(self, price_date, prices, correlation_data, vol_target, markets):
+    def __correlation_weighted_sizes(self, date, prices, correlation_data, vol_target, markets):
         """
         Calculate position sizes for the markets passed in based on correlation and volatility data
         
-        :param price_date:          date of the data
+        :param date:                date of the data
         :param prices:              dict of prices and market IDs as keys
         :param correlation_data:    correlation data among individual markets
         :param vol_target:          daily cash volatility target
@@ -117,7 +136,7 @@ class Risk(object):
         """
         market_ids = [m.id() for m in markets]
         correlations, market_weights = self.__correlation_weights(correlation_data, markets)
-        volatility, volatility_scalars = self.__volatility_scalars(price_date, prices, correlation_data, vol_target, markets)
+        volatility, volatility_scalars = self.__volatility_scalars(date, prices, correlation_data, vol_target, markets)
         # Diversification multiplier
         DM = self.__volatility_target / self.__optimal_volatility(volatility, correlations, market_weights)
         position_sizes = {m: volatility_scalars[m] * (market_weights[m] if len(market_weights) else 1.0) * DM for m in market_ids}
@@ -133,7 +152,7 @@ class Risk(object):
         updated_market_ids = sorted(market_weights, key=market_weights.get)[1:]
 
         return self.__correlation_weighted_sizes(
-            price_date,
+            date,
             prices,
             correlation_data,
             vol_target,
