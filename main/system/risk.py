@@ -43,9 +43,10 @@ class Risk(object):
         :param positions:   open positions
         :return:            dict of position sizes as values and market IDs as keys
         """
+        daily_factor = 16  # sqrt(256 business days)
         equity = float(self.__account.equity(date))
         cash_volatility_target = equity * self.__volatility_target
-        daily_cash_volatility_target = cash_volatility_target / 16
+        daily_cash_volatility_target = cash_volatility_target / daily_factor
 
         print date, equity, cash_volatility_target, daily_cash_volatility_target
 
@@ -276,12 +277,13 @@ class Risk(object):
         :param market_weights:  dict of market weights
         :return:                return diversification multiplier based on portfolio volatility and volatility target
         """
+        daily_factor = 16  # sqrt(256 business days)
         terms = []
         for pair in correlations.keys():
             pair_1_id = pair[0]
             pair_2_id = pair[1]
-            market_1_vol = volatility[pair_1_id] * 16
-            market_2_vol = volatility[pair_2_id] * 16
+            market_1_vol = volatility[pair_1_id] * daily_factor
+            market_2_vol = volatility[pair_2_id] * daily_factor
             market_1_weight = market_weights[pair_1_id]
             market_2_weight = market_weights[pair_2_id]
             correlation = correlations[pair] if correlations[pair] >= 0.0 else 0.0  # Cap to avoid very big numbers
