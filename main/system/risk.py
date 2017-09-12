@@ -35,22 +35,22 @@ class Risk(object):
         base_point_value = float(self.__account.base_value(point_value, currency, date))
         return floor((self.__risk_factor * equity) / (atr * base_point_value))
 
-    def position_sizes(self, date, positions):
+    def position_sizes(self, date, markets):
         """
         Calculate position sized based on position sizing type and params
         
         :param date:        date of data
-        :param positions:   open positions
+        :param markets:     markets to calculate position sizes for
         :return:            dict of position sizes as values and market IDs as keys
         """
         daily_factor = 16  # sqrt(256 business days)
         equity = float(self.__account.equity(date))
         cash_volatility_target = equity * self.__volatility_target
         daily_cash_volatility_target = cash_volatility_target / daily_factor
+        position_sizes = {}
 
-        print date, equity, cash_volatility_target, daily_cash_volatility_target
+        # print date, equity, cash_volatility_target, daily_cash_volatility_target
 
-        markets = [p.market() for p in positions]
         if len(markets):
             price_date = date
             prices = {}
@@ -67,6 +67,8 @@ class Risk(object):
                 PositionSizing.EQUAL_WEIGHTS: self.__equally_weighted_sizes,
                 PositionSizing.CORRELATION_WEIGHTS: self.__correlation_weighted_sizes
             }[self.__position_sizing](price_date, prices, correlation_data, daily_cash_volatility_target, markets)
+
+        return {k: floor(position_sizes[k]) for k in position_sizes.keys()}
 
     def __fixed_risk_sizes(self, date, prices, correlation_data, vol_target, markets):
         """
@@ -85,7 +87,7 @@ class Risk(object):
             base_point_value = float(self.__account.base_value(market.point_value(), market.currency(), date))
             study = market.study(Study.ATR_LONG, date)
             atr = study[Table.Study.VALUE] if study else market.study_range(Study.ATR_LONG, end_date=date)[-1][Table.Study.VALUE]
-            position_sizes[market.id()] = floor((self.__risk_factor * equity) / (atr * base_point_value))
+            position_sizes[market.id()] = (self.__risk_factor * equity) / (atr * base_point_value)
 
         return position_sizes
 
@@ -106,10 +108,10 @@ class Risk(object):
         position_sizes = {market_id: volatility_scalars[market_id] * weight for market_id in market_ids}
         fractional_sizes = filter(lambda market_id: position_sizes[market_id] < 1, market_ids)
 
-        print 'fractional sizes', fractional_sizes
-        print 'position sizes'
-        for k in position_sizes.keys():
-            print k, position_sizes[k]
+        # print 'fractional sizes', fractional_sizes
+        # print 'position sizes'
+        # for k in position_sizes.keys():
+        #     print k, position_sizes[k]
 
         # TODO mark as 'Rejected'
         # TODO use volatility scalar as filter?
@@ -143,10 +145,10 @@ class Risk(object):
         position_sizes = {m: volatility_scalars[m] * (market_weights[m] if len(market_weights) else 1.0) * DM for m in market_ids}
         fractional_sizes = filter(lambda market_id: position_sizes[market_id] < 1, market_ids)
 
-        print 'fractional sizes', fractional_sizes
-        print 'position sizes'
-        for k in position_sizes.keys():
-            print k, position_sizes[k]
+        # print 'fractional sizes', fractional_sizes
+        # print 'position sizes'
+        # for k in position_sizes.keys():
+        #     print k, position_sizes[k]
 
         # TODO mark as 'Rejected'
         # Sort by correlation weights and remove the one with lowest weight
@@ -199,9 +201,9 @@ class Risk(object):
             market_weights = self.__grouped_market_weights(market_correlations, group_correlations, market_ids) \
                 if self.__use_group_correlation_weights else self.__market_weights(market_correlations, market_ids)
 
-            print 'correlations and weights'
-            for m in market_weights.keys():
-                print m, [round(c, 3) for c in market_correlations[m]], market_weights[m]
+            # print 'correlations and weights'
+            # for m in market_weights.keys():
+            #     print m, [round(c, 3) for c in market_correlations[m]], market_weights[m]
 
         return correlations, market_weights
 
@@ -252,7 +254,7 @@ class Risk(object):
         """
         volatility = {}
         scalars = {}
-        print 'volatility'
+        # print 'volatility'
         for market in markets:
             market_id = market.id()
             point_value = market.point_value()
@@ -264,7 +266,7 @@ class Risk(object):
             volatility[market_id] = price_volatility
             scalars[market_id] = volatility_scalar
 
-            print market_id, price_volatility, instrument_value_volatility, volatility_scalar
+            # print market_id, price_volatility, instrument_value_volatility, volatility_scalar
 
         return volatility, scalars
 
