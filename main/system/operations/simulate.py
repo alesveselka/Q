@@ -109,9 +109,6 @@ class Simulate:
         # and also for simpler and faster calculations
         self.__data_series.update_futures_data(date)
 
-        # TODO before transferring calculate weights and construct DIFF
-        self.__portfolio.candidate(date)
-
         self.__transfer_orders(self.__orders(date))
 
     def __on_market_close(self, date, previous_date):
@@ -176,6 +173,77 @@ class Simulate:
         enter_signals = [s for s in self.__trading_signals if s.type() == SignalType.ENTER]
         exit_signals = [s for s in self.__trading_signals if s.type() == SignalType.EXIT]
         roll_signals = [s for s in self.__trading_signals if s.type() == SignalType.ROLL_ENTER or s.type() == SignalType.ROLL_EXIT]
+
+        open_markets = sorted([p.market() for p in self.__portfolio.open_positions()])
+        markets_to_close = sorted([s.market() for s in exit_signals])
+        markets_to_open = sorted([s.market() for s in enter_signals])
+        candidate_markets = set(open_markets).difference(markets_to_close).union(markets_to_open)
+        open_ids = [market.id() for market in open_markets]
+        ids_to_close = [market.id() for market in markets_to_close]
+        ids_to_open = [market.id() for market in markets_to_open]
+        candidate_ids = [market.id() for market in candidate_markets]
+
+        position_inertia = 0.1
+
+        print date, '*' * 50
+
+        print 'open', open_ids
+        print 'new', sorted(candidate_ids)
+        print 'close', sorted(ids_to_close)
+        print 'rebalance', sorted(set(open_ids).difference(ids_to_close))
+
+        # TODO 'position_sizes' doesn't have to return all candidate markets due contract size -- mark as rejected
+        position_sizes = self.__risk.position_sizes(date, candidate_markets)
+
+        for market_id in set(position_sizes.keys()).union(ids_to_close):
+            open_position_size = [p.quantity() for p in self.__portfolio.open_positions() if p.market().id() == market_id]
+            current_size = open_position_size[0] if len(open_position_size) else 0
+            position_size = position_sizes[market_id] if market_id in position_sizes else 0.0
+            diff = ((position_size - current_size) / current_size) if current_size else 1.0
+            print market_id, current_size, position_size, round(diff, 2)
+
+        print 'position_sizes', position_sizes
+
+        for market in markets_to_close:
+            market_data, previous_data = market.data(date)
+            if market_data:
+                open_price = market_data[Table.Market.OPEN_PRICE]
+                market_position = self.__portfolio.market_position(market)
+                if market_position:
+                    # contract = market.contract(date) if signal.type() == SignalType.ROLL_ENTER else market_position.contract()
+                    # orders.append(Order(market, signal, date, open_price, market_position.quantity(), contract))
+                    print 'EXIT', market.id(), market.code(), market_position.contract(), market_position.quantity()
+
+        for market in markets_to_open:
+            market_data, previous_data = market.data(date)
+            if market_data:
+                open_price = market_data[Table.Market.OPEN_PRICE]
+                market_position = self.__portfolio.market_position(market)
+                if market_position is None:
+                    # quantity = self.__risk.position_size(market.point_value(), market.currency(), atr_long, date)
+                    # orders.append(Order(market, signal, date, open_price, quantity, market.contract(date)))
+                    print 'ENTER', market.id(), market.code(), market.contract(date), position_sizes[market.id()]
+
+        for market in set(open_markets).difference(markets_to_close):
+            market_data, previous_data = market.data(date)
+            if market_data:
+                open_price = market_data[Table.Market.OPEN_PRICE]
+                market_position = self.__portfolio.market_position(market)
+                if market_position:
+                    # TODO check roll
+                    print 'REBALANCE', market.id(), market.code(), market_position.quantity(), position_sizes[market.id()]
+
+        for s in roll_signals:
+            market = s.market()
+            market_data, previous_data = market.data(date)
+            market_position = self.__portfolio.market_position(market)
+            if market_position:
+                if s.type() == SignalType.ROLL_EXIT:
+                    print 'ROLL EXIT', market.id(), market.code(), market_position.contract(), market_position.quantity()
+                elif s.type() == SignalType.ROLL_ENTER:
+                    print 'ROLL ENTER', market.id(), market.code(), market.contract(date), position_sizes[market.id()]
+
+
 
         for signal in self.__trading_signals:
             market = signal.market()
