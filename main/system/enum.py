@@ -28,6 +28,7 @@ class SignalType:
     EXIT = 'EXIT'
     ROLL_ENTER = 'ROLL_ENTER'
     ROLL_EXIT = 'ROLL_EXIT'
+    REBALANCE = 'REBALANCE'
 
 
 class Currency:
