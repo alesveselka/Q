@@ -61,7 +61,7 @@ class Risk(object):
                 price_date = data[Table.Market.PRICE_DATE]
                 prices[market.id()] = data[Table.Market.SETTLE_PRICE]
                 correlation_data[market.id()] = market.correlation(price_date)
-
+            # TODO filter too expensive positions
             position_sizes = {
                 PositionSizing.RISK_FACTOR: self.__fixed_risk_sizes,
                 PositionSizing.EQUAL_WEIGHTS: self.__equally_weighted_sizes,
@@ -89,7 +89,11 @@ class Risk(object):
             atr = study[Table.Study.VALUE] if study else market.study_range(Study.ATR_LONG, end_date=date)[-1][Table.Study.VALUE]
             position_sizes[market.id()] = (self.__risk_factor * equity) / (atr * base_point_value)
 
-        return position_sizes
+        fractional_sizes = filter(lambda market_id: position_sizes[market_id] < 1, position_sizes.keys())
+        updated_markets = [m for m in markets if m.id() not in fractional_sizes]
+
+        return self.__fixed_risk_sizes(date, prices, correlation_data, vol_target, updated_markets) \
+            if len(fractional_sizes) and len(updated_markets) else position_sizes
 
     def __equally_weighted_sizes(self, date, prices, correlation_data, vol_target, markets):
         """
@@ -115,6 +119,7 @@ class Risk(object):
 
         # TODO mark as 'Rejected'
         # TODO use volatility scalar as filter?
+        # TODO also filter by cost (execution, fees, etc.)
         # Sort by volatility and remove the one with lowest price volatility
         updated_market_ids = sorted(volatility, key=volatility.get)[1:]
 
@@ -151,6 +156,7 @@ class Risk(object):
         #     print k, position_sizes[k]
 
         # TODO mark as 'Rejected'
+        # TODO also filter by cost (execution, fees, etc.)
         # Sort by correlation weights and remove the one with lowest weight
         updated_market_ids = sorted(market_weights, key=market_weights.get)[1:]
 
