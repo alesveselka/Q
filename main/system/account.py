@@ -17,6 +17,7 @@ class Account(object):
         self.__fx_balances = defaultdict(Decimal)
         self.__margin_loan_balances = defaultdict(float)
         self.__transactions = []
+        self.__transaction_indexes = defaultdict(list)
         self.__records = {}
         self.__rates = {}
 
@@ -147,7 +148,9 @@ class Account(object):
 
         :param transaction:     Transaction object to be added
         """
+        transaction_date = transaction.date()
         self.__transactions.append(transaction)
+        self.__transaction_indexes[transaction_date].append(len(self.__transactions) - 1)
 
         {AccountAction.CREDIT: self.__credit, AccountAction.DEBIT: self.__debit}[transaction.account_action()](
             {TransactionType.MARGIN_LOAN: self.__margin_loan_balances}.get(transaction.type(), self.__fx_balances),
@@ -155,7 +158,7 @@ class Account(object):
             transaction.amount()
         )
 
-        self.__record_balances(transaction.date())
+        self.__record_balances(transaction_date)
 
     def transactions(self, start_date=dt.date(1900, 1, 1), end_date=dt.date(9999, 12, 31)):
         """
@@ -165,7 +168,15 @@ class Account(object):
         :param end_date:    End date to search until
         :return:            list of Transaction objects
         """
-        return [t for t in self.__transactions if start_date <= t.date() <= end_date]
+        start_indexes = self.__transaction_indexes[start_date] if start_date in self.__transaction_indexes \
+            else sorted(self.__transaction_indexes)[0]
+        end_indexes = start_indexes if start_date == end_date \
+            else self.__transaction_indexes[end_date] if end_date in self.__transaction_indexes \
+            else sorted(self.__transaction_indexes)[-1]
+        start_index = sorted(start_indexes)[0] if len(start_indexes) else 0
+        end_index = sorted(end_indexes)[-1] if len(end_indexes) else len(self.__transactions) - 1
+
+        return self.__transactions[start_index:end_index+1]
 
     def aggregate(self, transactions, transaction_types):
         """
