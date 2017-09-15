@@ -16,6 +16,7 @@ class Position(object):
         self.__enter_price = order_result.price()
         self.__margins = [(order_result.order().date(), order_result.margin())]
         self.__pnls = []
+        self.__pnl = []
         self.__order_results = [order_result]
 
     def market(self):
@@ -88,13 +89,18 @@ class Position(object):
         """
         return self.__open_order_results()[-1].order().contract()
 
+    def update_pnl(self, date, price, result, quantity):
+        # if self.__market.id() == 96:
+        #     print 'update_pnl', date, price, result
+        self.__pnl.append((date, price, result, quantity))
+
     def prices(self):
         """
         Return prices of position time span
         
         :return:    list of settle prices
         """
-        return [p[1] for p in self.__pnls]
+        return [p[1] for p in self.__pnl]
 
     def mark_to_market(self, date, price):
         """
@@ -112,6 +118,8 @@ class Position(object):
             previous_price = self.__pnls[previous_index][1] if len(self.__pnls) else self.__enter_price
 
         pnl = (price - previous_price) if self.__direction == Direction.LONG else (previous_price - price)
+        # if self.__market.id() == 96:
+        #     print 'mark_to_market', date, price, pnl
         self.__pnls.append((date, price, pnl))
 
         return pnl
@@ -122,7 +130,7 @@ class Position(object):
 
         :return:    Sum of all Profit and Losses
         """
-        return sum(p[2] for p in self.__pnls)
+        return sum(p[2] for p in self.__pnl)
 
     def __pnl_index(self, date):
         """
