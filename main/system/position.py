@@ -48,6 +48,17 @@ class Position(object):
     def quantity(self):
         return self.__quantity
 
+    def position_quantity(self, date):
+        order_results = [r for r in self.__order_results if r.order().date() == date]
+
+        position_quantity = self.__quantity
+        for order_result in order_results:
+            order_type = order_result.order().type()
+            quantity = order_result.quantity()
+            position_quantity -= quantity if order_type == OrderType.BTO or order_type == OrderType.STO else 0
+
+        return position_quantity if position_quantity > 0 else 0
+
     def commissions(self):
         return sum([r.commission() for r in self.__order_results])
 
@@ -56,6 +67,12 @@ class Position(object):
 
     def add_order_result(self, order_result):
         self.__order_results.append(order_result)
+        self.__update_quantity(order_result)
+
+    def __update_quantity(self, order_result):
+        order_type = order_result.order().type()
+        quantity = order_result.quantity()
+        self.__quantity += quantity if order_type == OrderType.BTO or order_type == OrderType.STO else -quantity
 
     def margins(self):
         return self.__margins
