@@ -169,10 +169,12 @@ class Account(object):
         :return:            list of Transaction objects
         """
         start_indexes = self.__transaction_indexes[start_date] if start_date in self.__transaction_indexes \
-            else sorted(self.__transaction_indexes)[0]
+            else self.__transaction_indexes[sorted(self.__transaction_indexes)[0]] if len(self.__transaction_indexes) \
+            else []
         end_indexes = start_indexes if start_date == end_date \
             else self.__transaction_indexes[end_date] if end_date in self.__transaction_indexes \
-            else sorted(self.__transaction_indexes)[-1]
+            else self.__transaction_indexes[sorted(self.__transaction_indexes)[-1]] if len(self.__transaction_indexes) \
+            else []
         start_index = sorted(start_indexes)[0] if len(start_indexes) else 0
         end_index = sorted(end_indexes)[-1] if len(end_indexes) else len(self.__transactions) - 1
 
