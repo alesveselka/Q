@@ -1,8 +1,9 @@
 #!/usr/bin/python
 
 from enum import Direction
-from enum import OrderType
 from enum import SignalType
+from enum import OrderType
+from enum import OrderResultType
 
 
 class Position(object):
@@ -15,7 +16,6 @@ class Position(object):
         self.__enter_date = order_result.order().date()
         self.__enter_price = order_result.price()
         self.__margins = [(order_result.order().date(), order_result.margin())]
-        self.__pnls = []
         self.__pnl = []
         self.__order_results = [order_result]
 
@@ -50,15 +50,23 @@ class Position(object):
         return self.__quantity
 
     def position_quantity(self, date):
-        order_results = [r for r in self.__order_results if r.order().date() == date]
+        """
+        Position quantity is quantity before the orders were executed on the date
+        
+        :param date:    date of the orders
+        :return:        number representing position quantity
+        """
+        order_results = [r for r in self.__order_results
+                         if r.order().date() == date
+                         and (r.order().signal_type() == SignalType.REBALANCE or r.type() == OrderResultType.PARTIALLY_FILLED)]
+        position_quantity = self.__quantity if len(order_results) else 0
 
-        position_quantity = self.__quantity
         for order_result in order_results:
             order_type = order_result.order().type()
             quantity = order_result.quantity()
-            position_quantity -= quantity if order_type == OrderType.BTO or order_type == OrderType.STO else 0
+            position_quantity += -quantity if order_type == OrderType.BTO or order_type == OrderType.STO else quantity
 
-        return position_quantity if position_quantity > 0 else 0
+        return position_quantity
 
     def commissions(self):
         return sum([r.commission() for r in self.__order_results])
@@ -90,8 +98,6 @@ class Position(object):
         return self.__open_order_results()[-1].order().contract()
 
     def update_pnl(self, date, price, result, quantity):
-        # if self.__market.id() == 96:
-        #     print 'update_pnl', date, price, result
         self.__pnl.append((date, price, result, quantity))
 
     def prices(self):
@@ -102,28 +108,6 @@ class Position(object):
         """
         return [p[1] for p in self.__pnl]
 
-    def mark_to_market(self, date, price):
-        """
-        Calculates and saves P/L for the date and price passed in
-
-        :param date:    Date of the P/L to be calculated
-        :param price:   Number representing price to be marked
-        :return:        Number representing calculated Profit or Loss in market points
-        """
-        if date == self.latest_enter_date():
-            previous_price = self.__open_order_results()[-1].price()
-        else:
-            pnl_index = self.__pnl_index(date)
-            previous_index = pnl_index - 1 if pnl_index > 0 else -1
-            previous_price = self.__pnls[previous_index][1] if len(self.__pnls) else self.__enter_price
-
-        pnl = (price - previous_price) if self.__direction == Direction.LONG else (previous_price - price)
-        # if self.__market.id() == 96:
-        #     print 'mark_to_market', date, price, pnl
-        self.__pnls.append((date, price, pnl))
-
-        return pnl
-
     def pnl(self):
         """
         Return sum of all P/Ls
@@ -131,19 +115,6 @@ class Position(object):
         :return:    Sum of all Profit and Losses
         """
         return sum(p[2] for p in self.__pnl)
-
-    def __pnl_index(self, date):
-        """
-        Find and return index of item which date is equal to the date passed in
-        Returns -1 otherwise
-
-        :param date:    Date
-        :return:        Number
-        """
-        for i, pnl in enumerate(self.__pnls):
-            if pnl[0] == date:
-                return i
-        return -1
 
     def __open_order_results(self):
         """
