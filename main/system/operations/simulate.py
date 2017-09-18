@@ -230,30 +230,30 @@ class Simulate:
             market_data, previous_data = market.data(date)
 
             if market_data:
-                open_price = market_data[Table.Market.OPEN_PRICE]
+                price = market_data[Table.Market.OPEN_PRICE]
                 position = self.__portfolio.market_position(market)
                 signal_type = signal.type()
                 order_type = self.__order_type(signal.type(), signal.direction())
                 position_size = self.__position_sizes[market.id()]
 
                 if position and signal in exit_signals:
-                    orders.append(Order(market, order_type, signal_type, date, open_price, position.quantity(), position.contract()))
+                    orders.append(Order(market, order_type, signal_type, date, price, position.quantity(), position.contract()))
 
                 if position and signal in roll_signals:
                     if signal.type() == SignalType.ROLL_EXIT:
-                        orders.append(Order(market, order_type, signal_type, date, open_price, position.quantity(), position.contract()))
+                        orders.append(Order(market, order_type, signal_type, date, price, position.quantity(), position.contract()))
                     elif signal.type() == SignalType.ROLL_ENTER:
-                        orders.append(Order(market, order_type, signal_type, date, open_price, position_size, market.contract(date)))
+                        orders.append(Order(market, order_type, signal_type, date, price, position_size, market.contract(date)))
 
                 if position and signal_type == SignalType.REBALANCE:
                     # TODO this will never be zero due to position inertia
                     quantity = position_size - position.quantity()
                     order_type = self.__order_type(signal.type(), signal.direction(), quantity)
                     if abs(quantity):
-                        orders.append(Order(market, order_type, signal_type, date, open_price, abs(quantity), position.contract()))
+                        orders.append(Order(market, order_type, signal_type, date, price, abs(quantity), position.contract()))
 
                 if position is None and signal in enter_signals:
-                    orders.append(Order(market, order_type, signal_type, date, open_price, position_size, market.contract(date)))
+                    orders.append(Order(market, order_type, signal_type, date, price, position_size, market.contract(date)))
 
                 signals_to_remove.append(signal)
 
