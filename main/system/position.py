@@ -56,17 +56,17 @@ class Position(object):
         :param date:    date of the orders
         :return:        number representing position quantity
         """
-        order_results = [r for r in self.__order_results
-                         if r.order().date() == date
-                         and (r.order().signal_type() == SignalType.REBALANCE or r.type() == OrderResultType.PARTIALLY_FILLED)]
-        position_quantity = self.__quantity if len(order_results) else 0
+        order_results = [r for r in self.__order_results if r.order().date() == date]
+        position_quantity = self.__quantity
 
         for order_result in order_results:
             order_type = order_result.order().type()
-            quantity = order_result.quantity()
-            position_quantity += -quantity if order_type == OrderType.BTO or order_type == OrderType.STO else quantity
+            if order_result.order().signal_type() == SignalType.REBALANCE:
+                position_quantity -= order_result.quantity() if order_type == OrderType.BTO or order_type == OrderType.STO else 0
+            else:
+                position_quantity -= order_result.quantity()
 
-        return position_quantity
+        return position_quantity if position_quantity > 0 else 0
 
     def commissions(self):
         return sum([r.commission() for r in self.__order_results])
