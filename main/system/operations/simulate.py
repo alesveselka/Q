@@ -7,7 +7,6 @@ from enum import Direction
 from enum import SignalType
 from enum import OrderType
 from enum import OrderResultType
-from enum import Study
 from enum import Table
 from position import Position
 from report import Report
@@ -37,7 +36,7 @@ class Simulate:
         now = dt.datetime.now()
         # end_date = dt.date(now.year, now.month, now.day)
         # end_date = dt.date(1992, 6, 10)
-        end_date = dt.date(1992, 5, 31)
+        end_date = dt.date(1995, 12, 31)
 
         self.__data_series.load(end_date, roll_strategy[Table.RollStrategy.ID])
         self.__subscribe()
@@ -169,7 +168,10 @@ class Simulate:
                 market_position = self.__portfolio.market_position(market)
                 if market_position:
                     quantity = float(market_position.quantity())
-                    position_size = self.__position_sizes[market.id()]
+                    # TODO I don't need all quantity to rebalance -- rebalance only requires smaller part of position
+                    # If the market ID is not in position sizes Dict, there is not enough liquidity
+                    position_size = self.__position_sizes[market.id()] \
+                        if market.id() in self.__position_sizes else market_position.quantity()
                     diff = abs(position_size - quantity) / quantity
                     if diff > position_inertia:
                         direction = market_position.direction()
