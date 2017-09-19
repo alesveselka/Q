@@ -28,9 +28,6 @@ class Position(object):
     def enter_date(self):
         return self.__enter_date
 
-    def latest_enter_date(self):
-        return self.__open_order_results()[-1].order().date()
-
     def enter_price(self):
         return self.__enter_price
 
