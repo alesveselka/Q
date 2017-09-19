@@ -150,17 +150,14 @@ class Risk(object):
         # Diversification multiplier
         DM = self.__volatility_target / self.__optimal_volatility(volatility, correlations, market_weights)
         position_sizes = {m: volatility_scalars[m] * (market_weights[m] if len(market_weights) else 1.0) * DM for m in market_ids}
-        fractional_sizes = filter(lambda market_id: position_sizes[market_id] < 1, market_ids)
-
-        # print 'fractional sizes', fractional_sizes
-        # print 'position sizes'
-        # for k in position_sizes.keys():
-        #     print k, position_sizes[k]
+        illiquid_markets = self.__illiquid_markets(date, markets, position_sizes)
+        liquid_position_sizes = {m: position_sizes[m] for m in market_ids if m not in illiquid_markets}
+        fractional_sizes = filter(lambda market_id: liquid_position_sizes[market_id] < 1, liquid_position_sizes.keys())
 
         # TODO mark as 'Rejected'
-        # TODO also filter by cost (execution, fees, etc.)
         # Sort by correlation weights and remove the one with lowest weight
-        updated_market_ids = sorted(market_weights, key=market_weights.get)[1:]
+        updated_market_ids = liquid_position_sizes.keys() if len(illiquid_markets) \
+            else sorted(market_weights, key=market_weights.get)[1:]
 
         return self.__correlation_weighted_sizes(
             date,
@@ -168,7 +165,7 @@ class Risk(object):
             correlation_data,
             vol_target,
             [m for m in markets if m.id() in updated_market_ids]
-        ) if len(fractional_sizes) and len(updated_market_ids) else position_sizes
+        ) if (len(fractional_sizes) or len(illiquid_markets)) and len(updated_market_ids) else position_sizes
 
     def __correlation_weights(self, correlation_data, markets):
         """
