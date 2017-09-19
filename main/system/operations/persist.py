@@ -24,12 +24,13 @@ class Persist:
         roll_strategy_name = roll_strategy[Table.RollStrategy.NAME]
         futures = data_series.futures(None, None, None, None, None, None)
 
-        self.__save_orders(simulation_id, order_results)
-        self.__save_transactions(simulation_id, account.transactions(start_date, end_date))
-        self.__save_positions(simulation_id, portfolio)
-        self.__save_price_series(simulation_id, roll_strategy_id, roll_strategy_name, futures)
-        self.__save_studies(simulation_id, futures, data_series.study_parameters())
-        self.__save_equity(simulation_id, account, start_date, end_date)
+        # self.__save_orders(simulation_id, order_results)
+        # self.__save_transactions(simulation_id, account.transactions(start_date, end_date))
+        # self.__save_positions(simulation_id, portfolio)
+        # self.__save_studies(simulation_id, futures, data_series.study_parameters())
+        # self.__save_equity(simulation_id, account, start_date, end_date)
+
+        # self.__save_price_series(simulation_id, roll_strategy_id, roll_strategy_name, futures)
 
     def __save_orders(self, simulation_id, order_results):
         """
@@ -138,7 +139,7 @@ class Persist:
                  p.enter_price(),
                  p.exit_date(),
                  p.exit_price(),
-                 p.quantity(),
+                 p.order_results()[0].quantity(),  # TODO quantity change in time now
                  p.pnl(),
                  self.__round(p.commissions(), precision)
              ) for p in portfolio.closed_positions() + portfolio.open_positions()]
