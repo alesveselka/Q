@@ -22,20 +22,6 @@ class Risk(object):
         self.__volatility_target = volatility_target
         self.__use_group_correlation_weights = use_group_correlation_weights
 
-    # def position_size(self, point_value, currency, atr, date):
-    #     """
-    #     Calculate and return position size based on market's point value, currency and ATR
-    #
-    #     :param point_value:     Market contract point value
-    #     :param currency:        Currency in which is market contract denominated
-    #     :param atr:             Recent ATR
-    #     :param date:            date on which return the position size
-    #     :return:                Integer representing position quantity
-    #     """
-    #     equity = float(self.__account.equity(date))
-    #     base_point_value = float(self.__account.base_value(point_value, currency, date))
-    #     return floor((self.__risk_factor * equity) / (atr * base_point_value))
-
     def position_sizes(self, date, markets):
         """
         Calculate position sized based on position sizing type and params
@@ -49,8 +35,6 @@ class Risk(object):
         cash_volatility_target = equity * self.__volatility_target
         daily_cash_volatility_target = cash_volatility_target / daily_factor
         position_sizes = {}
-
-        # print date, equity, cash_volatility_target, daily_cash_volatility_target
 
         if len(markets):
             price_date = date
@@ -206,10 +190,6 @@ class Risk(object):
             market_weights = self.__grouped_market_weights(market_correlations, group_correlations, market_ids) \
                 if self.__use_group_correlation_weights else self.__market_weights(market_correlations, market_ids)
 
-            # print 'correlations and weights'
-            # for m in market_weights.keys():
-            #     print m, [round(c, 3) for c in market_correlations[m]], market_weights[m]
-
         return correlations, market_weights
 
     def __market_weights(self, market_correlations, market_ids):
@@ -259,7 +239,6 @@ class Risk(object):
         """
         volatility = {}
         scalars = {}
-        # print 'volatility'
         for market in markets:
             market_id = market.id()
             point_value = market.point_value()
@@ -270,8 +249,6 @@ class Risk(object):
             volatility_scalar = daily_cash_volatility_target / instrument_value_volatility
             volatility[market_id] = price_volatility
             scalars[market_id] = volatility_scalar
-
-            # print market_id, price_volatility, instrument_value_volatility, volatility_scalar
 
         return volatility, scalars
 
