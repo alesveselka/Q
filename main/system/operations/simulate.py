@@ -143,12 +143,12 @@ class Simulate:
         self.__trading_signals += self.__trading_model.signals(date, self.__portfolio.open_positions())
 
         open_markets, markets_to_open, markets_to_close, markets_to_roll = self.__partitioned_markets()
+        markets_to_update = set(open_markets).difference(markets_to_close).union(markets_to_open)
 
-        # TODO 'position_sizes' doesn't have to return all candidate markets due contract size -- mark as rejected
-        # TODO ==> Close the positions!
-        self.__position_sizes = self.__risk.position_sizes(date, set(open_markets).difference(markets_to_close).union(markets_to_open))
+        self.__position_sizes = self.__risk.position_sizes(date, markets_to_update)
 
         self.__trading_signals += self.__rebalance_signals(date, open_markets, markets_to_close, markets_to_roll)
+        self.__filter_illiquid_markets(markets_to_update)
 
     def __rebalance_signals(self, date, open_markets, markets_to_close, markets_to_roll):
         """
@@ -161,21 +161,21 @@ class Simulate:
         :return:                    list of rebalance signals
         """
         rebalance_signals = []
-
+        position_inertia = 0.1  # TODO load from params
         candidate_markets = set(open_markets).difference(markets_to_close).difference(markets_to_roll)
-
-        position_inertia = 0.1
 
         for market in candidate_markets:
             market_data, _ = market.data(date)
             if market_data:
                 market_position = self.__portfolio.market_position(market)
                 if market_position:
-                    open_price = market_data[Table.Market.OPEN_PRICE]
                     quantity = float(market_position.quantity())
                     position_size = self.__position_sizes[market.id()]
-                    diff = position_size - quantity
-                    rebalance_signals.append(Signal(market, SignalType.REBALANCE, market_position.direction(), date, open_price))
+                    diff = abs(position_size - quantity) / quantity
+                    if diff > position_inertia:
+                        direction = market_position.direction()
+                        price = market_data[Table.Market.OPEN_PRICE]
+                        rebalance_signals.append(Signal(market, SignalType.REBALANCE, direction, date, price))
 
         return rebalance_signals
 
@@ -191,7 +191,6 @@ class Simulate:
                            or OrderResult(OrderResultType.REJECTED, order, 0, 0, 0, 0)
             result_type = order_result.type()
 
-            # TODO keep 'PARTIALLY_FILLED' signal to try fill rest next day? Buying case taking care of by rebalance
             if result_type == OrderResultType.FILLED or result_type == OrderResultType.PARTIALLY_FILLED:
                 signal_type = order.signal_type()
                 if signal_type == SignalType.ENTER:
@@ -208,7 +207,6 @@ class Simulate:
                 if signal_type == SignalType.EXIT:
                     position = self.__portfolio.market_position(order.market())
                     position.add_order_result(order_result)
-                    # TODO don't remove if only partially filled
                     self.__portfolio.remove_position(order.date(), position)
 
             self.__order_results.append(order_result)
@@ -234,25 +232,22 @@ class Simulate:
                 position = self.__portfolio.market_position(market)
                 signal_type = signal.type()
                 order_type = self.__order_type(signal.type(), signal.direction())
-                position_size = self.__position_sizes[market.id()]
 
                 if position and signal in exit_signals:
                     orders.append(Order(market, order_type, signal_type, date, price, position.quantity(), position.contract()))
 
                 if position and signal in roll_signals:
-                    if signal.type() == SignalType.ROLL_EXIT:
-                        orders.append(Order(market, order_type, signal_type, date, price, position.quantity(), position.contract()))
-                    elif signal.type() == SignalType.ROLL_ENTER:
-                        orders.append(Order(market, order_type, signal_type, date, price, position_size, market.contract(date)))
+                    quantity = self.__position_sizes[market.id()] if signal.type() == SignalType.ROLL_ENTER else position.quantity()
+                    contract = market.contract(date) if signal.type() == SignalType.ROLL_ENTER else position.contract()
+                    orders.append(Order(market, order_type, signal_type, date, price, quantity, contract))
 
                 if position and signal_type == SignalType.REBALANCE:
-                    # TODO this will never be zero due to position inertia
-                    quantity = position_size - position.quantity()
+                    quantity = self.__position_sizes[market.id()] - position.quantity()
                     order_type = self.__order_type(signal.type(), signal.direction(), quantity)
-                    if abs(quantity):
-                        orders.append(Order(market, order_type, signal_type, date, price, abs(quantity), position.contract()))
+                    orders.append(Order(market, order_type, signal_type, date, price, abs(quantity), position.contract()))
 
                 if position is None and signal in enter_signals:
+                    position_size = self.__position_sizes[market.id()]
                     orders.append(Order(market, order_type, signal_type, date, price, position_size, market.contract(date)))
 
                 signals_to_remove.append(signal)
@@ -293,3 +288,16 @@ class Simulate:
         markets_to_close = sorted([s.market() for s in self.__trading_signals if s.type() == SignalType.EXIT])
         markets_to_roll = [s.market() for s in self.__trading_signals if s.type() == SignalType.ROLL_ENTER or s.type() == SignalType.ROLL_EXIT]
         return open_markets, markets_to_open, markets_to_close, markets_to_roll
+
+    def __filter_illiquid_markets(self, position_sized_markets):
+        """
+        Filter illiquid market signals from trading signals
+         
+        :param set position_sized_markets:  markets with updated position size
+        """
+        illiquid_market_signals = [s for s in self.__trading_signals
+                                   if s.market() in position_sized_markets
+                                   and s.market().id() not in self.__position_sizes]
+        # TODO mark the removed as Rejected
+        for signal in illiquid_market_signals:
+            self.__trading_signals.remove(signal)
