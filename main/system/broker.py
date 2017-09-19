@@ -67,7 +67,7 @@ class Broker(object):
         volume = market.study(Study.VOL_SHORT)[Table.Study.VALUE]
         quantity = order.quantity() if order.quantity() <= volume else floor(volume / 3)
         order_result = OrderResult(OrderResultType.REJECTED, order, order.price(), quantity, 0, 0)
-        # TODO what about rejected EXIT orders?! (Taken care of by position-sizing rebalance?)
+
         if quantity:
             commissions = Decimal(self.__commission * quantity)
             margin = market.margin() * quantity
@@ -84,6 +84,8 @@ class Broker(object):
                     margin_loan_context = 'update' if order.signal_type() == SignalType.REBALANCE else 'add'
                     self.__add_transaction(TransactionType.MARGIN_LOAN, date, margin, currency, margin_loan_context)
                     self.__add_transaction(TransactionType.COMMISSION, date, -commissions, self.__commission_currency, context)
+                else:
+                    order_result = OrderResult(OrderResultType.REJECTED, order, price, quantity, 0, 0)
             else:
                 margin_loan_context = 'update' if order.signal_type() == SignalType.REBALANCE else 'remove'
                 self.__add_transaction(TransactionType.COMMISSION, date, -commissions, self.__commission_currency, context)
@@ -141,7 +143,7 @@ class Broker(object):
         :param removed_positions:   list of positions removed from portfolio on this date
         """
         transactions = [t for t in self.__account.transactions(date, date) if t.type() == TransactionType.COMMISSION]
-        transactions_pnl = {}
+        # MTM Transaction
         for t in transactions:
             market = t.context()[0]
             order_result = t.context()[1]
@@ -165,14 +167,13 @@ class Broker(object):
                 OrderType.BTC: (market, order.contract(), price),
                 OrderType.STC: (market, order.contract(), price)
             }[order_type]
+
             position.update_pnl(date, settle_price, pnl, order_result.quantity())
+            
             pnl = Decimal(pnl * order_result.quantity() * market.point_value())
-            transactions_pnl[market.id()] = pnl
-
             self.__add_transaction(TransactionType.MTM_TRANSACTION, date, pnl, market.currency(), context)
-            print 'Transaction', market.id(), market.code(), order_type, order_result.type(), order_result.quantity(), \
-                price, round(pnl, 3)
 
+        # MTM Position
         for p in open_positions:
             market = p.market()
             market_data, previous_data = market.data(date)
@@ -183,9 +184,8 @@ class Broker(object):
                 previous_price = previous_data[Table.Market.SETTLE_PRICE]
                 pnl = price - previous_price if p.direction() == Direction.LONG else previous_price - price
 
-                print 'Position', market.id(), market.code(), position_quantity, p.quantity(), \
-                    price, round(pnl * position_quantity * market.point_value(), 3)
                 p.update_pnl(date, price, pnl, position_quantity)
+
                 pnl = Decimal(pnl * position_quantity * market.point_value())
                 self.__add_transaction(TransactionType.MTM_POSITION, date, pnl, market.currency(), (market, p.contract(), price))
 
