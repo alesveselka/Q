@@ -57,7 +57,7 @@ class Market:
     def has_study_data(self):
         return self.__series.has_study_data()
 
-    def load_data(            self, connection, end_date, delivery_months, roll_strategy_id):
+    def load_data(self, connection, end_date, delivery_months, roll_strategy_id):
         self.__series.load(connection, end_date, delivery_months, self.__id, self.__instrument_code, roll_strategy_id)
 
         if self.__margin == 0:
