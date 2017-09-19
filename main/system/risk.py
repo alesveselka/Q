@@ -16,32 +16,33 @@ class Risk(object):
 
     def __init__(self, account, position_sizing, risk_factor, volatility_target, use_group_correlation_weights):
         self.__account = account
-        self.__position_sizing = position_sizing
+        # self.__position_sizing = position_sizing
+        self.__position_sizing = PositionSizing.RISK_FACTOR
         self.__risk_factor = risk_factor
         self.__volatility_target = volatility_target
         self.__use_group_correlation_weights = use_group_correlation_weights
 
-    def position_size(self, point_value, currency, atr, date):
-        """
-        Calculate and return position size based on market's point value, currency and ATR
-
-        :param point_value:     Market contract point value
-        :param currency:        Currency in which is market contract denominated
-        :param atr:             Recent ATR
-        :param date:            date on which return the position size
-        :return:                Integer representing position quantity
-        """
-        equity = float(self.__account.equity(date))
-        base_point_value = float(self.__account.base_value(point_value, currency, date))
-        return floor((self.__risk_factor * equity) / (atr * base_point_value))
+    # def position_size(self, point_value, currency, atr, date):
+    #     """
+    #     Calculate and return position size based on market's point value, currency and ATR
+    #
+    #     :param point_value:     Market contract point value
+    #     :param currency:        Currency in which is market contract denominated
+    #     :param atr:             Recent ATR
+    #     :param date:            date on which return the position size
+    #     :return:                Integer representing position quantity
+    #     """
+    #     equity = float(self.__account.equity(date))
+    #     base_point_value = float(self.__account.base_value(point_value, currency, date))
+    #     return floor((self.__risk_factor * equity) / (atr * base_point_value))
 
     def position_sizes(self, date, markets):
         """
         Calculate position sized based on position sizing type and params
         
-        :param date:        date of data
-        :param markets:     markets to calculate position sizes for
-        :return:            dict of position sizes as values and market IDs as keys
+        :param date date:           date of data
+        :param list markets:        markets to calculate position sizes for
+        :return dict(int: float):   dict of position sizes as values and market IDs as keys
         """
         daily_factor = 16  # sqrt(256 business days)
         equity = float(self.__account.equity(date))
@@ -56,8 +57,8 @@ class Risk(object):
             prices = {}
             correlation_data = {}
             for market in markets:
-                market_data, previous_data = market.data(date)
-                data = previous_data if previous_data else market.data_range(end_date=date)[-1]
+                market_data, _ = market.data(date)
+                data = market_data if market_data else market.data_range(end_date=date)[-1]
                 price_date = data[Table.Market.PRICE_DATE]
                 prices[market.id()] = data[Table.Market.SETTLE_PRICE]
                 correlation_data[market.id()] = market.correlation(price_date)
@@ -85,9 +86,13 @@ class Risk(object):
         equity = float(self.__account.equity(date))
         for market in markets:
             base_point_value = float(self.__account.base_value(market.point_value(), market.currency(), date))
-            study = market.study(Study.ATR_LONG, date)
-            atr = study[Table.Study.VALUE] if study else market.study_range(Study.ATR_LONG, end_date=date)[-1][Table.Study.VALUE]
-            position_sizes[market.id()] = (self.__risk_factor * equity) / (atr * base_point_value)
+            atr_study = market.study(Study.ATR_LONG, date)
+            vol_study = market.study(Study.VOL_SHORT, date)
+            atr = atr_study[Table.Study.VALUE] if atr_study else market.study_range(Study.ATR_LONG, end_date=date)[-1][Table.Study.VALUE]
+            vol = vol_study[Table.Study.VALUE] if vol_study else market.study_range(Study.VOL_SHORT, end_date=date)[-1][Table.Study.VALUE]
+            position_size = (self.__risk_factor * equity) / (atr * base_point_value)
+            if position_size < vol:
+                position_sizes[market.id()] = position_size
 
         fractional_sizes = filter(lambda market_id: position_sizes[market_id] < 1, position_sizes.keys())
         updated_markets = [m for m in markets if m.id() not in fractional_sizes]
