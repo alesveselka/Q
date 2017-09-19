@@ -52,7 +52,7 @@ class Risk(object):
                 PositionSizing.CORRELATION_WEIGHTS: self.__correlation_weighted_sizes
             }[self.__position_sizing](price_date, prices, correlation_data, daily_cash_volatility_target, markets)
 
-        return {k: floor(position_sizes[k]) for k in position_sizes.keys()}
+        return {k: floor(position_sizes[k]) for k in position_sizes.keys() if position_sizes[k] >= 1.0}
 
     def __fixed_risk_sizes(self, date, prices, correlation_data, vol_target, markets):
         """
@@ -241,7 +241,8 @@ class Risk(object):
         for market in markets:
             market_id = market.id()
             point_value = market.point_value()
-            block_value = prices[market_id] * point_value
+            # TODO use actual contract prices -- continuous prices are distorted
+            block_value = abs(prices[market_id]) * point_value if abs(prices[market_id]) else point_value
             price_volatility = correlation_data[market_id][Table.MarketCorrelation.VOLATILITY] if correlation_data[market_id] else 0.02
             instrument_currency_volatility = price_volatility * block_value
             instrument_value_volatility = self.__account.base_value(instrument_currency_volatility, market.currency(), date)
