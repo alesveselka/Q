@@ -38,19 +38,25 @@ def roll_strategy_id(roll_strategy_name):
 def __risk_params(position_sizing, risk_factor=0.002, vol_target=0.2, vol_lookback=25, use_ew=True, group_weights=False):
     return {
         RISK_FACTOR: {
-            'risk_factor': risk_factor
+            'risk_factor': risk_factor,
+            'position_inertia': 0.1,
+            'use_position_inertia': True
         },
         EQUAL_WEIGHTS: {
             'volatility_target': vol_target,
             'volatility_lookback': vol_lookback,
-            'volatility_type': 'movement'
+            'volatility_type': 'movement',
+            'position_inertia': 0.1,
+            'use_position_inertia': True
         },
         CORRELATION_WEIGHTS: {
             'volatility_target': vol_target,
             'volatility_lookback': vol_lookback,
             'volatility_type': 'movement',
             'use_ew_correlation': use_ew,
-            'use_group_correlation_weights': group_weights
+            'use_group_correlation_weights': group_weights,
+            'position_inertia': 0.1,
+            'use_position_inertia': True
         }
     }[position_sizing]
 
@@ -153,6 +159,7 @@ if __name__ == '__main__':
     RISK_FACTOR = 'risk_factor'
     EQUAL_WEIGHTS = 'volatility_target_equal_weights'
     CORRELATION_WEIGHTS = 'volatility_target_correlation_weights'
+
     # insert_trading_models(trading_model_data)
     # insert_simulations([simulations()[-1]])
-    # update_simulation(13, 'params', simulations()[-1][1])
+    # update_simulation(13, 'params', simulations()[3][1])
