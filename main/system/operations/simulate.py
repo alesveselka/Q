@@ -112,7 +112,7 @@ class Simulate:
         # The reason is to enclose slipped price in high - low range when executed on open,
         # and also for simpler and faster calculations
         self.__data_series.update_futures_data(date)
-        # print date, 'TRANSFER ', '-' * 30
+
         self.__transfer_orders(self.__orders(date))
 
     def __on_market_close(self, date, previous_date):
@@ -132,15 +132,14 @@ class Simulate:
         :param previous_date:   previous market date
         """
         self.__data_series.update_futures_studies(date)
-        print date, '-' * 30
-        self.__broker.update_account(
-            date,
-            previous_date,
-            self.__portfolio.open_positions(),
-            self.__portfolio.removed_positions(date)
-        )
 
-        self.__trading_signals += self.__trading_model.signals(date, self.__portfolio.open_positions())
+        # Account update
+        open_positions = self.__portfolio.open_positions()
+        removed_positions = self.__portfolio.removed_positions(date)
+        self.__broker.update_account(date, previous_date, open_positions, removed_positions)
+
+        # Trading signals and position sizing
+        self.__trading_signals += self.__trading_model.signals(date, open_positions)
 
         open_markets, markets_to_open, markets_to_close, markets_to_roll = self.__partitioned_markets()
         markets_to_update = set(open_markets).difference(markets_to_close).union(markets_to_open)
