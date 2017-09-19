@@ -16,8 +16,7 @@ class Risk(object):
 
     def __init__(self, account, position_sizing, risk_factor, volatility_target, use_group_correlation_weights):
         self.__account = account
-        # self.__position_sizing = position_sizing
-        self.__position_sizing = PositionSizing.CORRELATION_WEIGHTS
+        self.__position_sizing = position_sizing
         self.__risk_factor = risk_factor
         self.__volatility_target = volatility_target
         self.__use_group_correlation_weights = use_group_correlation_weights
