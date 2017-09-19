@@ -30,14 +30,14 @@ class Simulate:
         self.__trading_model = trading_model
         self.__position_inertia = position_inertia
         self.__trading_signals = []
-        self.__position_sizes = []
+        self.__position_sizes = {}
         self.__order_results = []
         self.__timer = Timer()
 
         now = dt.datetime.now()
         # end_date = dt.date(now.year, now.month, now.day)
         # end_date = dt.date(1992, 6, 10)
-        end_date = dt.date(1992, 5, 31)
+        end_date = dt.date(2015, 12, 31)
 
         self.__data_series.load(end_date, roll_strategy[Table.RollStrategy.ID])
         self.__subscribe()
@@ -89,15 +89,15 @@ class Simulate:
             self.__data_series
         )
 
-        # f = open('report_full_1995-12-31_2.txt', 'w')
+        # f = open('report_full_1995-12-31_3.txt', 'w')
         # f.write(full_report)
         # f.close()
         #
-        # f = open('report_daily_1995-12-31_2.txt', 'w')
+        # f = open('report_daily_1995-12-31_3.txt', 'w')
         # f.write('\n'.join(report.to_lists(start_date, date, Interval.DAILY)))
         # f.close()
         #
-        # f = open('transactions_1995-12-31_2.txt', 'w')
+        # f = open('transactions_1995-12-31_3.txt', 'w')
         # f.write('\n'.join(report.transactions(start_date, date)))
         # f.close()
 
@@ -172,7 +172,7 @@ class Simulate:
                     # If the market ID is not in position sizes Dict, there is not enough liquidity
                     position_size = self.__position_sizes[market.id()] \
                         if market.id() in self.__position_sizes else market_position.quantity()
-                    diff = abs(position_size - quantity) / quantity
+                    diff = (abs(position_size - quantity) / quantity) if quantity else 0.0
                     if diff > self.__position_inertia:
                         direction = market_position.direction()
                         price = market_data[Table.Market.OPEN_PRICE]
