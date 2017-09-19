@@ -12,11 +12,12 @@ from series.market_series import MarketSeries
 
 class CustomSeries(MarketSeries):
 
-    def __init__(self, start_data_date, study_parameters, roll_strategy, volatility_type, volatility_lookback, use_ew_correlation):
+    def __init__(self, start_data_date, study_parameters, roll_strategy, position_sizing, volatility_type, volatility_lookback, use_ew_correlation):
         super(CustomSeries, self).__init__(
             start_data_date,
             study_parameters,
             roll_strategy,
+            position_sizing,
             volatility_type,
             volatility_lookback,
             use_ew_correlation

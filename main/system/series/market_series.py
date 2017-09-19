@@ -2,6 +2,7 @@
 
 import json
 from enum import Table
+from enum import PositionSizing
 from operator import itemgetter
 from collections import deque
 from collections import defaultdict
@@ -13,9 +14,10 @@ class MarketSeries(object):
 
     __metaclass__ = ABCMeta
 
-    def __init__(self, start_data_date, study_parameters, roll_strategy, volatility_type, volatility_lookback, use_ew_correlation):
+    def __init__(self, start_data_date, study_parameters, roll_strategy, position_sizing, volatility_type, volatility_lookback, use_ew_correlation):
         self._start_data_date = start_data_date
         self._roll_strategy = roll_strategy
+        self.__position_sizing = position_sizing
         self.__volatility_type = volatility_type
         self.__volatility_lookback = volatility_lookback
         self.__use_ew_correlation = use_ew_correlation
@@ -166,18 +168,19 @@ class MarketSeries(object):
             column, window = key.split(':')
             self.__study_data['%s_%s' % (column, window)] = deque([], int(window))
 
-        # self._correlations, self._correlation_indexes = MarketCorrelationProxy.from_db(
-        #     connection,
-        #     market_id,
-        #     market_code,
-        #     self._start_data_date,
-        #     end_date,
-        #     self.__volatility_type,
-        #     self.__volatility_lookback,
-        #     self.__use_ew_correlation
-        # )
-        self._correlations, self._correlation_indexes = MarketCorrelationProxy.from_files(market_code, self._start_data_date, end_date)
-        # MarketCorrelationProxy.dump(market_code, self._correlations)
+        if self.__position_sizing != PositionSizing.RISK_FACTOR:
+            self._correlations, self._correlation_indexes = MarketCorrelationProxy.from_db(
+                connection,
+                market_id,
+                market_code,
+                self._start_data_date,
+                end_date,
+                self.__volatility_type,
+                self.__volatility_lookback,
+                self.__use_ew_correlation
+            )
+            # self._correlations, self._correlation_indexes = MarketCorrelationProxy.from_files(market_code, self._start_data_date, end_date)
+            # MarketCorrelationProxy.dump(market_code, self._correlations)
 
     @abstractmethod
     def contract(self, date):

@@ -38,8 +38,9 @@ class Initialize:
         investment_universe = InvestmentUniverse(simulation[Table.Simulation.INVESTMENT_UNIVERSE], connection)
         investment_universe.load_data()
 
+        position_sizing = params['position_sizing']
         data_series = DataSeries(investment_universe, connection, json.loads(simulation[Table.Simulation.STUDIES]))
-        futures = data_series.futures(params['slippage_map'], roll_strategy, *self.__correlation_data_params(params))
+        futures = data_series.futures(params['slippage_map'], roll_strategy, position_sizing, *self.__correlation_data_params(params))
         currency_pairs = data_series.currency_pairs(base_currency, commission_currency)
         interest_rates = data_series.interest_rates(base_currency, commission_currency)
 
@@ -52,7 +53,7 @@ class Initialize:
             roll_strategy
         )
 
-        risk = Risk(account, params['position_sizing'], *self.__position_sizing_params(params))
+        risk = Risk(account, position_sizing, *self.__position_sizing_params(params))
         portfolio = Portfolio(account)
         position_inertia = params['position_inertia']
         Simulate(simulation, roll_strategy, data_series, risk, account, broker, portfolio, trading_model, position_inertia)

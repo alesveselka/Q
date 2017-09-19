@@ -6,11 +6,12 @@ from series.market_series import MarketSeries
 
 class NorgateSeries(MarketSeries):
 
-    def __init__(self, start_data_date, study_parameters, roll_strategy, volatility_type, volatility_lookback, use_ew_correlation):
+    def __init__(self, start_data_date, study_parameters, roll_strategy, position_sizing, volatility_type, volatility_lookback, use_ew_correlation):
         super(NorgateSeries, self).__init__(
             start_data_date,
             study_parameters,
             roll_strategy,
+            position_sizing,
             volatility_type,
             volatility_lookback,
             use_ew_correlation

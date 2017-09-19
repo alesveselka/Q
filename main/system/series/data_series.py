@@ -27,12 +27,13 @@ class DataSeries:
         """
         return self.__investment_universe.start_data_date()
 
-    def futures(self, slippage_map, roll_strategy, volatility_type, volatility_lookback, use_ew_correlation):
+    def futures(self, slippage_map, roll_strategy, position_sizing, volatility_type, volatility_lookback, use_ew_correlation):
         """
         Load futures data if not already loaded
 
         :param slippage_map:        list of dicts, each representing volume range to arrive at slippage estimate
         :param roll_strategy:       contract roll strategy
+        :param position_sizing:     risk position sizing method
         :param volatility_type:     type of volatility ('movement' or 'dev')
         :param volatility_lookback: lookback window (as number)
         :param use_ew_correlation:  boolean value indicating if EW corr. data should be loaded
@@ -65,7 +66,6 @@ class DataSeries:
             )
 
             for market_id in self.__investment_universe.market_ids():
-            # for market_id in [19, 33, 55, 79, 88, 90, 100]:  # 19=SB, 33=W2, 55=SP, 79=TU, 88=LC, 90=GC, 100=CL2
             # for market_id in [10, 13, 15, 74, 94, 96, 26]:  # 10=CC, 13=KC, 15=LCC, 74=LES, 94=SI, 96=YI, 26=LWB
                 cursor.execute(market_query % market_id)
                 self.__futures.append(Market(
@@ -75,6 +75,7 @@ class DataSeries:
                         start_data_date,
                         self.__study_parameters,
                         loaded_roll_strategy,
+                        position_sizing,
                         volatility_type,
                         volatility_lookback,
                         use_ew_correlation
@@ -156,21 +157,18 @@ class DataSeries:
         cursor.execute("SELECT code, short_name FROM `delivery_month`;")
         delivery_months = {i[1][0]: (i[0] + 1, i[1][1]) for i in enumerate(cursor.fetchall())}
 
-        # TODO load all at once and then filter in python?
         message = 'Loading Futures data ...'
         length = float(len(self.__futures))
         map(lambda i: self.__log(message, i[1].code(), i[0], length)
                       and i[1].load_data(self.__connection, end_date, delivery_months, roll_strategy_id), enumerate(self.__futures))
         self.__log(message, complete=True)
 
-        # TODO load all at once and then filter in python?
         message = 'Loading currency pairs data ...'
         length = float(len(self.__currency_pairs))
         map(lambda i: self.__log(message, i[1].code(), i[0], length) and i[1].load_data(self.__connection, end_date),
             enumerate(self.__currency_pairs))
         self.__log(message, complete=True)
 
-        # TODO load all at once and then filter in python?
         message = 'Loading interest rates data ...'
         length = float(len(self.__interest_rates))
         map(lambda i: self.__log(message, i[1].code(), i[0], length) and i[1].load_data(self.__connection, end_date),
