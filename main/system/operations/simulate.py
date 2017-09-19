@@ -19,7 +19,7 @@ from persist import Persist
 
 class Simulate:
 
-    def __init__(self, simulation, roll_strategy, data_series, risk, account, broker, portfolio, trading_model):
+    def __init__(self, simulation, roll_strategy, data_series, risk, account, broker, portfolio, trading_model, position_inertia):
         self.__simulation = simulation
         self.__roll_strategy = roll_strategy
         self.__data_series = data_series
@@ -28,6 +28,7 @@ class Simulate:
         self.__broker = broker
         self.__portfolio = portfolio
         self.__trading_model = trading_model
+        self.__position_inertia = position_inertia
         self.__trading_signals = []
         self.__position_sizes = []
         self.__order_results = []
@@ -36,7 +37,7 @@ class Simulate:
         now = dt.datetime.now()
         # end_date = dt.date(now.year, now.month, now.day)
         # end_date = dt.date(1992, 6, 10)
-        end_date = dt.date(1995, 12, 31)
+        end_date = dt.date(1992, 5, 31)
 
         self.__data_series.load(end_date, roll_strategy[Table.RollStrategy.ID])
         self.__subscribe()
@@ -159,7 +160,6 @@ class Simulate:
         :return:                    list of rebalance signals
         """
         rebalance_signals = []
-        position_inertia = 0.1  # TODO load from params
         candidate_markets = set(open_markets).difference(markets_to_close).difference(markets_to_roll)
 
         for market in candidate_markets:
@@ -173,7 +173,7 @@ class Simulate:
                     position_size = self.__position_sizes[market.id()] \
                         if market.id() in self.__position_sizes else market_position.quantity()
                     diff = abs(position_size - quantity) / quantity
-                    if diff > position_inertia:
+                    if diff > self.__position_inertia:
                         direction = market_position.direction()
                         price = market_data[Table.Market.OPEN_PRICE]
                         rebalance_signals.append(Signal(market, SignalType.REBALANCE, direction, date, price))
