@@ -8,7 +8,6 @@ import MySQLdb as mysql
 from timer import Timer
 from enum import Table
 from enum import TransactionType
-from enum import SignalType
 from decimal import Decimal, InvalidOperation
 
 
@@ -23,13 +22,14 @@ class Persist:
         )
         roll_strategy_id = roll_strategy[Table.RollStrategy.ID]
         roll_strategy_name = roll_strategy[Table.RollStrategy.NAME]
+        futures = data_series.futures(None, None, None, None, None, None)
 
-        # self.__save_orders(simulation_id, order_results)
-        # self.__save_transactions(simulation_id, account.transactions(start_date, end_date))
-        # self.__save_positions(simulation_id, portfolio)
-        # self.__save_price_series(simulation_id, roll_strategy_id, roll_strategy_name, data_series.futures(None, None))
-        # self.__save_studies(simulation_id, data_series.futures(None, None), data_series.study_parameters())
-        # self.__save_equity(simulation_id, account, start_date, end_date)
+        self.__save_orders(simulation_id, order_results)
+        self.__save_transactions(simulation_id, account.transactions(start_date, end_date))
+        self.__save_positions(simulation_id, portfolio)
+        self.__save_price_series(simulation_id, roll_strategy_id, roll_strategy_name, futures)
+        self.__save_studies(simulation_id, futures, data_series.study_parameters())
+        self.__save_equity(simulation_id, account, start_date, end_date)
 
     def __save_orders(self, simulation_id, order_results):
         """
