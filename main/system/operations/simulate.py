@@ -19,7 +19,17 @@ from persist import Persist
 
 class Simulate:
 
-    def __init__(self, simulation, roll_strategy, data_series, risk, account, broker, portfolio, trading_model, position_inertia):
+    def __init__(self,
+                 simulation,
+                 roll_strategy,
+                 data_series,
+                 risk,
+                 account,
+                 broker,
+                 portfolio,
+                 trading_model,
+                 position_inertia,
+                 use_position_inertia):
         self.__simulation = simulation
         self.__roll_strategy = roll_strategy
         self.__data_series = data_series
@@ -29,15 +39,13 @@ class Simulate:
         self.__portfolio = portfolio
         self.__trading_model = trading_model
         self.__position_inertia = position_inertia
+        self.__use_position_inertia = use_position_inertia
         self.__trading_signals = []
         self.__position_sizes = {}
         self.__order_results = []
         self.__timer = Timer()
 
-        now = dt.datetime.now()
-        # end_date = dt.date(now.year, now.month, now.day)
-        # end_date = dt.date(1992, 6, 10)
-        end_date = dt.date(2015, 12, 31)
+        end_date = dt.date(1992, 5, 31)
 
         self.__data_series.load(end_date, roll_strategy[Table.RollStrategy.ID])
         self.__subscribe()
@@ -146,7 +154,9 @@ class Simulate:
 
         self.__position_sizes = self.__risk.position_sizes(date, markets_to_update)
 
-        self.__trading_signals += self.__rebalance_signals(date, open_markets, markets_to_close, markets_to_roll)
+        if self.__use_position_inertia:
+            self.__trading_signals += self.__rebalance_signals(date, open_markets, markets_to_close, markets_to_roll)
+
         self.__filter_illiquid_markets(markets_to_update)
 
     def __rebalance_signals(self, date, open_markets, markets_to_close, markets_to_roll):

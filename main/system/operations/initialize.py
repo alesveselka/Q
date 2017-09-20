@@ -53,10 +53,18 @@ class Initialize:
             roll_strategy
         )
 
-        risk = Risk(account, position_sizing, *self.__position_sizing_params(params))
-        portfolio = Portfolio(account)
-        position_inertia = params['position_inertia']
-        Simulate(simulation, roll_strategy, data_series, risk, account, broker, portfolio, trading_model, position_inertia)
+        Simulate(
+            simulation,
+            roll_strategy,
+            data_series,
+            Risk(account, position_sizing, *self.__position_sizing_params(params)),
+            account,
+            broker,
+            Portfolio(account),
+            trading_model,
+            params['position_inertia'],
+            params['use_position_inertia']
+        )
 
         print 'Time:', time.time() - start_time, (time.time() - start_time) / 60
 
