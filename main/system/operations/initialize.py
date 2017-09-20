@@ -19,7 +19,7 @@ from trading_models.breakout_ma_filter_atr_stop import BreakoutMAFilterATRStop
 class Initialize:
 
     def __init__(self, simulation_name):
-        self.__start_time = time.time()
+        start_time = time.time()
         connection = mysql.connect(
             os.environ['DB_HOST'],
             os.environ['DB_USER'],
@@ -38,8 +38,9 @@ class Initialize:
         investment_universe = InvestmentUniverse(simulation[Table.Simulation.INVESTMENT_UNIVERSE], connection)
         investment_universe.load_data()
 
+        position_sizing = params['position_sizing']
         data_series = DataSeries(investment_universe, connection, json.loads(simulation[Table.Simulation.STUDIES]))
-        futures = data_series.futures(params['slippage_map'], roll_strategy)
+        futures = data_series.futures(params['slippage_map'], roll_strategy, position_sizing, *self.__correlation_data_params(params))
         currency_pairs = data_series.currency_pairs(base_currency, commission_currency)
         interest_rates = data_series.interest_rates(base_currency, commission_currency)
 
@@ -52,10 +53,20 @@ class Initialize:
             roll_strategy
         )
 
-        risk = Risk(params['risk_factor'], account)
-        Simulate(simulation, roll_strategy, data_series, risk, account, broker, Portfolio(), trading_model)
+        Simulate(
+            simulation,
+            roll_strategy,
+            data_series,
+            Risk(account, position_sizing, *self.__position_sizing_params(params)),
+            account,
+            broker,
+            Portfolio(account),
+            trading_model,
+            params['position_inertia'],
+            params['use_position_inertia']
+        )
 
-        print 'Time:', time.time() - self.__start_time, (time.time() - self.__start_time) / 60
+        print 'Time:', time.time() - start_time, (time.time() - start_time) / 60
 
     def __simulation(self, name, connection):
         """
@@ -78,6 +89,34 @@ class Initialize:
         cursor = connection.cursor()
         cursor.execute("SELECT * FROM `roll_strategy` WHERE id = '%s'" % roll_strategy_id)
         return cursor.fetchone()
+
+    def __correlation_data_params(self, params):
+        """
+        Construct and return dict with correlation data pulled from params passed in, 
+        optionally defaulted to hard-coded values
+        
+        :param params:  dict with loaded params
+        :return:        dict with correlation-date related params
+        """
+        return (
+            params.get('volatility_type', 'movement'),
+            params.get('volatility_lookback', 25),
+            params.get('use_ew_correlation', True),
+        )
+
+    def __position_sizing_params(self, params):
+        """
+        Construct and return tuple with position sizing data pulled from params passed in, 
+        optionally defaulted to hard-coded values
+        
+        :param params:          dict with loaded params
+        :return:                tuple with position sizing and risk related params
+        """
+        return (
+            params.get('risk_factor', 0.002),
+            params.get('volatility_target', 0.2),
+            params.get('use_group_correlation_weights', False)
+        )
 
     def __trading_model(self, name):
         """

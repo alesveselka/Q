@@ -18,6 +18,13 @@ def insert_simulations(values):
         cursor.executemany(command, values)
 
 
+def update_simulation(simulation_id, column, value):
+    cursor = mysql_connection.cursor()
+    command = """UPDATE `simulation` SET `%s` = '%s' WHERE id = %s;"""
+    cursor.execute(command % (column, value, simulation_id))
+    mysql_connection.commit()
+
+
 def studies(data):
     return [{'name': '%s_%s' % (d[0], d[1]), 'study': d[2], 'window': d[3], 'columns': d[4]} for d in data]
 
@@ -28,11 +35,39 @@ def roll_strategy_id(roll_strategy_name):
     return [r for r in cursor.fetchall() if r[1] == roll_strategy_name][0][0]
 
 
-def simulation_params(initial_balance, risk_factor):
+def __risk_params(position_sizing, risk_factor=0.002, vol_target=0.2, vol_lookback=25, use_ew=True, group_weights=False):
     return {
+        RISK_FACTOR: {
+            'risk_factor': risk_factor,
+            'position_inertia': 0.1,
+            'use_position_inertia': True
+        },
+        EQUAL_WEIGHTS: {
+            'volatility_target': vol_target,
+            'volatility_lookback': vol_lookback,
+            'volatility_type': 'movement',
+            'position_inertia': 0.1,
+            'use_position_inertia': True
+        },
+        CORRELATION_WEIGHTS: {
+            'volatility_target': vol_target,
+            'volatility_lookback': vol_lookback,
+            'volatility_type': 'movement',
+            'use_ew_correlation': use_ew,
+            'use_group_correlation_weights': group_weights,
+            'position_inertia': 0.1,
+            'use_position_inertia': True
+        }
+    }[position_sizing]
+
+
+def simulation_params(position_sizing, risk_params, initial_balance=1e6):
+    # TODO also 'rebalance', 'capital_correction'
+
+    return dict(risk_params.items() + {
         'initial_balance': initial_balance,
         'base_currency': 'EUR',
-        'risk_factor': risk_factor,
+        'position_sizing': position_sizing,
         'commission': 10.0,
         'commission_currency': 'USD',
         'interest_minimums': {
@@ -52,7 +87,7 @@ def simulation_params(initial_balance, risk_factor):
             {'atr': 0.05, 'min': 50000, 'max': 200000},
             {'atr': 0.01, 'min': 200000, 'max': 1e9}
         ]
-    }
+    }.items())
 
 
 def simulations():
@@ -74,9 +109,10 @@ def simulations():
         ('hhll', 'short', 'HHLL', 50, ['price_date', 'settle_price'])
     ])
 
+    # TODO also use 'EMA' in volatility_MA_type
     return [(
         '%s_1' % trading_model_name,
-        json.dumps(simulation_params(1e6, 0.002)),
+        json.dumps(simulation_params(RISK_FACTOR, __risk_params(RISK_FACTOR))),
         trading_model_name,
         json.dumps(trading_params),
         json.dumps(study_map),
@@ -84,7 +120,7 @@ def simulations():
         '25Y'
     ), (
         '%s_2' % trading_model_name,
-        json.dumps(simulation_params(1e6, 0.002)),
+        json.dumps(simulation_params(RISK_FACTOR, __risk_params(RISK_FACTOR))),
         trading_model_name,
         json.dumps(trading_params),
         json.dumps(study_map),
@@ -92,11 +128,19 @@ def simulations():
         '25Y'
     ), (
         '%s_3' % trading_model_name,
-        json.dumps(simulation_params(1e6, 0.002)),
+        json.dumps(simulation_params(RISK_FACTOR, __risk_params(RISK_FACTOR))),
         trading_model_name,
         json.dumps(trading_params),
         json.dumps(study_map),
         roll_strategy_id('optimal_roll_1'),
+        '25Y'
+    ), (
+        '%s_4' % trading_model_name,
+        json.dumps(simulation_params(EQUAL_WEIGHTS, __risk_params(EQUAL_WEIGHTS), initial_balance=1e7)),
+        trading_model_name,
+        json.dumps(trading_params),
+        json.dumps(study_map),
+        roll_strategy_id('standard_roll_1'),
         '25Y'
     )]
 
@@ -112,5 +156,10 @@ if __name__ == '__main__':
         'breakout_with_MA_filter_and_ATR_stop',
         'Highest-high and Lowest-low breakout with Moving Average trend filter and ATR volatility based exit stops'
     )]
+    RISK_FACTOR = 'risk_factor'
+    EQUAL_WEIGHTS = 'volatility_target_equal_weights'
+    CORRELATION_WEIGHTS = 'volatility_target_correlation_weights'
+
     # insert_trading_models(trading_model_data)
-    insert_simulations(simulations())
+    # insert_simulations([simulations()[-1]])
+    # update_simulation(13, 'params', simulations()[3][1])

@@ -65,21 +65,23 @@ class BreakoutMAFilterATRStop(TradingModel):
 
         return signals
 
-    def __should_roll(self, date, previous_date, market, contract, signals):
+    def __should_roll(self, date, previous_date, market, position_contract, signals):
         """
         Check if position should roll to the next contract
         
-        :param date:            current date
-        :param previous_date:   previous date
-        :param market:          market of the position
-        :param contract:        position contract
-        :param signals:         signals
-        :return:                Boolean indicating if roll signals should be generated
+        :param date:                current date
+        :param previous_date:       previous date
+        :param market:              market of the position
+        :param position_contract:   position contract
+        :param signals:             signals
+        :return:                    Boolean indicating if roll signals should be generated
         """
         should_roll = False
 
         if len([s for s in signals if s.market() == market]) == 0:
-            should_roll = market.contract(date) != market.contract(previous_date) if contract else date.month != previous_date.month
+            contract = market.contract(date)
+            should_roll = (contract != position_contract and contract != market.contract(previous_date)) \
+                if position_contract else date.month != previous_date.month
 
         return should_roll
 

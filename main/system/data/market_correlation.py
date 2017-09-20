@@ -10,22 +10,25 @@ class MarketCorrelationProxy:
         pass
 
     @staticmethod
-    def from_db(connection, market_id, market_code, start_date, end_date):
+    def from_db(connection, market_id, market_code, start_date, end_date, volatility_type, volatility_lookback, use_ew_correlation):
         """
         Load and return correlation data from files
         
-        :param connection:      DB connection
-        :param market_id:       ID of the market to load
-        :param market_code:     Code of the market to load
-        :param start_date:      start date if the data
-        :param end_date:        end date of the data
-        :return:                tuple of
-                                    list of correlation data and
-                                    dict of indexes with dates as keys
+        :param connection:          DB connection
+        :param market_id:           ID of the market to load
+        :param market_code:         Code of the market to load
+        :param start_date:          start date if the data
+        :param end_date:            end date of the data
+        :param volatility_type:     type of the volatility to load (either 'movement' or 'dev'(deviation))
+        :param volatility_lookback: number of days used for the volatility calculation lookback
+        :param use_ew_correlation:  boolean value to indicate if EW series should be used or not
+        :return:                    tuple of
+                                        list of correlation data and
+                                        dict of indexes with dates as keys
         """
         cursor = connection.cursor()
         correlation_query = """
-            SELECT date, movement_volatility, movement_correlations_ew
+            SELECT date, %s_volatility, %s_correlations%s
             FROM market_correlation
             WHERE market_id = '%s'
             AND market_code = '%s'
@@ -35,9 +38,12 @@ class MarketCorrelationProxy:
             ORDER BY date;
         """
         cursor.execute(correlation_query % (
+            volatility_type,
+            volatility_type,
+            '_ew' if use_ew_correlation else '',
             market_id,
             market_code,
-            '25',
+            str(volatility_lookback),
             start_date.strftime('%Y-%m-%d'),
             end_date.strftime('%Y-%m-%d')
         ))

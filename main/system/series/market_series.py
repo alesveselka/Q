@@ -2,6 +2,7 @@
 
 import json
 from enum import Table
+from enum import PositionSizing
 from operator import itemgetter
 from collections import deque
 from collections import defaultdict
@@ -13,9 +14,13 @@ class MarketSeries(object):
 
     __metaclass__ = ABCMeta
 
-    def __init__(self, start_data_date, study_parameters, roll_strategy):
+    def __init__(self, start_data_date, study_parameters, roll_strategy, position_sizing, volatility_type, volatility_lookback, use_ew_correlation):
         self._start_data_date = start_data_date
         self._roll_strategy = roll_strategy
+        self.__position_sizing = position_sizing
+        self.__volatility_type = volatility_type
+        self.__volatility_lookback = volatility_lookback
+        self.__use_ew_correlation = use_ew_correlation
 
         self._prices = []
         self._price_indexes = {}
@@ -39,19 +44,6 @@ class MarketSeries(object):
         index = self._price_indexes[date] if date in self._price_indexes else None
         return (self._prices[index], self._prices[index-1]) if index else (None, None)
 
-    def correlation(self, date, market_id):
-        """
-        Find and return correlation with the other market, which ID is passed in
-        
-        :param date:        date of the correlation record
-        :param market_id:   ID of second market to find correlation value for
-        :return:            correlation number if any found
-        """
-        index = self._correlation_indexes[date] if date in self._correlation_indexes else None
-        record = self._correlations[index] if index else [c for c in self._correlations if c[Table.MarketCorrelation.DATE] <= date][-1]
-        correlations = json.loads(record[Table.MarketCorrelation.CORRELATIONS]) if record else None
-        return correlations[market_id] if correlations else None  # TODO return 0.0 instead of None?
-
     def data_range(self, start_date, end_date):
         """
         Return data between the start and end date passed in
@@ -61,6 +53,18 @@ class MarketSeries(object):
         :return:            list of data
         """
         return [d for d in self._prices if start_date <= d[Table.Market.PRICE_DATE] <= end_date]
+
+    def correlation(self, date):
+        """
+        Find and return series volatility to the date and correlation with the other market, which ID is passed in
+        
+        :param date:        date of the correlation record
+        :return:            tuple(date, volatility number, and JSON(correlation dict))
+        """
+        index = self._correlation_indexes[date] if date in self._correlation_indexes else None
+        return self._correlations[index] if index \
+            else ([c for c in self._correlations if c[Table.MarketCorrelation.DATE] <= date][-1]
+                  if len(self._correlations) and self._correlations[0][Table.MarketCorrelation.DATE] <= date else None)
 
     def study(self, study_name, date=None):
         """
@@ -164,15 +168,19 @@ class MarketSeries(object):
             column, window = key.split(':')
             self.__study_data['%s_%s' % (column, window)] = deque([], int(window))
 
-        # self._correlations, self._correlation_indexes = MarketCorrelationProxy.from_db(
-        #     connection,
-        #     market_id,
-        #     market_code,
-        #     self._start_data_date,
-        #     end_date
-        # )
-        self._correlations, self._correlation_indexes = MarketCorrelationProxy.from_files(market_code, self._start_data_date, end_date)
-        # MarketCorrelationProxy.dump(market_code, self._correlations)
+        if self.__position_sizing != PositionSizing.RISK_FACTOR:
+            self._correlations, self._correlation_indexes = MarketCorrelationProxy.from_db(
+                connection,
+                market_id,
+                market_code,
+                self._start_data_date,
+                end_date,
+                self.__volatility_type,
+                self.__volatility_lookback,
+                self.__use_ew_correlation
+            )
+            # self._correlations, self._correlation_indexes = MarketCorrelationProxy.from_files(market_code, self._start_data_date, end_date)
+            # MarketCorrelationProxy.dump(market_code, self._correlations)
 
     @abstractmethod
     def contract(self, date):
