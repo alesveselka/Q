@@ -14,12 +14,13 @@ from enum import PositionSizing
 
 class Risk(object):
 
-    def __init__(self, account, position_sizing, risk_factor, volatility_target, use_group_correlation_weights):
+    def __init__(self, account, position_sizing, risk_factor, volatility_target, use_group_correlation_weights, capital_correction):
         self.__account = account
         self.__position_sizing = position_sizing
         self.__risk_factor = risk_factor
         self.__volatility_target = volatility_target
         self.__use_group_correlation_weights = use_group_correlation_weights
+        self.__capital_correction = capital_correction
 
     def position_sizes(self, date, markets):
         """
