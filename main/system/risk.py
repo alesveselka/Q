@@ -67,14 +67,14 @@ class Risk(object):
         :return:                    dict of position sizes and market IDs as keys
         """
         position_sizes = {}
-        equity = float(self.__account.equity(date))
+        risk = self.__account.equity(date) * self.__risk_factor
         for market in markets:
             base_point_value = float(self.__account.base_value(market.point_value(), market.currency(), date))
             atr_study = market.study(Study.ATR_LONG, date)
             vol_study = market.study(Study.VOL_SHORT, date)
             atr = atr_study[Table.Study.VALUE] if atr_study else market.study_range(Study.ATR_LONG, end_date=date)[-1][Table.Study.VALUE]
             vol = vol_study[Table.Study.VALUE] if vol_study else market.study_range(Study.VOL_SHORT, end_date=date)[-1][Table.Study.VALUE]
-            position_size = (self.__risk_factor * equity) / (atr * base_point_value)
+            position_size = risk / (atr * base_point_value)
             if position_size < vol:
                 position_sizes[market.id()] = position_size
 
@@ -297,3 +297,6 @@ class Risk(object):
                 illiquid_markets.append(market_id)
 
         return illiquid_markets
+
+    def __capital(self, date):
+        return self.__account.equity(date)
