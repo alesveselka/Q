@@ -169,18 +169,23 @@ class MarketSeries(object):
             self.__study_data['%s_%s' % (column, window)] = deque([], int(window))
 
         if self.__position_sizing != PositionSizing.RISK_FACTOR:
-            self._correlations, self._correlation_indexes = MarketCorrelationProxy.from_db(
-                connection,
-                market_id,
+            # self._correlations, self._correlation_indexes = MarketCorrelationProxy.from_db(
+            #     connection,
+            #     market_id,
+            #     market_code,
+            #     self._start_data_date,
+            #     end_date,
+            #     self.__volatility_type,
+            #     self.__volatility_lookback,
+            #     self.__use_ew_correlation
+            # )
+            self._correlations, self._correlation_indexes = MarketCorrelationProxy.from_files(
                 market_code,
-                self._start_data_date,
-                end_date,
-                self.__volatility_type,
                 self.__volatility_lookback,
-                self.__use_ew_correlation
+                self._start_data_date,
+                end_date
             )
-            # self._correlations, self._correlation_indexes = MarketCorrelationProxy.from_files(market_code, self._start_data_date, end_date)
-            # MarketCorrelationProxy.dump(market_code, self._correlations)
+            # MarketCorrelationProxy.dump(market_code, self.__volatility_lookback, self._correlations)
 
     @abstractmethod
     def contract(self, date):

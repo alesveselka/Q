@@ -56,18 +56,19 @@ class MarketCorrelationProxy:
         return correlations, correlation_indexes
 
     @staticmethod
-    def from_files(market_code, start_date, end_date):
+    def from_files(market_code, lookback, start_date, end_date):
         """
         Load and return correlation data from files
         
         :param market_code:     Code of the market to load
+        :param lookback:        lookback constant used in computing the data
         :param start_date:      start date if the data
         :param end_date:        end date of the data
         :return:                tuple of
                                     list of correlation data and
                                     dict of indexes with dates as keys
         """
-        reader = csv.reader(open('./db/market_correlation/%s.csv' % market_code), delimiter=',', quotechar="'")
+        reader = csv.reader(open('./db/market_correlation/%s/%s.csv' % (lookback, market_code)), delimiter=',', quotechar="'")
         rows = [(dt.date(*map(int, r[0].split('-'))), float(r[1]), r[2]) for r in reader]
 
         workdays = range(1, 6)
@@ -77,7 +78,7 @@ class MarketCorrelationProxy:
         return correlations, correlation_indexes
 
     @staticmethod
-    def dump(market_code, correlations):
-        f = open('./db/market_correlation/%s.csv' % market_code, 'w')
+    def dump(market_code, lookback, correlations):
+        f = open('./db/market_correlation/%s/%s.csv' % (lookback, market_code), 'w')
         f.write('\n'.join(["%s,%s,'%s'" % (str(c[0]), str(c[1]), c[2]) for c in correlations]))
         f.close()
