@@ -10,6 +10,7 @@ from collections import defaultdict
 from enum import Study
 from enum import Table
 from enum import PositionSizing
+from enum import CapitalCorrection
 
 
 class Risk(object):
@@ -31,8 +32,7 @@ class Risk(object):
         :return dict(int: float):   dict of position sizes as values and market IDs as keys
         """
         daily_factor = 16  # sqrt(256 business days)
-        equity = float(self.__account.equity(date))
-        cash_volatility_target = equity * self.__volatility_target
+        cash_volatility_target = self.__risk_capital(date) * self.__volatility_target
         daily_cash_volatility_target = cash_volatility_target / daily_factor
         position_sizes = {}
 
@@ -67,7 +67,7 @@ class Risk(object):
         :return:                    dict of position sizes and market IDs as keys
         """
         position_sizes = {}
-        risk = self.__account.equity(date) * self.__risk_factor
+        risk = self.__risk_capital(date) * self.__risk_factor
         for market in markets:
             base_point_value = float(self.__account.base_value(market.point_value(), market.currency(), date))
             atr_study = market.study(Study.ATR_LONG, date)
@@ -298,5 +298,18 @@ class Risk(object):
 
         return illiquid_markets
 
-    def __capital(self, date):
-        return self.__account.equity(date)
+    def __risk_capital(self, date):
+        """
+        Return risk capital depending on 'capital correction' method
+        
+        :param date:    date of the capital
+        :return:        number representing risk capital
+        """
+        equity = self.__account.equity(date)
+        initial_balance = self.__account.initial_balance()
+        capital = {
+            CapitalCorrection.FIXED: initial_balance,
+            CapitalCorrection.FULL_COMPOUNDING: equity,
+            CapitalCorrection.HALF_COMPOUNDING: initial_balance if equity > initial_balance else equity
+        }.get(self.__capital_correction, equity)
+        return float(capital)
