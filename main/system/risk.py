@@ -305,6 +305,7 @@ class Risk(object):
         :param date:    date of the capital
         :return:        number representing risk capital
         """
+        # TODO implement 'Partial Compounding'?
         equity = self.__account.equity(date)
         initial_balance = self.__account.initial_balance()
         capital = {
