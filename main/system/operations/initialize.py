@@ -117,7 +117,8 @@ class Initialize:
             params.get('risk_factor', 0.002),
             params.get('volatility_target', 0.2),
             params.get('use_group_correlation_weights', False),
-            params.get('capital_correction', CapitalCorrection.FULL_COMPOUNDING)
+            params.get('capital_correction', CapitalCorrection.FULL_COMPOUNDING),
+            params.get('partial_compounding_factor', 0.25)
         )
 
     def __trading_model(self, name):
