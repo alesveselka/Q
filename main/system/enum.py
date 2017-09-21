@@ -97,6 +97,7 @@ class CapitalCorrection:
     FIXED = 'fixed'
     FULL_COMPOUNDING = 'full_compounding'
     HALF_COMPOUNDING = 'half_compounding'
+    PARTIAL_COMPOUNDING = 'partial_compounding'
 
 
 class Table:
