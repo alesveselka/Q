@@ -11,17 +11,26 @@ from enum import Study
 from enum import Table
 from enum import PositionSizing
 from enum import CapitalCorrection
+from decimal import Decimal
 
 
 class Risk(object):
 
-    def __init__(self, account, position_sizing, risk_factor, volatility_target, use_group_correlation_weights, capital_correction):
+    def __init__(self,
+                 account,
+                 position_sizing,
+                 risk_factor,
+                 volatility_target,
+                 use_group_correlation_weights,
+                 capital_correction,
+                 partial_compounding_factor):
         self.__account = account
         self.__position_sizing = position_sizing
         self.__risk_factor = risk_factor
         self.__volatility_target = volatility_target
         self.__use_group_correlation_weights = use_group_correlation_weights
         self.__capital_correction = capital_correction
+        self.__partial_compounding_factor = partial_compounding_factor
 
     def position_sizes(self, date, markets):
         """
@@ -305,12 +314,14 @@ class Risk(object):
         :param date:    date of the capital
         :return:        number representing risk capital
         """
-        # TODO implement 'Partial Compounding'?
         equity = self.__account.equity(date)
         initial_balance = self.__account.initial_balance()
+        partial_factor = Decimal(self.__partial_compounding_factor)
         capital = {
             CapitalCorrection.FIXED: initial_balance,
             CapitalCorrection.FULL_COMPOUNDING: equity,
-            CapitalCorrection.HALF_COMPOUNDING: initial_balance if equity > initial_balance else equity
+            CapitalCorrection.HALF_COMPOUNDING: initial_balance if equity > initial_balance else equity,
+            CapitalCorrection.PARTIAL_COMPOUNDING: (initial_balance + (equity - initial_balance) * partial_factor)
+            if equity > initial_balance else equity
         }.get(self.__capital_correction, equity)
         return float(capital)
