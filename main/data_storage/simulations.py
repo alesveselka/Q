@@ -35,35 +35,48 @@ def roll_strategy_id(roll_strategy_name):
     return [r for r in cursor.fetchall() if r[1] == roll_strategy_name][0][0]
 
 
-def __risk_params(position_sizing, risk_factor=0.002, vol_target=0.2, vol_lookback=25, use_ew=True, group_weights=False):
+def __risk_params(position_sizing,
+                  capital_correction,
+                  partial_compounding_factor=0.25,
+                  risk_factor=0.002,
+                  volatility_target=0.2,
+                  volatility_lookback=25,
+                  use_ew=True,
+                  group_weights=False):
     return {
         RISK_FACTOR: {
             'risk_factor': risk_factor,
             'position_inertia': 0.1,
-            'use_position_inertia': True
+            'use_position_inertia': True,
+            'capital_correction': capital_correction,
+            'partial_compounding_factor': partial_compounding_factor
         },
         EQUAL_WEIGHTS: {
-            'volatility_target': vol_target,
-            'volatility_lookback': vol_lookback,
+            'volatility_target': volatility_target,
+            'volatility_lookback': volatility_lookback,
             'volatility_type': 'movement',
             'position_inertia': 0.1,
-            'use_position_inertia': True
+            'use_position_inertia': True,
+            'capital_correction': capital_correction,
+            'partial_compounding_factor': partial_compounding_factor
         },
         CORRELATION_WEIGHTS: {
-            'volatility_target': vol_target,
-            'volatility_lookback': vol_lookback,
+            'volatility_target': volatility_target,
+            'volatility_lookback': volatility_lookback,
             'volatility_type': 'movement',
             'use_ew_correlation': use_ew,
             'use_group_correlation_weights': group_weights,
             'position_inertia': 0.1,
-            'use_position_inertia': True
+            'use_position_inertia': True,
+            'capital_correction': capital_correction,
+            'partial_compounding_factor': partial_compounding_factor
         }
     }[position_sizing]
 
 
 def simulation_params(position_sizing, risk_params, initial_balance=1e6):
-    # TODO also 'rebalance', 'capital_correction'
-
+    # TODO also 'rebalance', 'long_only'
+    # TODO also test 'USD' base currency and observe effect on margin interest
     return dict(risk_params.items() + {
         'initial_balance': initial_balance,
         'base_currency': 'EUR',
@@ -112,7 +125,7 @@ def simulations():
     # TODO also use 'EMA' in volatility_MA_type
     return [(
         '%s_1' % trading_model_name,
-        json.dumps(simulation_params(RISK_FACTOR, __risk_params(RISK_FACTOR))),
+        json.dumps(simulation_params(RISK_FACTOR, __risk_params(RISK_FACTOR, FULL_COMPOUNDING))),
         trading_model_name,
         json.dumps(trading_params),
         json.dumps(study_map),
@@ -120,7 +133,7 @@ def simulations():
         '25Y'
     ), (
         '%s_2' % trading_model_name,
-        json.dumps(simulation_params(RISK_FACTOR, __risk_params(RISK_FACTOR))),
+        json.dumps(simulation_params(RISK_FACTOR, __risk_params(RISK_FACTOR, FULL_COMPOUNDING))),
         trading_model_name,
         json.dumps(trading_params),
         json.dumps(study_map),
@@ -128,7 +141,7 @@ def simulations():
         '25Y'
     ), (
         '%s_3' % trading_model_name,
-        json.dumps(simulation_params(RISK_FACTOR, __risk_params(RISK_FACTOR))),
+        json.dumps(simulation_params(RISK_FACTOR, __risk_params(RISK_FACTOR, FULL_COMPOUNDING))),
         trading_model_name,
         json.dumps(trading_params),
         json.dumps(study_map),
@@ -136,7 +149,11 @@ def simulations():
         '25Y'
     ), (
         '%s_4' % trading_model_name,
-        json.dumps(simulation_params(EQUAL_WEIGHTS, __risk_params(EQUAL_WEIGHTS), initial_balance=1e7)),
+        json.dumps(simulation_params(
+            EQUAL_WEIGHTS,
+            __risk_params(EQUAL_WEIGHTS, FULL_COMPOUNDING),
+            initial_balance=1e7)
+        ),
         trading_model_name,
         json.dumps(trading_params),
         json.dumps(study_map),
@@ -159,6 +176,10 @@ if __name__ == '__main__':
     RISK_FACTOR = 'risk_factor'
     EQUAL_WEIGHTS = 'volatility_target_equal_weights'
     CORRELATION_WEIGHTS = 'volatility_target_correlation_weights'
+    FIXED = 'fixed'
+    FULL_COMPOUNDING = 'full_compounding'
+    HALF_COMPOUNDING = 'half_compounding'
+    PARTIAL_COMPOUNDING = 'partial_compounding'
 
     # insert_trading_models(trading_model_data)
     # insert_simulations([simulations()[-1]])

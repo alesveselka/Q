@@ -93,6 +93,13 @@ class PositionSizing:
     CORRELATION_WEIGHTS = 'volatility_target_correlation_weights'
 
 
+class CapitalCorrection:
+    FIXED = 'fixed'
+    FULL_COMPOUNDING = 'full_compounding'
+    HALF_COMPOUNDING = 'half_compounding'
+    PARTIAL_COMPOUNDING = 'partial_compounding'
+
+
 class Table:
     class Market:
         CODE = 0

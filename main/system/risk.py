@@ -10,16 +10,27 @@ from collections import defaultdict
 from enum import Study
 from enum import Table
 from enum import PositionSizing
+from enum import CapitalCorrection
+from decimal import Decimal
 
 
 class Risk(object):
 
-    def __init__(self, account, position_sizing, risk_factor, volatility_target, use_group_correlation_weights):
+    def __init__(self,
+                 account,
+                 position_sizing,
+                 risk_factor,
+                 volatility_target,
+                 use_group_correlation_weights,
+                 capital_correction,
+                 partial_compounding_factor):
         self.__account = account
         self.__position_sizing = position_sizing
         self.__risk_factor = risk_factor
         self.__volatility_target = volatility_target
         self.__use_group_correlation_weights = use_group_correlation_weights
+        self.__capital_correction = capital_correction
+        self.__partial_compounding_factor = partial_compounding_factor
 
     def position_sizes(self, date, markets):
         """
@@ -30,8 +41,7 @@ class Risk(object):
         :return dict(int: float):   dict of position sizes as values and market IDs as keys
         """
         daily_factor = 16  # sqrt(256 business days)
-        equity = float(self.__account.equity(date))
-        cash_volatility_target = equity * self.__volatility_target
+        cash_volatility_target = self.__risk_capital(date) * self.__volatility_target
         daily_cash_volatility_target = cash_volatility_target / daily_factor
         position_sizes = {}
 
@@ -66,14 +76,14 @@ class Risk(object):
         :return:                    dict of position sizes and market IDs as keys
         """
         position_sizes = {}
-        equity = float(self.__account.equity(date))
+        risk = self.__risk_capital(date) * self.__risk_factor
         for market in markets:
             base_point_value = float(self.__account.base_value(market.point_value(), market.currency(), date))
             atr_study = market.study(Study.ATR_LONG, date)
             vol_study = market.study(Study.VOL_SHORT, date)
             atr = atr_study[Table.Study.VALUE] if atr_study else market.study_range(Study.ATR_LONG, end_date=date)[-1][Table.Study.VALUE]
             vol = vol_study[Table.Study.VALUE] if vol_study else market.study_range(Study.VOL_SHORT, end_date=date)[-1][Table.Study.VALUE]
-            position_size = (self.__risk_factor * equity) / (atr * base_point_value)
+            position_size = risk / (atr * base_point_value)
             if position_size < vol:
                 position_sizes[market.id()] = position_size
 
@@ -296,3 +306,22 @@ class Risk(object):
                 illiquid_markets.append(market_id)
 
         return illiquid_markets
+
+    def __risk_capital(self, date):
+        """
+        Return risk capital depending on 'capital correction' method
+        
+        :param date:    date of the capital
+        :return:        number representing risk capital
+        """
+        equity = self.__account.equity(date)
+        initial_balance = self.__account.initial_balance()
+        partial_factor = Decimal(self.__partial_compounding_factor)
+        capital = {
+            CapitalCorrection.FIXED: initial_balance,
+            CapitalCorrection.FULL_COMPOUNDING: equity,
+            CapitalCorrection.HALF_COMPOUNDING: initial_balance if equity > initial_balance else equity,
+            CapitalCorrection.PARTIAL_COMPOUNDING: (initial_balance + (equity - initial_balance) * partial_factor)
+            if equity > initial_balance else equity
+        }.get(self.__capital_correction, equity)
+        return float(capital)

@@ -14,6 +14,7 @@ class Account(object):
         self.__base_currency = base_currency
         self.__currency_pairs = currency_pairs
 
+        self.__initial_balance = initial_balance
         self.__fx_balances = defaultdict(Decimal)
         self.__margin_loan_balances = defaultdict(float)
         self.__transactions = []
@@ -30,7 +31,7 @@ class Account(object):
         
         :return:    Decimal
         """
-        return sorted(self.__records.items())[0][1][AccountRecord.EQUITY]
+        return self.__initial_balance
 
     def base_currency(self):
         """
