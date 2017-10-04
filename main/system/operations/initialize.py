@@ -15,6 +15,7 @@ from portfolio import Portfolio
 from risk import Risk
 from simulate import Simulate
 from trading_models.breakout_ma_filter_atr_stop import BreakoutMAFilterATRStop
+from trading_models.plunge_atr_stop_profit import PlungeATRStopProfit
 
 
 class Initialize:
@@ -129,5 +130,6 @@ class Initialize:
         :return:        Class of the treding model
         """
         return {
-            'breakout_with_MA_filter_and_ATR_stop': BreakoutMAFilterATRStop
+            'breakout_with_MA_filter_and_ATR_stop': BreakoutMAFilterATRStop,
+            'plunge_with_ATR_stop_and_profit': PlungeATRStopProfit
         }[name]
