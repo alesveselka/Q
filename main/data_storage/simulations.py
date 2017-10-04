@@ -141,7 +141,8 @@ def study_map(model_name):
             ('atr', 'short', 'ATR', 20, ['price_date', 'high_price', 'low_price', 'settle_price']),
             ('ma', 'long', 'EMA', 100, ['price_date', 'settle_price']),
             ('ma', 'short', 'EMA', 50, ['price_date', 'settle_price']),
-            ('vol', 'short', 'SMA', 50, ['price_date', 'volume'])
+            ('vol', 'short', 'SMA', 50, ['price_date', 'volume']),
+            ('hhll', 'short', 'HHLL', 20, ['price_date', 'settle_price'])
         ])
     }[model_name]
 
@@ -221,4 +222,4 @@ if __name__ == '__main__':
     # trading_model = trading_models[TradingModel.PLUNGE_WITH_ATR_STOP_AND_PROFIT]
     # insert_trading_models([(trading_model['name'], trading_model['desc'])])
     # insert_simulations([simulations()[-1]])
-    # update_simulation(14, 'params', simulations()[4][1])
+    # update_simulation(14, 'studies', simulations()[4][4])
