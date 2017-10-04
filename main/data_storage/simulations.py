@@ -103,7 +103,7 @@ def simulation_params(position_sizing, risk_params, initial_balance=1e6):
     }.items())
 
 
-def trading_params(model_name):
+def trading_params(model_name, stop_type):
     # TODO also use 'EMA' in volatility_MA_type
     return {
         TradingModel.BREAKOUT_WITH_MA_FILTER_AND_ATR_STOP: {
@@ -122,6 +122,8 @@ def trading_params(model_name):
             'enter_multiple': 3,
             'stop_multiple': 2,
             'profit_multiple': 4,
+            'stop_type': stop_type,  # fixed_stop, trailing_stop, time
+            'stop_time': 30,
             'stop_window': 20
         }
     }[model_name]
@@ -148,12 +150,12 @@ def study_map(model_name):
     }[model_name]
 
 
-def simulation(trading_model, variation, params, roll_strategy_name, investment_universe='25Y'):
+def simulation(trading_model, variation, params, roll_strategy_name, stop_type='trailing_stop', investment_universe='25Y'):
     return (
         '%s_%s' % (trading_model, variation),
         json.dumps(params),
         trading_model,
-        json.dumps(trading_params(trading_model)),
+        json.dumps(trading_params(trading_model, stop_type)),
         json.dumps(study_map(trading_model)),
         roll_strategy_id(roll_strategy_name),
         investment_universe
@@ -184,7 +186,19 @@ def simulations():
         ),
         simulation(
             TradingModel.PLUNGE_WITH_ATR_STOP_AND_PROFIT, '1',
-            simulation_params(RISK_FACTOR, __risk_params(RISK_FACTOR, FULL_COMPOUNDING)),
+            simulation_params(RISK_FACTOR, __risk_params(RISK_FACTOR, FULL_COMPOUNDING, 0.25, 0.001)),
+            'standard_roll_1',
+            'fixed_stop'
+        ),
+        simulation(
+            TradingModel.PLUNGE_WITH_ATR_STOP_AND_PROFIT, '2',
+            simulation_params(RISK_FACTOR, __risk_params(RISK_FACTOR, FULL_COMPOUNDING, 0.25, 0.001)),
+            'standard_roll_1',
+            'time'
+        ),
+        simulation(
+            TradingModel.PLUNGE_WITH_ATR_STOP_AND_PROFIT, '3',
+            simulation_params(RISK_FACTOR, __risk_params(RISK_FACTOR, FULL_COMPOUNDING, 0.25, 0.001)),
             'standard_roll_1'
         )
     ]
@@ -223,4 +237,4 @@ if __name__ == '__main__':
     # trading_model = trading_models[TradingModel.PLUNGE_WITH_ATR_STOP_AND_PROFIT]
     # insert_trading_models([(trading_model['name'], trading_model['desc'])])
     # insert_simulations([simulations()[-1]])
-    # update_simulation(14, 'studies', simulations()[4][4])
+    # update_simulation(16, 'params', simulations()[6][1])
