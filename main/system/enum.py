@@ -31,6 +31,12 @@ class SignalType:
     REBALANCE = 'REBALANCE'
 
 
+class StopType:
+    TRAILING_STOP = 'trailing_stop'
+    FIXED_STOP = 'fixed_stop'
+    TIME = 'time'
+
+
 class Currency:
     AUD = 'AUD'
     GBP = 'GBP'
