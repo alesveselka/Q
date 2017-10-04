@@ -18,6 +18,7 @@ class PlungeATRStopProfit(TradingModel):
 
     def __init__(self, markets, params, roll_strategy):
         self.__markets = markets
+        self.__enter_multiple = int(params['enter_multiple'])
         self.__stop_multiple = int(params['stop_multiple'])
         self.__profit_multiple = int(params['profit_multiple'])
         self.__roll_strategy = roll_strategy
@@ -38,29 +39,30 @@ class PlungeATRStopProfit(TradingModel):
                 previous_date = previous_data[Table.Market.PRICE_DATE]
                 ma_long = market.study(Study.MA_LONG, date)[Table.Study.VALUE]
                 ma_short = market.study(Study.MA_SHORT, date)[Table.Study.VALUE]
-                settle_price = market_data[Table.Market.SETTLE_PRICE]
-                market_position = self.__market_position(positions, market)
+                price = market_data[Table.Market.SETTLE_PRICE]
+                position = self.__market_position(positions, market)
+                trend_direction = Direction.LONG if ma_short > ma_long else Direction.SHORT
 
-                if market_position:
-                    direction = market_position.direction()
-                    if direction == Direction.LONG:
-                        if settle_price <= self.__stop_loss(date, market_position):
-                            signals.append(Signal(market, SignalType.EXIT, direction, date, settle_price))
-                    elif direction == Direction.SHORT:
-                        if settle_price >= self.__stop_loss(date, market_position):
-                            signals.append(Signal(market, SignalType.EXIT, direction, date, settle_price))
+                if position:
+                    direction = position.direction()
+                    if direction == trend_direction:
+                        if direction == Direction.LONG:
+                            if price <= self.__stop_loss(date, position) or price >= self.__profit_target(date, position):
+                                signals.append(Signal(market, SignalType.EXIT, direction, date, price))
+                        elif direction == Direction.SHORT:
+                            if price >= self.__stop_loss(date, position) or price <= self.__profit_target(date, position):
+                                signals.append(Signal(market, SignalType.EXIT, direction, date, price))
 
-                    if self.__should_roll(date, previous_date, market, market_position.contract(), signals):
-                        signals.append(Signal(market, SignalType.ROLL_EXIT, direction, date, settle_price))
-                        signals.append(Signal(market, SignalType.ROLL_ENTER, direction, date, settle_price))
-
-                if ma_short > ma_long:
-                    if settle_price > hhll_short[Table.Study.VALUE]:
-                        signals.append(Signal(market, SignalType.ENTER, Direction.LONG, date, settle_price))
-
-                elif ma_short < ma_long:
-                    if settle_price < hhll_short[Table.Study.VALUE_2]:
-                        signals.append(Signal(market, SignalType.ENTER, Direction.SHORT, date, settle_price))
+                        # TODO temporal binding -- check if there are no positions ... (same with generating orders)
+                        if self.__should_roll(date, previous_date, market, position.contract(), signals):
+                            signals.append(Signal(market, SignalType.ROLL_EXIT, direction, date, price))
+                            signals.append(Signal(market, SignalType.ROLL_ENTER, direction, date, price))
+                    else:
+                        # Exit in case of trend change
+                        signals.append(Signal(market, SignalType.EXIT, direction, date, price))
+                else:
+                    if self.__plunge(date, market, price, trend_direction) > self.__enter_multiple:
+                        signals.append(Signal(market, SignalType.ENTER, trend_direction, date, price))
 
         return signals
 
@@ -105,7 +107,6 @@ class PlungeATRStopProfit(TradingModel):
 
         return should_roll
 
-    # TODO refactor and inherit?
     def __stop_loss(self, date, position):
         """
         Calculate and return Stop Loss price for the position and date passed in
@@ -114,10 +115,10 @@ class PlungeATRStopProfit(TradingModel):
         :param position:    position for which to calculate the stop loss
         :return:            price representing the stop loss
         """
-        prices = position.prices()
+        enter_price = position.enter_price()
         atr = position.market().study(Study.ATR_SHORT, date)[Table.Study.VALUE]
         risk = atr * self.__stop_multiple
-        return max(prices) - risk if position.direction() == Direction.LONG else min(prices) + risk
+        return enter_price - risk if position.direction() == Direction.LONG else enter_price + risk
 
     def __profit_target(self, date, position):
         """
@@ -127,11 +128,10 @@ class PlungeATRStopProfit(TradingModel):
         :param position:    position for which to calculate the profit target
         :return:            price representing the profit target
         """
-        prices = position.prices()
+        enter_price = position.enter_price()
         atr = position.market().study(Study.ATR_SHORT, date)[Table.Study.VALUE]
         profit = atr * self.__profit_multiple
-        # TODO ATRx from Entry price
-        return max(prices) - profit if position.direction() == Direction.LONG else min(prices) + profit
+        return enter_price + profit if position.direction() == Direction.LONG else enter_price - profit
 
     # TODO refactor and inherit?
     def __market_position(self, positions, market):
