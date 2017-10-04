@@ -3,6 +3,7 @@
 from enum import Study
 from enum import Direction
 from enum import SignalType
+from enum import StopType
 from enum import Table
 from strategy_signal import Signal
 from trading_models.trading_model import TradingModel
@@ -21,6 +22,8 @@ class PlungeATRStopProfit(TradingModel):
         self.__enter_multiple = int(params['enter_multiple'])
         self.__stop_multiple = int(params['stop_multiple'])
         self.__profit_multiple = int(params['profit_multiple'])
+        self.__stop_type = params['stop_type']
+        self.__stop_time = int(params['stop_time'])
         self.__roll_strategy = roll_strategy
 
     def signals(self, date, positions):
@@ -46,12 +49,8 @@ class PlungeATRStopProfit(TradingModel):
                 if position:
                     direction = position.direction()
                     if direction == trend_direction:
-                        if direction == Direction.LONG:
-                            if price <= self.__stop_loss(date, position) or price >= self.__profit_target(date, position):
-                                signals.append(Signal(market, SignalType.EXIT, direction, date, price))
-                        elif direction == Direction.SHORT:
-                            if price >= self.__stop_loss(date, position) or price <= self.__profit_target(date, position):
-                                signals.append(Signal(market, SignalType.EXIT, direction, date, price))
+                        if self.__should_exit(date, price, direction, position):
+                            signals.append(Signal(market, SignalType.EXIT, direction, date, price))
 
                         # TODO temporal binding -- check if there are no positions ... (same with generating orders)
                         if self.__should_roll(date, previous_date, market, position.contract(), signals):
@@ -86,6 +85,30 @@ class PlungeATRStopProfit(TradingModel):
         atr = market.study(Study.ATR_SHORT, date)[Table.Study.VALUE]
         return diff / atr
 
+    def __should_exit(self, date, price, direction, position):
+        """
+        Return boolean flag indicating if position should be exited based on params passed in and type of stop loss
+        
+        :param date:        date of data
+        :param price:       current Settle price
+        :param direction:   direction of the position
+        :param position:    position which to check
+        :return:            boolean flag
+        """
+        should_exit = False
+        short = direction == Direction.SHORT
+
+        if self.__stop_type == StopType.TRAILING_STOP:
+            should_exit = price >= self.__stop_loss(date, position) if short else \
+                          price <= self.__stop_loss(date, position)
+        elif self.__stop_type == StopType.FIXED_STOP:
+            should_exit = price >= self.__stop_loss(date, position) or price <= self.__profit_target(date, position) if short else \
+                          price <= self.__stop_loss(date, position) or price >= self.__profit_target(date, position)
+        elif self.__stop_type == StopType.TIME:
+            should_exit = (date - position.enter_date()).days >= self.__stop_time
+
+        return should_exit
+
     # TODO refactor and inherit?
     def __should_roll(self, date, previous_date, market, position_contract, signals):
         """
@@ -115,10 +138,18 @@ class PlungeATRStopProfit(TradingModel):
         :param position:    position for which to calculate the stop loss
         :return:            price representing the stop loss
         """
-        enter_price = position.enter_price()
         atr = position.market().study(Study.ATR_SHORT, date)[Table.Study.VALUE]
         risk = atr * self.__stop_multiple
-        return enter_price - risk if position.direction() == Direction.LONG else enter_price + risk
+        stop_price = 0.0
+
+        if self.__stop_type == StopType.TRAILING_STOP:
+            prices = position.prices()
+            stop_price = max(prices) - risk if position.direction() == Direction.LONG else min(prices) + risk
+        elif self.__stop_type == StopType.FIXED_STOP:
+            enter_price = position.enter_price()
+            stop_price = enter_price - risk if position.direction() == Direction.LONG else enter_price + risk
+
+        return stop_price
 
     def __profit_target(self, date, position):
         """
