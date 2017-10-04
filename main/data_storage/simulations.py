@@ -47,7 +47,7 @@ def __risk_params(position_sizing,
         RISK_FACTOR: {
             'risk_factor': risk_factor,
             'position_inertia': 0.1,
-            'use_position_inertia': True,
+            'use_position_inertia': False,
             'capital_correction': capital_correction,
             'partial_compounding_factor': partial_compounding_factor
         },
@@ -179,6 +179,11 @@ def simulations():
             TradingModel.BREAKOUT_WITH_MA_FILTER_AND_ATR_STOP, '4',
             simulation_params(EQUAL_WEIGHTS, __risk_params(EQUAL_WEIGHTS, FULL_COMPOUNDING), initial_balance=1e7),
             'standard_roll_1'
+        ),
+        simulation(
+            TradingModel.PLUNGE_WITH_ATR_STOP_AND_PROFIT, '1',
+            simulation_params(RISK_FACTOR, __risk_params(RISK_FACTOR, FULL_COMPOUNDING)),
+            'standard_roll_1'
         )
     ]
 
@@ -216,4 +221,4 @@ if __name__ == '__main__':
     # trading_model = trading_models[TradingModel.PLUNGE_WITH_ATR_STOP_AND_PROFIT]
     # insert_trading_models([(trading_model['name'], trading_model['desc'])])
     # insert_simulations([simulations()[-1]])
-    # update_simulation(13, 'params', simulations()[3][1])
+    # update_simulation(14, 'params', simulations()[4][1])
