@@ -103,63 +103,89 @@ def simulation_params(position_sizing, risk_params, initial_balance=1e6):
     }.items())
 
 
-def simulations():
-    trading_model_name = trading_model_data[0][0]
-    trading_params = {
-        'short_window': 50,
-        'long_window': 100,
-        'filter_MA_type': 'SMA',
-        'volatility_MA_type': 'SMA',
-        'stop_multiple': 3,
-        'stop_window': 50
-    }
-    study_map = studies([
-        ('atr', 'long', 'ATR', 100, ['price_date', 'high_price', 'low_price', 'settle_price']),
-        ('atr', 'short', 'ATR', 50, ['price_date', 'high_price', 'low_price', 'settle_price']),
-        ('ma', 'long', 'SMA', 100, ['price_date', 'settle_price']),
-        ('ma', 'short', 'SMA', 50, ['price_date', 'settle_price']),
-        ('vol', 'short', 'SMA', 50, ['price_date', 'volume']),
-        ('hhll', 'short', 'HHLL', 50, ['price_date', 'settle_price'])
-    ])
-
+def trading_params(model_name):
     # TODO also use 'EMA' in volatility_MA_type
-    return [(
-        '%s_1' % trading_model_name,
-        json.dumps(simulation_params(RISK_FACTOR, __risk_params(RISK_FACTOR, FULL_COMPOUNDING))),
-        trading_model_name,
-        json.dumps(trading_params),
-        json.dumps(study_map),
-        roll_strategy_id('norgate'),
-        '25Y'
-    ), (
-        '%s_2' % trading_model_name,
-        json.dumps(simulation_params(RISK_FACTOR, __risk_params(RISK_FACTOR, FULL_COMPOUNDING))),
-        trading_model_name,
-        json.dumps(trading_params),
-        json.dumps(study_map),
-        roll_strategy_id('standard_roll_1'),
-        '25Y'
-    ), (
-        '%s_3' % trading_model_name,
-        json.dumps(simulation_params(RISK_FACTOR, __risk_params(RISK_FACTOR, FULL_COMPOUNDING))),
-        trading_model_name,
-        json.dumps(trading_params),
-        json.dumps(study_map),
-        roll_strategy_id('optimal_roll_1'),
-        '25Y'
-    ), (
-        '%s_4' % trading_model_name,
-        json.dumps(simulation_params(
-            EQUAL_WEIGHTS,
-            __risk_params(EQUAL_WEIGHTS, FULL_COMPOUNDING),
-            initial_balance=1e7)
+    return {
+        TradingModel.BREAKOUT_WITH_MA_FILTER_AND_ATR_STOP: {
+            'short_window': 50,
+            'long_window': 100,
+            'filter_MA_type': 'SMA',
+            'volatility_MA_type': 'SMA',
+            'stop_multiple': 3,
+            'stop_window': 50
+        },
+        TradingModel.PLUNGE_WITH_ATR_STOP_AND_PROFIT: {
+            'short_window': 50,
+            'long_window': 100,
+            'filter_MA_type': 'EMA',
+            'volatility_MA_type': 'SMA',
+            'enter_multiple': 3,
+            'stop_multiple': 2,
+            'profit_multiple': 4,
+            'stop_window': 20
+        }
+    }[model_name]
+
+
+def study_map(model_name):
+    return {
+        TradingModel.BREAKOUT_WITH_MA_FILTER_AND_ATR_STOP: studies([
+            ('atr', 'long', 'ATR', 100, ['price_date', 'high_price', 'low_price', 'settle_price']),
+            ('atr', 'short', 'ATR', 50, ['price_date', 'high_price', 'low_price', 'settle_price']),
+            ('ma', 'long', 'SMA', 100, ['price_date', 'settle_price']),
+            ('ma', 'short', 'SMA', 50, ['price_date', 'settle_price']),
+            ('vol', 'short', 'SMA', 50, ['price_date', 'volume']),
+            ('hhll', 'short', 'HHLL', 50, ['price_date', 'settle_price'])
+        ]),
+        TradingModel.PLUNGE_WITH_ATR_STOP_AND_PROFIT: studies([
+            ('atr', 'short', 'ATR', 20, ['price_date', 'high_price', 'low_price', 'settle_price']),
+            ('ma', 'long', 'EMA', 100, ['price_date', 'settle_price']),
+            ('ma', 'short', 'EMA', 50, ['price_date', 'settle_price']),
+            ('vol', 'short', 'SMA', 50, ['price_date', 'volume'])
+        ])
+    }[model_name]
+
+
+def simulation(trading_model, variation, params, roll_strategy_name, investment_universe='25Y'):
+    return (
+        '%s_%s' % (trading_model, variation),
+        json.dumps(params),
+        trading_model,
+        json.dumps(trading_params(trading_model)),
+        json.dumps(study_map(trading_model)),
+        roll_strategy_id(roll_strategy_name),
+        investment_universe
+    )
+
+
+def simulations():
+    return [
+        simulation(
+            TradingModel.BREAKOUT_WITH_MA_FILTER_AND_ATR_STOP, '1',
+            simulation_params(RISK_FACTOR, __risk_params(RISK_FACTOR, FULL_COMPOUNDING)),
+            'norgate'
         ),
-        trading_model_name,
-        json.dumps(trading_params),
-        json.dumps(study_map),
-        roll_strategy_id('standard_roll_1'),
-        '25Y'
-    )]
+        simulation(
+            TradingModel.BREAKOUT_WITH_MA_FILTER_AND_ATR_STOP, '2',
+            simulation_params(RISK_FACTOR, __risk_params(RISK_FACTOR, FULL_COMPOUNDING)),
+            'standard_roll_1'
+        ),
+        simulation(
+            TradingModel.BREAKOUT_WITH_MA_FILTER_AND_ATR_STOP, '3',
+            simulation_params(RISK_FACTOR, __risk_params(RISK_FACTOR, FULL_COMPOUNDING)),
+            'optimal_roll_1'
+        ),
+        simulation(
+            TradingModel.BREAKOUT_WITH_MA_FILTER_AND_ATR_STOP, '4',
+            simulation_params(EQUAL_WEIGHTS, __risk_params(EQUAL_WEIGHTS, FULL_COMPOUNDING), initial_balance=1e7),
+            'standard_roll_1'
+        )
+    ]
+
+
+class TradingModel:
+    BREAKOUT_WITH_MA_FILTER_AND_ATR_STOP = 'breakout_with_MA_filter_and_ATR_stop'
+    PLUNGE_WITH_ATR_STOP_AND_PROFIT = 'plunge_with_ATR_stop_and_profit'
 
 
 if __name__ == '__main__':
@@ -169,10 +195,16 @@ if __name__ == '__main__':
         os.environ['DB_PASS'],
         os.environ['DB_NAME']
     )
-    trading_model_data = [(
-        'breakout_with_MA_filter_and_ATR_stop',
-        'Highest-high and Lowest-low breakout with Moving Average trend filter and ATR volatility based exit stops'
-    )]
+    trading_models = {
+        TradingModel.BREAKOUT_WITH_MA_FILTER_AND_ATR_STOP: {
+            'name': TradingModel.BREAKOUT_WITH_MA_FILTER_AND_ATR_STOP,
+            'desc': 'Highest-high and Lowest-low breakout with Moving Average trend filter and ATR volatility based exit stops'
+        },
+        TradingModel.PLUNGE_WITH_ATR_STOP_AND_PROFIT: {
+            'name': TradingModel.PLUNGE_WITH_ATR_STOP_AND_PROFIT,
+            'desc': 'Enter into trend after price reverse from trend-direction for x-amount of ATR'
+        }
+    }
     RISK_FACTOR = 'risk_factor'
     EQUAL_WEIGHTS = 'volatility_target_equal_weights'
     CORRELATION_WEIGHTS = 'volatility_target_correlation_weights'
@@ -181,6 +213,7 @@ if __name__ == '__main__':
     HALF_COMPOUNDING = 'half_compounding'
     PARTIAL_COMPOUNDING = 'partial_compounding'
 
-    # insert_trading_models(trading_model_data)
+    # trading_model = trading_models[TradingModel.PLUNGE_WITH_ATR_STOP_AND_PROFIT]
+    # insert_trading_models([(trading_model['name'], trading_model['desc'])])
     # insert_simulations([simulations()[-1]])
     # update_simulation(13, 'params', simulations()[3][1])
