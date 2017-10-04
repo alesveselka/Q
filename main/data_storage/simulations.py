@@ -138,11 +138,12 @@ def study_map(model_name):
             ('hhll', 'short', 'HHLL', 50, ['price_date', 'settle_price'])
         ]),
         TradingModel.PLUNGE_WITH_ATR_STOP_AND_PROFIT: studies([
+            ('atr', 'long', 'ATR', 100, ['price_date', 'high_price', 'low_price', 'settle_price']),
             ('atr', 'short', 'ATR', 20, ['price_date', 'high_price', 'low_price', 'settle_price']),
             ('ma', 'long', 'EMA', 100, ['price_date', 'settle_price']),
             ('ma', 'short', 'EMA', 50, ['price_date', 'settle_price']),
             ('vol', 'short', 'SMA', 50, ['price_date', 'volume']),
-            ('hhll', 'short', 'HHLL', 20, ['price_date', 'settle_price'])
+            ('hhll', 'short', 'HHLL', 20, ['price_date', 'settle_price'])  # TODO 'Plunger' uses High and Low for extremes
         ])
     }[model_name]
 
