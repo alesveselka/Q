@@ -19,6 +19,7 @@ class PlungeATRStopProfit(TradingModel):
     def __init__(self, markets, params, roll_strategy):
         self.__markets = markets
         self.__stop_multiple = int(params['stop_multiple'])
+        self.__profit_multiple = int(params['profit_multiple'])
         self.__roll_strategy = roll_strategy
 
     def signals(self, date, positions):
@@ -37,7 +38,6 @@ class PlungeATRStopProfit(TradingModel):
                 previous_date = previous_data[Table.Market.PRICE_DATE]
                 ma_long = market.study(Study.MA_LONG, date)[Table.Study.VALUE]
                 ma_short = market.study(Study.MA_SHORT, date)[Table.Study.VALUE]
-                hhll_short = market.study(Study.HHLL_SHORT, previous_date)
                 settle_price = market_data[Table.Market.SETTLE_PRICE]
                 market_position = self.__market_position(positions, market)
 
@@ -64,6 +64,27 @@ class PlungeATRStopProfit(TradingModel):
 
         return signals
 
+    def __plunge(self, date, market, price, direction):
+        """
+        Calculate value of 'Plunger' indicator:
+            1. Check overall direction -- this is passed in
+            2. Check 20-day ATR
+            3. Check 20-day extreme price (highest-high or lowest-low)
+            4. Divide distance of current price from extreme by ATR. Absolute value is 'Plunger'
+        
+        :param date:        date of calculation
+        :param market:      market for which to calculate the indicator
+        :param price:       Settle price of the date passed in
+        :param direction:   direction of price trend
+        :return:            Number representing Plunger value
+        """
+        # TODO 'Plunger' uses High and Low for extremes, 'HHLL' calculates from Settle
+        hhll = market.study(Study.HHLL_SHORT, date)
+        diff = abs(price - hhll[Table.Study.VALUE]) if direction == Direction.LONG else abs(price - hhll[Table.Study.VALUE_2])
+        atr = market.study(Study.ATR_SHORT, date)[Table.Study.VALUE]
+        return diff / atr
+
+    # TODO refactor and inherit?
     def __should_roll(self, date, previous_date, market, position_contract, signals):
         """
         Check if position should roll to the next contract
@@ -84,6 +105,7 @@ class PlungeATRStopProfit(TradingModel):
 
         return should_roll
 
+    # TODO refactor and inherit?
     def __stop_loss(self, date, position):
         """
         Calculate and return Stop Loss price for the position and date passed in
@@ -97,6 +119,21 @@ class PlungeATRStopProfit(TradingModel):
         risk = atr * self.__stop_multiple
         return max(prices) - risk if position.direction() == Direction.LONG else min(prices) + risk
 
+    def __profit_target(self, date, position):
+        """
+        Calculate and return Profit Target price for the position and date passed in
+        
+        :param date:        date on when to calculate the profit target
+        :param position:    position for which to calculate the profit target
+        :return:            price representing the profit target
+        """
+        prices = position.prices()
+        atr = position.market().study(Study.ATR_SHORT, date)[Table.Study.VALUE]
+        profit = atr * self.__profit_multiple
+        # TODO ATRx from Entry price
+        return max(prices) - profit if position.direction() == Direction.LONG else min(prices) + profit
+
+    # TODO refactor and inherit?
     def __market_position(self, positions, market):
         """
         Find and return position by market passed in
