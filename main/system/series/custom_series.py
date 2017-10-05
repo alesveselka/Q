@@ -209,7 +209,7 @@ class CustomSeries(MarketSeries):
 
         :param contract_code:   code of current code
         :param date:            date to which relate the yield curve
-        :return:                list of tuples(code, price, volume, yield, relative-price-difference))
+        :return:                list of tuples(code, price, volume, yield, relative-price-difference, days))
         """
         contract_data = [c for c in self.__contracts[contract_code] if c[Table.Market.PRICE_DATE] <= date][-1]
         contract_codes = [k for k in self.__contract_keys if k > contract_code]
