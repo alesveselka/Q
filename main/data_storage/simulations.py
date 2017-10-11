@@ -125,7 +125,13 @@ def trading_params(model_name, stop_type):
             'stop_type': stop_type,  # fixed_stop, trailing_stop, time
             'stop_time': 30,
             'stop_window': 20
-        }
+        },
+        TradingModel.BOLLINGER_BANDS: {
+            'short_window': 25,
+            'long_window': 50,
+            'filter_MA_type': 'EMA',
+            'volatility_MA_type': 'EMA'
+        },
     }[model_name]
 
 
@@ -146,6 +152,13 @@ def study_map(model_name):
             ('ma', 'short', 'EMA', 50, ['price_date', 'settle_price']),
             ('vol', 'short', 'SMA', 50, ['price_date', 'volume']),
             ('hhll', 'short', 'HHLL', 20, ['price_date', 'settle_price'])  # TODO 'Plunger' uses High and Low for extremes
+        ]),
+        TradingModel.BOLLINGER_BANDS: studies([
+            ('atr', 'long', 'ATR', 25, ['price_date', 'high_price', 'low_price', 'settle_price']),
+            ('atr', 'short', 'ATR', 25, ['price_date', 'high_price', 'low_price', 'settle_price']),
+            ('ma', 'long', 'EMA', 50, ['price_date', 'settle_price']),
+            ('ma', 'short', 'EMA', 25, ['price_date', 'settle_price']),
+            ('vol', 'short', 'SMA', 25, ['price_date', 'volume'])
         ])
     }[model_name]
 
@@ -163,9 +176,9 @@ def simulation(trading_model, variation, params, roll_strategy_name, stop_type='
 
 
 def simulations():
-    # TODO bands
     # TODO buy_and_hold (w/ rebalance)
     return [
+        # Breakout with MA filter and ATR stop
         simulation(
             TradingModel.BREAKOUT_WITH_MA_FILTER_AND_ATR_STOP, '1',
             simulation_params(RISK_FACTOR, __risk_params(RISK_FACTOR, FULL_COMPOUNDING)),
@@ -186,6 +199,8 @@ def simulations():
             simulation_params(EQUAL_WEIGHTS, __risk_params(EQUAL_WEIGHTS, FULL_COMPOUNDING), initial_balance=1e7),
             'standard_roll_1'
         ),
+
+        # Plunge with ATR stop and profit target
         simulation(
             TradingModel.PLUNGE_WITH_ATR_STOP_AND_PROFIT, '1',
             simulation_params(RISK_FACTOR, __risk_params(RISK_FACTOR, FULL_COMPOUNDING, 0.25, 0.001)),
@@ -202,7 +217,14 @@ def simulations():
             TradingModel.PLUNGE_WITH_ATR_STOP_AND_PROFIT, '3',
             simulation_params(RISK_FACTOR, __risk_params(RISK_FACTOR, FULL_COMPOUNDING, 0.25, 0.001)),
             'standard_roll_1'
-        )
+        ),
+
+        # Bollinger Bands
+        simulation(
+            TradingModel.BOLLINGER_BANDS, '1',
+            simulation_params(RISK_FACTOR, __risk_params(RISK_FACTOR, FULL_COMPOUNDING)),
+            'standard_roll_1'
+        ),
     ]
 
 
