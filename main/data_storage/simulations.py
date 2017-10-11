@@ -132,6 +132,14 @@ def trading_params(model_name, stop_type):
             'filter_MA_type': 'EMA',
             'volatility_MA_type': 'EMA'
         },
+        TradingModel.MA_TREND_ON_PULLBACK: {
+            'short_window': 50,
+            'long_window': 100,
+            'filter_MA_type': 'SMA',
+            'volatility_MA_type': 'SMA',
+            'stop_multiple': 3,
+            'stop_window': 50
+        },
     }[model_name]
 
 
@@ -159,7 +167,14 @@ def study_map(model_name):
             ('ma', 'long', 'EMA', 50, ['price_date', 'settle_price']),
             ('ma', 'short', 'EMA', 25, ['price_date', 'settle_price']),
             ('vol', 'short', 'SMA', 25, ['price_date', 'volume'])
-        ])
+        ]),
+        TradingModel.MA_TREND_ON_PULLBACK: studies([
+            ('atr', 'long', 'ATR', 100, ['price_date', 'high_price', 'low_price', 'settle_price']),
+            ('atr', 'short', 'ATR', 50, ['price_date', 'high_price', 'low_price', 'settle_price']),
+            ('ma', 'long', 'SMA', 100, ['price_date', 'settle_price']),
+            ('ma', 'short', 'SMA', 50, ['price_date', 'settle_price']),
+            ('vol', 'short', 'SMA', 50, ['price_date', 'volume'])
+        ]),
     }[model_name]
 
 
@@ -222,6 +237,13 @@ def simulations():
         # Bollinger Bands
         simulation(
             TradingModel.BOLLINGER_BANDS, '1',
+            simulation_params(RISK_FACTOR, __risk_params(RISK_FACTOR, FULL_COMPOUNDING)),
+            'standard_roll_1'
+        ),
+
+        # MA Trend on Pull-back
+        simulation(
+            TradingModel.MA_TREND_ON_PULLBACK, '1',
             simulation_params(RISK_FACTOR, __risk_params(RISK_FACTOR, FULL_COMPOUNDING)),
             'standard_roll_1'
         ),
