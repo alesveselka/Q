@@ -232,6 +232,7 @@ class TradingModel:
     BREAKOUT_WITH_MA_FILTER_AND_ATR_STOP = 'breakout_with_MA_filter_and_ATR_stop'
     PLUNGE_WITH_ATR_STOP_AND_PROFIT = 'plunge_with_ATR_stop_and_profit'
     BOLLINGER_BANDS = 'bollinger_bands'
+    MA_TREND_ON_PULLBACK = 'ma_trend_on_pullback'
 
 
 if __name__ == '__main__':
@@ -253,6 +254,10 @@ if __name__ == '__main__':
         TradingModel.BOLLINGER_BANDS: {
             'name': TradingModel.BOLLINGER_BANDS,
             'desc': 'Enter against trend after price returns back inside the Bollinger bands'
+        },
+        TradingModel.MA_TREND_ON_PULLBACK: {
+            'name': TradingModel.MA_TREND_ON_PULLBACK,
+            'desc': 'Enter in direction of a trend defined by MA cross, when price pull back to the shorter MA'
         }
     }
     RISK_FACTOR = 'risk_factor'
@@ -263,7 +268,7 @@ if __name__ == '__main__':
     HALF_COMPOUNDING = 'half_compounding'
     PARTIAL_COMPOUNDING = 'partial_compounding'
 
-    # trading_model = trading_models[TradingModel.BOLLINGER_BANDS]
+    # trading_model = trading_models[TradingModel.MA_TREND_ON_PULLBACK]
     # insert_trading_models([(trading_model['name'], trading_model['desc'])])
     # insert_simulations([simulations()[-1]])
     # update_simulation(16, 'params', simulations()[6][1])
