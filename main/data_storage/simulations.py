@@ -163,6 +163,8 @@ def simulation(trading_model, variation, params, roll_strategy_name, stop_type='
 
 
 def simulations():
+    # TODO bands
+    # TODO buy_and_hold (w/ rebalance)
     return [
         simulation(
             TradingModel.BREAKOUT_WITH_MA_FILTER_AND_ATR_STOP, '1',
@@ -207,6 +209,7 @@ def simulations():
 class TradingModel:
     BREAKOUT_WITH_MA_FILTER_AND_ATR_STOP = 'breakout_with_MA_filter_and_ATR_stop'
     PLUNGE_WITH_ATR_STOP_AND_PROFIT = 'plunge_with_ATR_stop_and_profit'
+    BOLLINGER_BANDS = 'bollinger_bands'
 
 
 if __name__ == '__main__':
@@ -224,6 +227,10 @@ if __name__ == '__main__':
         TradingModel.PLUNGE_WITH_ATR_STOP_AND_PROFIT: {
             'name': TradingModel.PLUNGE_WITH_ATR_STOP_AND_PROFIT,
             'desc': 'Enter into trend after price reverse from trend-direction for x-amount of ATR'
+        },
+        TradingModel.BOLLINGER_BANDS: {
+            'name': TradingModel.BOLLINGER_BANDS,
+            'desc': 'Enter against trend after price returns back inside the Bollinger bands'
         }
     }
     RISK_FACTOR = 'risk_factor'
@@ -234,7 +241,7 @@ if __name__ == '__main__':
     HALF_COMPOUNDING = 'half_compounding'
     PARTIAL_COMPOUNDING = 'partial_compounding'
 
-    # trading_model = trading_models[TradingModel.PLUNGE_WITH_ATR_STOP_AND_PROFIT]
+    # trading_model = trading_models[TradingModel.BOLLINGER_BANDS]
     # insert_trading_models([(trading_model['name'], trading_model['desc'])])
     # insert_simulations([simulations()[-1]])
     # update_simulation(16, 'params', simulations()[6][1])
