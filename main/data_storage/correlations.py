@@ -73,6 +73,7 @@ def __group_id(market_id):
 
 def market_series(market_id, market_code, start_date, end_date):
     cursor = connection.cursor()
+    # TODO use adjusted and shift all data above zero
     continuous_query = """
             SELECT price_date, settle_price
             FROM continuous_spliced
@@ -130,7 +131,6 @@ def calculate_volatility(market_id, market_code, start_date, end_date, lookback)
         deviations.append(return_window[-1] - sum(return_window) / len(return_window))
         deviations_squared.append(deviations[-1]**2)
         variance = sum(deviations_squared[-lookback:]) / (lookback - 1) if i >= lookback - 1 else None
-        # TODO annualize
         # TODO standardize the VOLs for comparable correlations
         deviation_vol = sqrt(variance) if variance else None
         movement_vol = sqrt(sum(r**2 for r in return_window) / lookback) if i >= lookback - 1 else None
