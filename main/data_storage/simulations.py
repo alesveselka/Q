@@ -176,7 +176,11 @@ def study_map(model_name):
             ('ma', 'short', 'SMA', 50, ['price_date', 'settle_price']),
             ('vol', 'short', 'SMA', 50, ['price_date', 'volume'])
         ]),
-        TradingModel.BUY_AND_HOLD: studies([]),
+        TradingModel.BUY_AND_HOLD: studies([
+            ('atr', 'long', 'ATR', 100, ['price_date', 'high_price', 'low_price', 'settle_price']),
+            ('atr', 'short', 'ATR', 50, ['price_date', 'high_price', 'low_price', 'settle_price']),
+            ('vol', 'short', 'SMA', 50, ['price_date', 'volume'])
+        ]),
     }[model_name]
 
 
