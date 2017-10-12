@@ -17,14 +17,13 @@ class PlungeATRStopProfit(TradingModel):
     Exit stops and Profit targets are at ATR multiples.
     """
 
-    def __init__(self, markets, params, roll_strategy):
+    def __init__(self, markets, params):
         self.__markets = markets
         self.__enter_multiple = int(params['enter_multiple'])
         self.__stop_multiple = int(params['stop_multiple'])
         self.__profit_multiple = int(params['profit_multiple'])
         self.__stop_type = params['stop_type']
         self.__stop_time = int(params['stop_time'])
-        self.__roll_strategy = roll_strategy
 
     def signals(self, date, positions):
         """

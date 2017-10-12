@@ -54,8 +54,7 @@ class Initialize:
         broker = Broker(account, commission, interest_rates, interest_minimums)
         trading_model = self.__trading_model(simulation[Table.Simulation.TRADING_MODEL])(
             futures,
-            json.loads(simulation[Table.Simulation.TRADING_PARAMS]),
-            roll_strategy
+            json.loads(simulation[Table.Simulation.TRADING_PARAMS])
         )
 
         Simulate(

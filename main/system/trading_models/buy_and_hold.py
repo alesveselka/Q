@@ -16,9 +16,8 @@ class BuyAndHold(TradingModel):
     No exits. Positions will rebalance with each contract roll.
     """
 
-    def __init__(self, markets, params, roll_strategy):
+    def __init__(self, markets, params):
         self.__markets = markets
-        self.__roll_strategy = roll_strategy
 
     def signals(self, date, positions):
         """

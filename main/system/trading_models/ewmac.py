@@ -16,9 +16,8 @@ class EWMAC(TradingModel):
     and multiplied with 'Forecast scalar'.
     """
 
-    def __init__(self, markets, params, roll_strategy):
+    def __init__(self, markets, params):
         self.__markets = markets
-        self.__roll_strategy = roll_strategy  # TODO also move to super-class
 
     def signals(self, date, positions):
         """
