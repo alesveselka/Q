@@ -140,6 +140,7 @@ def trading_params(model_name, stop_type):
             'stop_multiple': 3,
             'stop_window': 50
         },
+        TradingModel.BUY_AND_HOLD: {}
     }[model_name]
 
 
@@ -175,6 +176,7 @@ def study_map(model_name):
             ('ma', 'short', 'SMA', 50, ['price_date', 'settle_price']),
             ('vol', 'short', 'SMA', 50, ['price_date', 'volume'])
         ]),
+        TradingModel.BUY_AND_HOLD: studies([]),
     }[model_name]
 
 
@@ -191,7 +193,6 @@ def simulation(trading_model, variation, params, roll_strategy_name, stop_type='
 
 
 def simulations():
-    # TODO buy_and_hold (w/ rebalance)
     return [
         # Breakout with MA filter and ATR stop
         simulation(
@@ -244,6 +245,13 @@ def simulations():
         # MA Trend on Pull-back
         simulation(
             TradingModel.MA_TREND_ON_PULLBACK, '1',
+            simulation_params(RISK_FACTOR, __risk_params(RISK_FACTOR, FULL_COMPOUNDING)),
+            'standard_roll_1'
+        ),
+
+        # Buy and Hold
+        simulation(
+            TradingModel.BUY_AND_HOLD, '1',
             simulation_params(RISK_FACTOR, __risk_params(RISK_FACTOR, FULL_COMPOUNDING)),
             'standard_roll_1'
         ),
