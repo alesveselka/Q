@@ -140,6 +140,7 @@ def trading_params(model_name, stop_type):
             'stop_multiple': 3,
             'stop_window': 50
         },
+        TradingModel.BUY_AND_HOLD: {}
     }[model_name]
 
 
@@ -175,6 +176,11 @@ def study_map(model_name):
             ('ma', 'short', 'SMA', 50, ['price_date', 'settle_price']),
             ('vol', 'short', 'SMA', 50, ['price_date', 'volume'])
         ]),
+        TradingModel.BUY_AND_HOLD: studies([
+            ('atr', 'long', 'ATR', 100, ['price_date', 'high_price', 'low_price', 'settle_price']),
+            ('atr', 'short', 'ATR', 50, ['price_date', 'high_price', 'low_price', 'settle_price']),
+            ('vol', 'short', 'SMA', 50, ['price_date', 'volume'])
+        ]),
     }[model_name]
 
 
@@ -191,7 +197,6 @@ def simulation(trading_model, variation, params, roll_strategy_name, stop_type='
 
 
 def simulations():
-    # TODO buy_and_hold (w/ rebalance)
     return [
         # Breakout with MA filter and ATR stop
         simulation(
@@ -247,6 +252,13 @@ def simulations():
             simulation_params(RISK_FACTOR, __risk_params(RISK_FACTOR, FULL_COMPOUNDING)),
             'standard_roll_1'
         ),
+
+        # Buy and Hold
+        simulation(
+            TradingModel.BUY_AND_HOLD, '1',
+            simulation_params(RISK_FACTOR, __risk_params(RISK_FACTOR, FULL_COMPOUNDING)),
+            'standard_roll_1'
+        ),
     ]
 
 
@@ -255,6 +267,7 @@ class TradingModel:
     PLUNGE_WITH_ATR_STOP_AND_PROFIT = 'plunge_with_ATR_stop_and_profit'
     BOLLINGER_BANDS = 'bollinger_bands'
     MA_TREND_ON_PULLBACK = 'ma_trend_on_pullback'
+    BUY_AND_HOLD = 'buy_and_hold'
 
 
 if __name__ == '__main__':
@@ -280,6 +293,10 @@ if __name__ == '__main__':
         TradingModel.MA_TREND_ON_PULLBACK: {
             'name': TradingModel.MA_TREND_ON_PULLBACK,
             'desc': 'Enter in direction of a trend defined by MA cross, when price pull back to the shorter MA'
+        },
+        TradingModel.BUY_AND_HOLD: {
+            'name': TradingModel.BUY_AND_HOLD,
+            'desc': 'Enter Long all markets in the universe and hold them till end'
         }
     }
     RISK_FACTOR = 'risk_factor'
@@ -290,7 +307,7 @@ if __name__ == '__main__':
     HALF_COMPOUNDING = 'half_compounding'
     PARTIAL_COMPOUNDING = 'partial_compounding'
 
-    # trading_model = trading_models[TradingModel.MA_TREND_ON_PULLBACK]
+    # trading_model = trading_models[TradingModel.BUY_AND_HOLD]
     # insert_trading_models([(trading_model['name'], trading_model['desc'])])
     # insert_simulations([simulations()[-1]])
     # update_simulation(16, 'params', simulations()[6][1])
