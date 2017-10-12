@@ -16,6 +16,8 @@ from risk import Risk
 from simulate import Simulate
 from trading_models.breakout_ma_filter_atr_stop import BreakoutMAFilterATRStop
 from trading_models.plunge_atr_stop_profit import PlungeATRStopProfit
+from trading_models.bollinger_bands import BollingerBands
+from trading_models.ma_trend_pullback import MATrendOnPullback
 
 
 class Initialize:
@@ -131,5 +133,7 @@ class Initialize:
         """
         return {
             'breakout_with_MA_filter_and_ATR_stop': BreakoutMAFilterATRStop,
-            'plunge_with_ATR_stop_and_profit': PlungeATRStopProfit
+            'plunge_with_ATR_stop_and_profit': PlungeATRStopProfit,
+            'bollinger_bands': BollingerBands,
+            'ma_trend_on_pullback': MATrendOnPullback
         }[name]

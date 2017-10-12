@@ -125,7 +125,21 @@ def trading_params(model_name, stop_type):
             'stop_type': stop_type,  # fixed_stop, trailing_stop, time
             'stop_time': 30,
             'stop_window': 20
-        }
+        },
+        TradingModel.BOLLINGER_BANDS: {
+            'short_window': 25,
+            'long_window': 50,
+            'filter_MA_type': 'EMA',
+            'volatility_MA_type': 'EMA'
+        },
+        TradingModel.MA_TREND_ON_PULLBACK: {
+            'short_window': 50,
+            'long_window': 100,
+            'filter_MA_type': 'SMA',
+            'volatility_MA_type': 'SMA',
+            'stop_multiple': 3,
+            'stop_window': 50
+        },
     }[model_name]
 
 
@@ -146,7 +160,21 @@ def study_map(model_name):
             ('ma', 'short', 'EMA', 50, ['price_date', 'settle_price']),
             ('vol', 'short', 'SMA', 50, ['price_date', 'volume']),
             ('hhll', 'short', 'HHLL', 20, ['price_date', 'settle_price'])  # TODO 'Plunger' uses High and Low for extremes
-        ])
+        ]),
+        TradingModel.BOLLINGER_BANDS: studies([
+            ('atr', 'long', 'ATR', 25, ['price_date', 'high_price', 'low_price', 'settle_price']),
+            ('atr', 'short', 'ATR', 25, ['price_date', 'high_price', 'low_price', 'settle_price']),
+            ('ma', 'long', 'EMA', 50, ['price_date', 'settle_price']),
+            ('ma', 'short', 'EMA', 25, ['price_date', 'settle_price']),
+            ('vol', 'short', 'SMA', 25, ['price_date', 'volume'])
+        ]),
+        TradingModel.MA_TREND_ON_PULLBACK: studies([
+            ('atr', 'long', 'ATR', 100, ['price_date', 'high_price', 'low_price', 'settle_price']),
+            ('atr', 'short', 'ATR', 50, ['price_date', 'high_price', 'low_price', 'settle_price']),
+            ('ma', 'long', 'SMA', 100, ['price_date', 'settle_price']),
+            ('ma', 'short', 'SMA', 50, ['price_date', 'settle_price']),
+            ('vol', 'short', 'SMA', 50, ['price_date', 'volume'])
+        ]),
     }[model_name]
 
 
@@ -163,7 +191,9 @@ def simulation(trading_model, variation, params, roll_strategy_name, stop_type='
 
 
 def simulations():
+    # TODO buy_and_hold (w/ rebalance)
     return [
+        # Breakout with MA filter and ATR stop
         simulation(
             TradingModel.BREAKOUT_WITH_MA_FILTER_AND_ATR_STOP, '1',
             simulation_params(RISK_FACTOR, __risk_params(RISK_FACTOR, FULL_COMPOUNDING)),
@@ -184,6 +214,8 @@ def simulations():
             simulation_params(EQUAL_WEIGHTS, __risk_params(EQUAL_WEIGHTS, FULL_COMPOUNDING), initial_balance=1e7),
             'standard_roll_1'
         ),
+
+        # Plunge with ATR stop and profit target
         simulation(
             TradingModel.PLUNGE_WITH_ATR_STOP_AND_PROFIT, '1',
             simulation_params(RISK_FACTOR, __risk_params(RISK_FACTOR, FULL_COMPOUNDING, 0.25, 0.001)),
@@ -200,13 +232,29 @@ def simulations():
             TradingModel.PLUNGE_WITH_ATR_STOP_AND_PROFIT, '3',
             simulation_params(RISK_FACTOR, __risk_params(RISK_FACTOR, FULL_COMPOUNDING, 0.25, 0.001)),
             'standard_roll_1'
-        )
+        ),
+
+        # Bollinger Bands
+        simulation(
+            TradingModel.BOLLINGER_BANDS, '1',
+            simulation_params(RISK_FACTOR, __risk_params(RISK_FACTOR, FULL_COMPOUNDING)),
+            'standard_roll_1'
+        ),
+
+        # MA Trend on Pull-back
+        simulation(
+            TradingModel.MA_TREND_ON_PULLBACK, '1',
+            simulation_params(RISK_FACTOR, __risk_params(RISK_FACTOR, FULL_COMPOUNDING)),
+            'standard_roll_1'
+        ),
     ]
 
 
 class TradingModel:
     BREAKOUT_WITH_MA_FILTER_AND_ATR_STOP = 'breakout_with_MA_filter_and_ATR_stop'
     PLUNGE_WITH_ATR_STOP_AND_PROFIT = 'plunge_with_ATR_stop_and_profit'
+    BOLLINGER_BANDS = 'bollinger_bands'
+    MA_TREND_ON_PULLBACK = 'ma_trend_on_pullback'
 
 
 if __name__ == '__main__':
@@ -224,6 +272,14 @@ if __name__ == '__main__':
         TradingModel.PLUNGE_WITH_ATR_STOP_AND_PROFIT: {
             'name': TradingModel.PLUNGE_WITH_ATR_STOP_AND_PROFIT,
             'desc': 'Enter into trend after price reverse from trend-direction for x-amount of ATR'
+        },
+        TradingModel.BOLLINGER_BANDS: {
+            'name': TradingModel.BOLLINGER_BANDS,
+            'desc': 'Enter against trend after price returns back inside the Bollinger bands'
+        },
+        TradingModel.MA_TREND_ON_PULLBACK: {
+            'name': TradingModel.MA_TREND_ON_PULLBACK,
+            'desc': 'Enter in direction of a trend defined by MA cross, when price pull back to the shorter MA'
         }
     }
     RISK_FACTOR = 'risk_factor'
@@ -234,7 +290,7 @@ if __name__ == '__main__':
     HALF_COMPOUNDING = 'half_compounding'
     PARTIAL_COMPOUNDING = 'partial_compounding'
 
-    # trading_model = trading_models[TradingModel.PLUNGE_WITH_ATR_STOP_AND_PROFIT]
+    # trading_model = trading_models[TradingModel.MA_TREND_ON_PULLBACK]
     # insert_trading_models([(trading_model['name'], trading_model['desc'])])
     # insert_simulations([simulations()[-1]])
     # update_simulation(16, 'params', simulations()[6][1])
