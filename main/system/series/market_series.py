@@ -111,11 +111,12 @@ class MarketSeries(object):
             previous_settle = self._prices[index-1][Table.Market.SETTLE_PRICE] if index else settle_price
             volume = market_data[Table.Market.VOLUME]
             tr = max(market_data[Table.Market.HIGH_PRICE], previous_settle) - min(market_data[Table.Market.LOW_PRICE], previous_settle)
-            study_data_keys = set('%s:%s' % (p['columns'][-1] if len(p['columns']) == 2 else 'tr', p['window']) for p in self.__study_parameters)
+            ret_sq = (settle_price - previous_settle) ** 2 if index else None
+            study_data_keys = set('%s:%s' % (self.__study_column(p['name'], p['columns'][-1]), p['window']) for p in self.__study_parameters)
             l = locals()
             for key in study_data_keys:
                 column, window = key.split(':')
-                self.__study_data['%s_%s' % (column, window)].append(l[column])
+                l[column] is not None and self.__study_data['%s_%s' % (column, window)].append(l[column])
 
             has_study = []
             for params in self.__study_parameters:
@@ -124,13 +125,13 @@ class MarketSeries(object):
                 study_name = params['name']
                 study = self.__studies[study_name]
                 data_columns = params['columns'][1:]
-                column = data_columns[-1] if len(data_columns) == 1 else 'tr'
+                column = self.__study_column(study_name, data_columns[-1])
                 study_data = self.__study_data['%s_%s' % (column, window)]
 
                 if study_type == 'SMA':
                     study.append((date, sum(study_data) / len(study_data)))
 
-                if study_type == 'EMA' or study_type == 'ATR':
+                if l[column] is not None and study_type == 'EMA' or study_type == 'ATR':
                     c = 2.0 / (window + 1)
                     ma = study[-1][1] if len(study) else (sum(study_data) / len(study_data))
                     study.append((date, (c * l[column]) + (1 - c) * ma))
@@ -163,7 +164,7 @@ class MarketSeries(object):
         :param market_code:         code symbol of the series market
         :param roll_strategy_id:    ID of the series roll strategy
         """
-        study_data_keys = set('%s:%s' % (p['columns'][-1] if len(p['columns']) == 2 else 'tr', p['window']) for p in self.__study_parameters)
+        study_data_keys = set('%s:%s' % (self.__study_column(p['name'], p['columns'][-1]), p['window']) for p in self.__study_parameters)
         for key in study_data_keys:
             column, window = key.split(':')
             self.__study_data['%s_%s' % (column, window)] = deque([], int(window))
@@ -233,3 +234,13 @@ class MarketSeries(object):
             'volume': Table.Market.VOLUME
         }
         return ', '.join([i[0] for i in sorted(columns.items(), key=itemgetter(1))])
+
+    def __study_column(self, study_name, default_column):
+        """
+        Find and return column name based on study name, otherwise return default column name
+        
+        :param study_name:      name of a study
+        :param default_column:  name of default columns
+        :return:                string representing column name
+        """
+        return {'atr_long': 'tr', 'atr_short': 'tr', 'variance_price': 'ret_sq'}.get(study_name, default_column)
