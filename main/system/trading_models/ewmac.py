@@ -18,6 +18,7 @@ class EWMAC(TradingModel):
 
     def __init__(self, markets, params):
         self.__markets = markets
+        self.__forecast_cap = 20
 
     def signals(self, date, positions):
         """
@@ -28,49 +29,32 @@ class EWMAC(TradingModel):
         """
         signals = []
 
-        fast = 16
-        slow = 64
-        stdev_lookback = 36
+        # TODO load from params
         forecast_scalar = 3.75  # See table 49 (p. 285)
-        fast_decay = 2.0 / (fast + 1)
-        slow_decay = 2.0 / (slow + 1)
-        stdev_decay = 2.0 / (stdev_lookback + 1)
-        ewma_fast = []
-        ewma_slow = []
-        variance = []
 
         for market in self.__markets:
             market_data, previous_data = market.data(date)
 
             if market.has_study_data() and market_data:
                 previous_date = previous_data[Table.Market.PRICE_DATE]
-                previous_price = previous_data[Table.Market.SETTLE_PRICE]
+                price = market_data[Table.Market.SETTLE_PRICE]
                 ma_long = market.study(Study.MA_LONG, date)[Table.Study.VALUE]
                 ma_short = market.study(Study.MA_SHORT, date)[Table.Study.VALUE]
-                price = market_data[Table.Market.SETTLE_PRICE]
-                market_position = self._market_position(positions, market)
-
-                ret = price - previous_price
-                ret_squared = previous_price**2
-                if len(ewma_fast):
-                    ewma_fast.append(fast_decay * price + (ewma_fast[-1] * (1 - fast_decay)))
-                else:
-                    ewma_fast.append(price)
-
-                if len(ewma_slow):
-                    ewma_slow.append(slow_decay * price + (ewma_slow[-1] * (1 - slow_decay)))
-                else:
-                    ewma_slow.append(price)
-
-                if len(variance):
-                    variance.append(stdev_decay * ret_squared + (variance[-1] * (1 - stdev_decay)))
-                else:
-                    variance.append(ret_squared)
-
-                stdev = variance[-1] ** 0.5
-                raw_cross = ewma_fast[-1] - ewma_slow[-1]
+                variance = market.study(Study.PRICE_VARIANCE, date)[Table.Study.VALUE]
+                stdev = variance ** 0.5
+                raw_cross = ma_short - ma_long
                 adjusted_cross = raw_cross / stdev
                 forecast = adjusted_cross * forecast_scalar
-                capped_forecast = -20 if forecast < -20 else (20 if forecast > 20 else forecast)
+                capped_forecast = -self.__forecast_cap if forecast < -self.__forecast_cap \
+                    else (self.__forecast_cap if forecast > self.__forecast_cap else forecast)
+                market_position = self._market_position(positions, market)
+
+                if market_position:
+                    direction = market_position.direction()
+                    if self._should_roll(date, previous_date, market, market_position.contract(), signals):
+                        signals.append(Signal(market, SignalType.ROLL_EXIT, direction, date, price))
+                        signals.append(Signal(market, SignalType.ROLL_ENTER, direction, date, price))
+
+                signals.append(Signal(market, SignalType.ENTER, Direction.LONG, date, price))
 
         return signals
