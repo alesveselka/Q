@@ -105,6 +105,7 @@ def simulation_params(position_sizing, risk_params, initial_balance=1e6):
 
 def trading_params(model_name, stop_type):
     # TODO also use 'EMA' in volatility_MA_type
+    # TODO are most of the params actually used?
     return {
         TradingModel.BREAKOUT_WITH_MA_FILTER_AND_ATR_STOP: {
             'short_window': 50,
@@ -140,7 +141,15 @@ def trading_params(model_name, stop_type):
             'stop_multiple': 3,
             'stop_window': 50
         },
-        TradingModel.BUY_AND_HOLD: {}
+        TradingModel.BUY_AND_HOLD: {},
+        TradingModel.EWMAC: {
+            'short_window': 16,
+            'long_window': 64,
+            'filter_MA_type': 'EMA',
+            'volatility_MA_type': 'EMA',
+            'stop_multiple': 3,
+            'stop_window': 50
+        },
     }[model_name]
 
 
@@ -179,6 +188,14 @@ def study_map(model_name):
         TradingModel.BUY_AND_HOLD: studies([
             ('atr', 'long', 'ATR', 100, ['price_date', 'high_price', 'low_price', 'settle_price']),
             ('atr', 'short', 'ATR', 50, ['price_date', 'high_price', 'low_price', 'settle_price']),
+            ('vol', 'short', 'SMA', 50, ['price_date', 'volume'])
+        ]),
+        TradingModel.EWMAC: studies([
+            ('atr', 'long', 'ATR', 100, ['price_date', 'high_price', 'low_price', 'settle_price']),
+            ('atr', 'short', 'ATR', 50, ['price_date', 'high_price', 'low_price', 'settle_price']),
+            ('ma', 'short', 'EMA', 16, ['price_date', 'settle_price']),
+            ('ma', 'long', 'EMA', 64, ['price_date', 'settle_price']),
+            ('stdev', 'price', 'EMA', 36, ['price_date', 'settle_price']),
             ('vol', 'short', 'SMA', 50, ['price_date', 'volume'])
         ]),
     }[model_name]
@@ -259,15 +276,25 @@ def simulations():
             simulation_params(RISK_FACTOR, __risk_params(RISK_FACTOR, FULL_COMPOUNDING)),
             'standard_roll_1'
         ),
+
+        # EWMAC
+        simulation(
+            TradingModel.EWMAC, '1',
+            simulation_params(RISK_FACTOR, __risk_params(RISK_FACTOR, FULL_COMPOUNDING)),
+            'standard_roll_1'
+        )
     ]
 
 
 class TradingModel:
+    # TODO Carry
+    # TODO Combined Continuous (EWMACs + Carries)
     BREAKOUT_WITH_MA_FILTER_AND_ATR_STOP = 'breakout_with_MA_filter_and_ATR_stop'
     PLUNGE_WITH_ATR_STOP_AND_PROFIT = 'plunge_with_ATR_stop_and_profit'
     BOLLINGER_BANDS = 'bollinger_bands'
     MA_TREND_ON_PULLBACK = 'ma_trend_on_pullback'
     BUY_AND_HOLD = 'buy_and_hold'
+    EWMAC = 'ewmac'
 
 
 if __name__ == '__main__':
@@ -297,6 +324,10 @@ if __name__ == '__main__':
         TradingModel.BUY_AND_HOLD: {
             'name': TradingModel.BUY_AND_HOLD,
             'desc': 'Enter Long all markets in the universe and hold them till end'
+        },
+        TradingModel.EWMAC: {
+            'name': TradingModel.EWMAC,
+            'desc': 'Exponentially-Weighted Moving-Average Crossover continuous signal'
         }
     }
     RISK_FACTOR = 'risk_factor'
@@ -307,7 +338,7 @@ if __name__ == '__main__':
     HALF_COMPOUNDING = 'half_compounding'
     PARTIAL_COMPOUNDING = 'partial_compounding'
 
-    # trading_model = trading_models[TradingModel.BUY_AND_HOLD]
+    # trading_model = trading_models[TradingModel.EWMAC]
     # insert_trading_models([(trading_model['name'], trading_model['desc'])])
     # insert_simulations([simulations()[-1]])
     # update_simulation(16, 'params', simulations()[6][1])
