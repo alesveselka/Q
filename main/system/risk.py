@@ -31,6 +31,7 @@ class Risk(object):
         self.__use_group_correlation_weights = use_group_correlation_weights
         self.__capital_correction = capital_correction
         self.__partial_compounding_factor = partial_compounding_factor
+        self.__use_correlation_weights = False
 
     def position_sizes(self, date, markets):
         """
@@ -86,6 +87,12 @@ class Risk(object):
             position_size = risk / (atr * base_point_value)
             if position_size < vol:
                 position_sizes[market.id()] = position_size
+
+        # Make sure correlation data is loaded
+        if self.__use_correlation_weights:
+            l = len(position_sizes)
+            correlations, market_weights = self.__correlation_weights(correlation_data, markets)
+            position_sizes = {k: position_sizes[k] * l * market_weights[k] for k in position_sizes.keys()}
 
         fractional_sizes = filter(lambda market_id: position_sizes[market_id] < 1, position_sizes.keys())
         updated_markets = [m for m in markets if m.id() not in fractional_sizes]
