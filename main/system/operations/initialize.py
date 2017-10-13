@@ -19,6 +19,7 @@ from trading_models.plunge_atr_stop_profit import PlungeATRStopProfit
 from trading_models.bollinger_bands import BollingerBands
 from trading_models.ma_trend_pullback import MATrendOnPullback
 from trading_models.buy_and_hold import BuyAndHold
+from trading_models.ewmac import EWMAC
 
 
 class Initialize:
@@ -136,5 +137,6 @@ class Initialize:
             'plunge_with_ATR_stop_and_profit': PlungeATRStopProfit,
             'bollinger_bands': BollingerBands,
             'ma_trend_on_pullback': MATrendOnPullback,
-            'buy_and_hold': BuyAndHold
+            'buy_and_hold': BuyAndHold,
+            'ewmac': EWMAC
         }[name]
