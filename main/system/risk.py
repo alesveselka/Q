@@ -252,7 +252,7 @@ class Risk(object):
             market_id = market.id()
             point_value = market.point_value()
             # TODO use actual contract prices -- continuous prices are distorted
-            block_value = abs(prices[market_id]) * point_value if abs(prices[market_id]) else point_value
+            block_value = (abs(prices[market_id]) * point_value if abs(prices[market_id]) else point_value) / 100
             price_volatility = correlation_data[market_id][Table.MarketCorrelation.VOLATILITY] if correlation_data[market_id] else 0.02
             instrument_currency_volatility = price_volatility * block_value
             instrument_value_volatility = self.__account.base_value(instrument_currency_volatility, market.currency(), date)
