@@ -25,8 +25,7 @@ class Risk(object):
                  capital_correction,
                  partial_compounding_factor):
         self.__account = account
-        # self.__position_sizing = position_sizing
-        self.__position_sizing = PositionSizing.EQUAL_WEIGHTS
+        self.__position_sizing = position_sizing
         self.__risk_factor = risk_factor
         self.__volatility_target = volatility_target
         self.__use_group_correlation_weights = use_group_correlation_weights
@@ -73,7 +72,7 @@ class Risk(object):
                 forecasts
             )
 
-        return {k: floor(position_sizes[k]) for k in position_sizes.keys() if position_sizes[k] >= 1.0}
+        return {k: int(position_sizes[k]) for k in position_sizes.keys() if abs(position_sizes[k]) >= 1.0}
 
     def __fixed_risk_sizes(self, date, prices, correlation_data, vol_target, markets, forecasts):
         """
@@ -126,24 +125,19 @@ class Risk(object):
         market_ids = [m.id() for m in markets]
         volatility, volatility_scalars = self.__volatility_scalars(date, prices, correlation_data, vol_target, markets)
         weight = 1.0 / len(volatility)
-        # position_sizes = {market_id: volatility_scalars[market_id] * weight for market_id in market_ids}
         position_sizes = {}
         for market_id in market_ids:
             forecast = forecasts[market_id] if market_id in forecasts else self.__forecast_const
             position_sizes[market_id] = (volatility_scalars[market_id] * forecast / self.__forecast_const) * weight
         illiquid_markets = self.__illiquid_markets(date, markets, position_sizes)
         liquid_position_sizes = {m: position_sizes[m] for m in market_ids if m not in illiquid_markets}
-        fractional_sizes = filter(lambda m_id: liquid_position_sizes[m_id] < 1, liquid_position_sizes.keys())
+        fractional_sizes = filter(lambda m_id: abs(liquid_position_sizes[m_id]) < 1, liquid_position_sizes.keys())
 
         # TODO mark as 'Rejected'
         # TODO use volatility scalar as filter?
         # Sort by volatility and remove the one with lowest price volatility
         updated_market_ids = liquid_position_sizes.keys() if len(illiquid_markets) \
             else sorted(volatility, key=volatility.get)[1:]
-        # print date, len(fractional_sizes), len(illiquid_markets)#, forecasts, volatility_scalars, position_sizes
-        # for k in position_sizes.keys():
-        #     print k, round(forecasts[k], 3), round(volatility_scalars[k], 3), round(position_sizes[k], 3), \
-        #         round((volatility_scalars[k] * forecasts[k] / 10) * weight, 3)  # TODO p. 254
         return self.__equally_weighted_sizes(
             date,
             prices,
@@ -331,7 +325,7 @@ class Risk(object):
             vol_study = market.study(Study.VOL_SHORT, date)
             vol = vol_study[Table.Study.VALUE] if vol_study \
                 else market.study_range(Study.VOL_SHORT, end_date=date)[-1][Table.Study.VALUE]
-            if position_sizes[market_id] > vol:
+            if abs(position_sizes[market_id]) > vol:
                 illiquid_markets.append(market_id)
 
         return illiquid_markets
