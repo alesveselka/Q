@@ -138,6 +138,7 @@ class Risk(object):
         # Sort by volatility and remove the one with lowest price volatility
         updated_market_ids = liquid_position_sizes.keys() if len(illiquid_markets) \
             else sorted(volatility, key=volatility.get)[1:]
+
         return self.__equally_weighted_sizes(
             date,
             prices,
@@ -164,10 +165,14 @@ class Risk(object):
         volatility, volatility_scalars = self.__volatility_scalars(date, prices, correlation_data, vol_target, markets)
         # Diversification multiplier
         DM = self.__volatility_target / self.__optimal_volatility(volatility, correlations, market_weights)
-        position_sizes = {m: volatility_scalars[m] * (market_weights[m] if len(market_weights) else 1.0) * DM for m in market_ids}
+        position_sizes = {}
+        for market_id in market_ids:
+            weight = market_weights[market_id] if len(market_weights) else 1.0
+            forecast = forecasts[market_id] if market_id in forecasts else self.__forecast_const
+            position_sizes[market_id] = (volatility_scalars[market_id] * forecast / self.__forecast_const) * weight * DM
         illiquid_markets = self.__illiquid_markets(date, markets, position_sizes)
         liquid_position_sizes = {m: position_sizes[m] for m in market_ids if m not in illiquid_markets}
-        fractional_sizes = filter(lambda market_id: liquid_position_sizes[market_id] < 1, liquid_position_sizes.keys())
+        fractional_sizes = filter(lambda market_id: abs(liquid_position_sizes[market_id]) < 1, liquid_position_sizes.keys())
 
         # TODO mark as 'Rejected'
         # Sort by correlation weights and remove the one with lowest weight
