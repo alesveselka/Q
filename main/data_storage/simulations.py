@@ -190,12 +190,13 @@ def study_map(model_name):
             ('atr', 'short', 'ATR', 50, ['price_date', 'high_price', 'low_price', 'settle_price']),
             ('vol', 'short', 'SMA', 50, ['price_date', 'volume'])
         ]),
+        # TODO adjust forecast scalar to window sizes
         TradingModel.EWMAC: studies([
             ('atr', 'long', 'ATR', 100, ['price_date', 'high_price', 'low_price', 'settle_price']),
             ('atr', 'short', 'ATR', 50, ['price_date', 'high_price', 'low_price', 'settle_price']),
             ('ma', 'short', 'EMA', 16, ['price_date', 'settle_price']),
             ('ma', 'long', 'EMA', 64, ['price_date', 'settle_price']),
-            ('stdev', 'price', 'EMA', 36, ['price_date', 'settle_price']),
+            ('variance', 'price', 'EMA', 36, ['price_date', 'settle_price']),
             ('vol', 'short', 'SMA', 50, ['price_date', 'volume'])
         ]),
     }[model_name]
@@ -280,7 +281,7 @@ def simulations():
         # EWMAC
         simulation(
             TradingModel.EWMAC, '1',
-            simulation_params(RISK_FACTOR, __risk_params(RISK_FACTOR, FULL_COMPOUNDING)),
+            simulation_params(EQUAL_WEIGHTS, __risk_params(EQUAL_WEIGHTS, FULL_COMPOUNDING)),
             'standard_roll_1'
         )
     ]
@@ -341,4 +342,4 @@ if __name__ == '__main__':
     # trading_model = trading_models[TradingModel.EWMAC]
     # insert_trading_models([(trading_model['name'], trading_model['desc'])])
     # insert_simulations([simulations()[-1]])
-    # update_simulation(16, 'params', simulations()[6][1])
+    # update_simulation(20, 'params', simulations()[-1][1])
