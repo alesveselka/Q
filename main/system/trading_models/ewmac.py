@@ -18,7 +18,7 @@ class EWMAC(TradingModel):
 
     def __init__(self, markets, params):
         self.__markets = markets
-        self.__forecast_cap = 20
+        self.__forecast_cap = 20.0  # TODO load from params?
 
     def signals(self, date, positions):
         """
