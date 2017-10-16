@@ -27,7 +27,7 @@ class Report:
         buffer = ''
         result = []
         date = dt.date(1900, 1, 1)
-        transactions = self.__account.transactions(start_date, end_date, True)
+        transactions = self.__account.transactions(start_date, end_date)
         length = float(len(transactions))
         for i, t in enumerate(transactions):
             self.__log(t.date(), i, length)
