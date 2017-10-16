@@ -103,19 +103,19 @@ def simulation_params(position_sizing, risk_params, initial_balance=1e6):
     }.items())
 
 
-def trading_params(model_name, stop_type):
+def trading_params(model_name, specific_trading_params):
     # TODO also use 'EMA' in volatility_MA_type
     # TODO are most of the params actually used?
     return {
-        TradingModel.BREAKOUT_WITH_MA_FILTER_AND_ATR_STOP: {
+        TradingModel.BREAKOUT_WITH_MA_FILTER_AND_ATR_STOP: dict(specific_trading_params.items() + {
             'short_window': 50,
             'long_window': 100,
             'filter_MA_type': 'SMA',
             'volatility_MA_type': 'SMA',
             'stop_multiple': 3,
             'stop_window': 50
-        },
-        TradingModel.PLUNGE_WITH_ATR_STOP_AND_PROFIT: {
+        }.items()),
+        TradingModel.PLUNGE_WITH_ATR_STOP_AND_PROFIT: dict(specific_trading_params.items() + {
             'short_window': 50,
             'long_window': 100,
             'filter_MA_type': 'EMA',
@@ -123,119 +123,129 @@ def trading_params(model_name, stop_type):
             'enter_multiple': 3,
             'stop_multiple': 2,
             'profit_multiple': 4,
-            'stop_type': stop_type,  # fixed_stop, trailing_stop, time
-            'stop_time': 30,
             'stop_window': 20
-        },
-        TradingModel.BOLLINGER_BANDS: {
+        }.items()),
+        TradingModel.BOLLINGER_BANDS: dict(specific_trading_params.items() + {
             'short_window': 25,
             'long_window': 50,
             'filter_MA_type': 'EMA',
             'volatility_MA_type': 'EMA'
-        },
-        TradingModel.MA_TREND_ON_PULLBACK: {
+        }.items()),
+        TradingModel.MA_TREND_ON_PULLBACK: dict(specific_trading_params.items() + {
             'short_window': 50,
             'long_window': 100,
             'filter_MA_type': 'SMA',
             'volatility_MA_type': 'SMA',
             'stop_multiple': 3,
             'stop_window': 50
-        },
+        }.items()),
         TradingModel.BUY_AND_HOLD: {},
-        TradingModel.EWMAC: {
-            'short_window': 16,
-            'long_window': 64,
+        TradingModel.EWMAC: dict(specific_trading_params.items() + {
+            'short_window': 64,
+            'long_window': 256,
             'filter_MA_type': 'EMA',
             'volatility_MA_type': 'EMA',
-            'stop_multiple': 3,
-            'stop_window': 50
-        },
+            'forecast_const': 10.0,
+            'forecast_cap': 20.0
+        }.items())
     }[model_name]
 
 
-def study_map(model_name):
+def study_map(model_name, study_windows):
+    atr_long = study_windows['atr_long']
+    atr_short = study_windows['atr_short']
+    ma_long = study_windows['ma_long']
+    ma_short = study_windows['ma_short']
     return {
         TradingModel.BREAKOUT_WITH_MA_FILTER_AND_ATR_STOP: studies([
-            ('atr', 'long', 'ATR', 100, ['price_date', 'high_price', 'low_price', 'settle_price']),
-            ('atr', 'short', 'ATR', 50, ['price_date', 'high_price', 'low_price', 'settle_price']),
-            ('ma', 'long', 'SMA', 100, ['price_date', 'settle_price']),
-            ('ma', 'short', 'SMA', 50, ['price_date', 'settle_price']),
+            ('atr', 'long', 'ATR', atr_long, ['price_date', 'high_price', 'low_price', 'settle_price']),
+            ('atr', 'short', 'ATR', atr_short, ['price_date', 'high_price', 'low_price', 'settle_price']),
+            ('ma', 'long', 'SMA', ma_long, ['price_date', 'settle_price']),
+            ('ma', 'short', 'SMA', ma_short, ['price_date', 'settle_price']),
             ('vol', 'short', 'SMA', 50, ['price_date', 'volume']),
             ('hhll', 'short', 'HHLL', 50, ['price_date', 'settle_price'])
         ]),
         TradingModel.PLUNGE_WITH_ATR_STOP_AND_PROFIT: studies([
-            ('atr', 'long', 'ATR', 100, ['price_date', 'high_price', 'low_price', 'settle_price']),
+            ('atr', 'long', 'ATR', atr_long, ['price_date', 'high_price', 'low_price', 'settle_price']),
             ('atr', 'short', 'ATR', 20, ['price_date', 'high_price', 'low_price', 'settle_price']),
-            ('ma', 'long', 'EMA', 100, ['price_date', 'settle_price']),
-            ('ma', 'short', 'EMA', 50, ['price_date', 'settle_price']),
+            ('ma', 'long', 'EMA', ma_long, ['price_date', 'settle_price']),
+            ('ma', 'short', 'EMA', ma_short, ['price_date', 'settle_price']),
             ('vol', 'short', 'SMA', 50, ['price_date', 'volume']),
             ('hhll', 'short', 'HHLL', 20, ['price_date', 'settle_price'])  # TODO 'Plunger' uses High and Low for extremes
         ]),
         TradingModel.BOLLINGER_BANDS: studies([
-            ('atr', 'long', 'ATR', 25, ['price_date', 'high_price', 'low_price', 'settle_price']),
-            ('atr', 'short', 'ATR', 25, ['price_date', 'high_price', 'low_price', 'settle_price']),
-            ('ma', 'long', 'EMA', 50, ['price_date', 'settle_price']),
-            ('ma', 'short', 'EMA', 25, ['price_date', 'settle_price']),
+            ('atr', 'long', 'ATR', atr_long, ['price_date', 'high_price', 'low_price', 'settle_price']),
+            ('atr', 'short', 'ATR', atr_short, ['price_date', 'high_price', 'low_price', 'settle_price']),
+            ('ma', 'long', 'EMA', ma_long, ['price_date', 'settle_price']),
+            ('ma', 'short', 'EMA', ma_short, ['price_date', 'settle_price']),
             ('vol', 'short', 'SMA', 25, ['price_date', 'volume'])
         ]),
         TradingModel.MA_TREND_ON_PULLBACK: studies([
-            ('atr', 'long', 'ATR', 100, ['price_date', 'high_price', 'low_price', 'settle_price']),
-            ('atr', 'short', 'ATR', 50, ['price_date', 'high_price', 'low_price', 'settle_price']),
-            ('ma', 'long', 'SMA', 100, ['price_date', 'settle_price']),
-            ('ma', 'short', 'SMA', 50, ['price_date', 'settle_price']),
+            ('atr', 'long', 'ATR', atr_long, ['price_date', 'high_price', 'low_price', 'settle_price']),
+            ('atr', 'short', 'ATR', atr_short, ['price_date', 'high_price', 'low_price', 'settle_price']),
+            ('ma', 'long', 'SMA', ma_long, ['price_date', 'settle_price']),
+            ('ma', 'short', 'SMA', ma_short, ['price_date', 'settle_price']),
             ('vol', 'short', 'SMA', 50, ['price_date', 'volume'])
         ]),
         TradingModel.BUY_AND_HOLD: studies([
-            ('atr', 'long', 'ATR', 100, ['price_date', 'high_price', 'low_price', 'settle_price']),
-            ('atr', 'short', 'ATR', 50, ['price_date', 'high_price', 'low_price', 'settle_price']),
+            ('atr', 'long', 'ATR', atr_long, ['price_date', 'high_price', 'low_price', 'settle_price']),
+            ('atr', 'short', 'ATR', atr_short, ['price_date', 'high_price', 'low_price', 'settle_price']),
             ('vol', 'short', 'SMA', 50, ['price_date', 'volume'])
         ]),
-        # TODO adjust forecast scalar to window sizes
         TradingModel.EWMAC: studies([
-            ('atr', 'long', 'ATR', 100, ['price_date', 'high_price', 'low_price', 'settle_price']),
-            ('atr', 'short', 'ATR', 50, ['price_date', 'high_price', 'low_price', 'settle_price']),
-            ('ma', 'short', 'EMA', 16, ['price_date', 'settle_price']),
-            ('ma', 'long', 'EMA', 64, ['price_date', 'settle_price']),
+            ('atr', 'long', 'ATR', atr_long, ['price_date', 'high_price', 'low_price', 'settle_price']),
+            ('atr', 'short', 'ATR', atr_short, ['price_date', 'high_price', 'low_price', 'settle_price']),
+            ('ma', 'long', 'EMA', ma_long, ['price_date', 'settle_price']),
+            ('ma', 'short', 'EMA', ma_short, ['price_date', 'settle_price']),
             ('variance', 'price', 'EMA', 36, ['price_date', 'settle_price']),
             ('vol', 'short', 'SMA', 50, ['price_date', 'volume'])
         ]),
     }[model_name]
 
 
-def simulation(trading_model, variation, params, roll_strategy_name, stop_type='trailing_stop', investment_universe='25Y'):
+def simulation(
+        trading_model,
+        variation,
+        params,
+        roll_strategy_name,
+        study_windows,
+        specific_trading_params,
+        investment_universe='25Y',
+        ):
     return (
         '%s_%s' % (trading_model, variation),
         json.dumps(params),
         trading_model,
-        json.dumps(trading_params(trading_model, stop_type)),
-        json.dumps(study_map(trading_model)),
+        json.dumps(trading_params(trading_model, specific_trading_params)),
+        json.dumps(study_map(trading_model, study_windows)),
         roll_strategy_id(roll_strategy_name),
         investment_universe
     )
 
 
 def simulations():
+    study_windows = {'atr_long': 100, 'atr_short': 50, 'ma_long': 100, 'ma_short': 50}
     return [
         # Breakout with MA filter and ATR stop
         simulation(
             TradingModel.BREAKOUT_WITH_MA_FILTER_AND_ATR_STOP, '1',
             simulation_params(RISK_FACTOR, __risk_params(RISK_FACTOR, FULL_COMPOUNDING)),
-            'norgate'
+            'norgate', study_windows, {}
         ),
         simulation(
             TradingModel.BREAKOUT_WITH_MA_FILTER_AND_ATR_STOP, '2',
             simulation_params(RISK_FACTOR, __risk_params(RISK_FACTOR, FULL_COMPOUNDING)),
-            'standard_roll_1'
+            'standard_roll_1', study_windows, {}
         ),
         simulation(
             TradingModel.BREAKOUT_WITH_MA_FILTER_AND_ATR_STOP, '3',
             simulation_params(RISK_FACTOR, __risk_params(RISK_FACTOR, FULL_COMPOUNDING)),
-            'optimal_roll_1'
+            'optimal_roll_1', study_windows, {}
         ),
         simulation(
             TradingModel.BREAKOUT_WITH_MA_FILTER_AND_ATR_STOP, '4',
             simulation_params(EQUAL_WEIGHTS, __risk_params(EQUAL_WEIGHTS, FULL_COMPOUNDING), initial_balance=1e7),
-            'standard_roll_1'
+            'standard_roll_1', study_windows, {}
         ),
 
         # Plunge with ATR stop and profit target
@@ -243,46 +253,61 @@ def simulations():
             TradingModel.PLUNGE_WITH_ATR_STOP_AND_PROFIT, '1',
             simulation_params(RISK_FACTOR, __risk_params(RISK_FACTOR, FULL_COMPOUNDING, 0.25, 0.001)),
             'standard_roll_1',
-            'fixed_stop'
+            study_windows,
+            {'stop_type': 'fixed_stop'}
         ),
         simulation(
             TradingModel.PLUNGE_WITH_ATR_STOP_AND_PROFIT, '2',
             simulation_params(RISK_FACTOR, __risk_params(RISK_FACTOR, FULL_COMPOUNDING, 0.25, 0.001)),
             'standard_roll_1',
-            'time'
+            study_windows,
+            {'stop_type': 'time', 'stop_time': 30}
         ),
         simulation(
             TradingModel.PLUNGE_WITH_ATR_STOP_AND_PROFIT, '3',
             simulation_params(RISK_FACTOR, __risk_params(RISK_FACTOR, FULL_COMPOUNDING, 0.25, 0.001)),
-            'standard_roll_1'
+            'standard_roll_1',
+            study_windows,
+            {'stop_type': 'trailing_stop'}
         ),
 
         # Bollinger Bands
         simulation(
             TradingModel.BOLLINGER_BANDS, '1',
             simulation_params(RISK_FACTOR, __risk_params(RISK_FACTOR, FULL_COMPOUNDING)),
-            'standard_roll_1'
+            'standard_roll_1',
+            {'atr_long': 25, 'atr_short': 25, 'ma_long': 100, 'ma_short': 25},
+            {}
         ),
 
         # MA Trend on Pull-back
         simulation(
             TradingModel.MA_TREND_ON_PULLBACK, '1',
             simulation_params(RISK_FACTOR, __risk_params(RISK_FACTOR, FULL_COMPOUNDING)),
-            'standard_roll_1'
+            'standard_roll_1', study_windows, {}
         ),
 
         # Buy and Hold
         simulation(
             TradingModel.BUY_AND_HOLD, '1',
             simulation_params(RISK_FACTOR, __risk_params(RISK_FACTOR, FULL_COMPOUNDING)),
-            'standard_roll_1'
+            'standard_roll_1', study_windows, {}
         ),
 
         # EWMAC
+        # Forecast scalars and MA lengths
+        # EWMAC 2, 8        |   10.6
+        # EWMAC 4, 16       |   7.5
+        # EWMAC 8, 32       |   5.3
+        # EWMAC 16, 64      |   3.75
+        # EWMAC 32, 128     |   2.65
+        # EWMAC 64, 256     |   1.87
         simulation(
             TradingModel.EWMAC, '1',
-            simulation_params(EQUAL_WEIGHTS, __risk_params(EQUAL_WEIGHTS, FULL_COMPOUNDING)),
-            'standard_roll_1'
+            simulation_params(EQUAL_WEIGHTS, __risk_params(EQUAL_WEIGHTS, FULL_COMPOUNDING, 0.25, 0.002, 0.2, 256)),
+            'standard_roll_1',
+            {'atr_long': 100, 'atr_short': 50, 'ma_long': 256, 'ma_short': 64},
+            {'forecast_scalar': 1.87}
         )
     ]
 
