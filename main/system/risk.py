@@ -3,7 +3,6 @@
 import json
 from math import log
 from math import sqrt
-from math import floor
 from operator import mul
 from itertools import combinations
 from collections import defaultdict
