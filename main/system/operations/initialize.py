@@ -19,6 +19,7 @@ from trading_models.plunge_atr_stop_profit import PlungeATRStopProfit
 from trading_models.bollinger_bands import BollingerBands
 from trading_models.ma_trend_pullback import MATrendOnPullback
 from trading_models.buy_and_hold import BuyAndHold
+from trading_models.ewmac import EWMAC
 
 
 class Initialize:
@@ -52,17 +53,14 @@ class Initialize:
         start_data_date = investment_universe.start_data_date()
         account = Account(Decimal(params['initial_balance']), start_data_date, base_currency, currency_pairs)
         broker = Broker(account, commission, interest_rates, interest_minimums)
-        trading_model = self.__trading_model(simulation[Table.Simulation.TRADING_MODEL])(
-            futures,
-            json.loads(simulation[Table.Simulation.TRADING_PARAMS]),
-            roll_strategy
-        )
+        trading_params = json.loads(simulation[Table.Simulation.TRADING_PARAMS])
+        trading_model = self.__trading_model(simulation[Table.Simulation.TRADING_MODEL])(futures, trading_params)
 
         Simulate(
             simulation,
             roll_strategy,
             data_series,
-            Risk(account, position_sizing, *self.__position_sizing_params(params)),
+            Risk(account, position_sizing, *self.__position_sizing_params(params, trading_params)),
             account,
             broker,
             Portfolio(account),
@@ -109,12 +107,13 @@ class Initialize:
             params.get('use_ew_correlation', True),
         )
 
-    def __position_sizing_params(self, params):
+    def __position_sizing_params(self, params, trading_params):
         """
         Construct and return tuple with position sizing data pulled from params passed in, 
         optionally defaulted to hard-coded values
         
         :param params:          dict with loaded params
+        :param trading_params:  dict with loaded trading-related params
         :return:                tuple with position sizing and risk related params
         """
         return (
@@ -122,7 +121,8 @@ class Initialize:
             params.get('volatility_target', 0.2),
             params.get('use_group_correlation_weights', False),
             params.get('capital_correction', CapitalCorrection.FULL_COMPOUNDING),
-            params.get('partial_compounding_factor', 0.25)
+            params.get('partial_compounding_factor', 0.25),
+            trading_params.get('forecast_const', 10.0)
         )
 
     def __trading_model(self, name):
@@ -137,5 +137,6 @@ class Initialize:
             'plunge_with_ATR_stop_and_profit': PlungeATRStopProfit,
             'bollinger_bands': BollingerBands,
             'ma_trend_on_pullback': MATrendOnPullback,
-            'buy_and_hold': BuyAndHold
+            'buy_and_hold': BuyAndHold,
+            'ewmac': EWMAC
         }[name]

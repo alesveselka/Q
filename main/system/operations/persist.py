@@ -297,7 +297,7 @@ class Persist:
             margins = account.margin_loan_balances(date)
             total_margin = sum(account.base_value(v, k, date) for k, v in margins.items())
 
-            transactions = account.transactions(date, date)
+            transactions = account.transactions(date, date, True)
             marked_to_market = account.aggregate(transactions, [TransactionType.MTM_TRANSACTION, TransactionType.MTM_POSITION])
             commissions = account.aggregate(transactions, [TransactionType.COMMISSION])
             fx_translations = account.aggregate(transactions, [TransactionType.FX_BALANCE_TRANSLATION])

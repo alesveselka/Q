@@ -161,25 +161,31 @@ class Account(object):
 
         self.__record_balances(transaction_date)
 
-    def transactions(self, start_date=dt.date(1900, 1, 1), end_date=dt.date(9999, 12, 31)):
+    def transactions(self, start_date=dt.date(1900, 1, 1), end_date=dt.date(9999, 12, 31), strict=False):
         """
         Find and return transaction within the dates specified (included)
 
         :param start_date:  Start date to search from
         :param end_date:    End date to search until
+        :param strict:      Boolean flag indicating 'strict' mode -- if dates are not in dict, return empty list
         :return:            list of Transaction objects
         """
-        start_indexes = self.__transaction_indexes[start_date] if start_date in self.__transaction_indexes \
+        contains_start = start_date in self.__transaction_indexes
+        contains_end = end_date in self.__transaction_indexes
+        start_indexes = self.__transaction_indexes[start_date] if contains_start \
             else self.__transaction_indexes[sorted(self.__transaction_indexes)[0]] if len(self.__transaction_indexes) \
             else []
+
         end_indexes = start_indexes if start_date == end_date \
-            else self.__transaction_indexes[end_date] if end_date in self.__transaction_indexes \
+            else self.__transaction_indexes[end_date] if contains_end \
             else self.__transaction_indexes[sorted(self.__transaction_indexes)[-1]] if len(self.__transaction_indexes) \
             else []
+
         start_index = sorted(start_indexes)[0] if len(start_indexes) else 0
         end_index = sorted(end_indexes)[-1] if len(end_indexes) else len(self.__transactions) - 1
 
-        return self.__transactions[start_index:end_index+1]
+        return self.__transactions[start_index:end_index+1] if not strict else \
+            self.__transactions[start_index:end_index+1] if contains_start and contains_end else []
 
     def aggregate(self, transactions, transaction_types):
         """

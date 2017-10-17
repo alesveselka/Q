@@ -3,12 +3,13 @@
 
 class Signal(object):
 
-    def __init__(self, market, type, direction, date, price):
+    def __init__(self, market, type, direction, date, price, forecast=None):
         self.__market = market
         self.__type = type
         self.__direction = direction
         self.__date = date
         self.__price = price
+        self.__forecast = forecast
 
     def market(self):
         return self.__market
@@ -24,6 +25,9 @@ class Signal(object):
 
     def price(self):
         return self.__price
+
+    def forecast(self):
+        return self.__forecast
 
     def __str__(self):
         return ', '.join([

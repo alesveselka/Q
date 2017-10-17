@@ -15,9 +15,8 @@ class BollingerBands(TradingModel):
     Signal is generated against direction of trend, when price(Close) returns from outside back inside of the bands.
     """
 
-    def __init__(self, markets, params, roll_strategy):
+    def __init__(self, markets, params):
         self.__markets = markets
-        self.__roll_strategy = roll_strategy
 
     def signals(self, date, positions):
         """

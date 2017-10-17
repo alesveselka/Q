@@ -142,7 +142,7 @@ class Broker(object):
         :param open_positions:      list of open positions
         :param removed_positions:   list of positions removed from portfolio on this date
         """
-        transactions = [t for t in self.__account.transactions(date, date) if t.type() == TransactionType.COMMISSION]
+        transactions = [t for t in self.__account.transactions(date, date, True) if t.type() == TransactionType.COMMISSION]
         # MTM Transaction
         for t in transactions:
             market = t.context()[0]

@@ -17,10 +17,9 @@ class BreakoutMAFilterATRStop(TradingModel):
     Exit stops are at ATR multiples.
     """
 
-    def __init__(self, markets, params, roll_strategy):
+    def __init__(self, markets, params):
         self.__markets = markets
         self.__stop_multiple = int(params['stop_multiple'])
-        self.__roll_strategy = roll_strategy
 
     def signals(self, date, positions):
         """

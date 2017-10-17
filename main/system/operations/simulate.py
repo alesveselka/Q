@@ -148,11 +148,12 @@ class Simulate:
 
         # Trading signals and position sizing
         self.__trading_signals += self.__trading_model.signals(date, open_positions)
+        forecasts = {s.market().id(): s.forecast() for s in self.__trading_signals if s.forecast()}
 
         open_markets, markets_to_open, markets_to_close, markets_to_roll = self.__partitioned_markets()
         markets_to_update = set(open_markets).difference(markets_to_close).union(markets_to_open)
 
-        self.__position_sizes = self.__risk.position_sizes(date, markets_to_update)
+        self.__position_sizes = self.__risk.position_sizes(date, markets_to_update, forecasts)
 
         if self.__use_position_inertia:
             self.__trading_signals += self.__rebalance_signals(date, open_markets, markets_to_close, markets_to_roll)
@@ -182,7 +183,8 @@ class Simulate:
                     # If the market ID is not in position sizes Dict, there is not enough liquidity
                     position_size = self.__position_sizes[market.id()] \
                         if market.id() in self.__position_sizes else market_position.quantity()
-                    diff = (abs(position_size - quantity) / quantity) if quantity else 0.0
+                    diff = (abs(abs(position_size) - quantity) / quantity) if quantity else 0.0
+
                     if diff > self.__position_inertia:
                         direction = market_position.direction()
                         price = market_data[Table.Market.OPEN_PRICE]
@@ -248,17 +250,26 @@ class Simulate:
                     orders.append(Order(market, order_type, signal_type, date, price, position.quantity(), position.contract()))
 
                 if position and signal in roll_signals:
-                    quantity = self.__position_sizes[market.id()] if signal.type() == SignalType.ROLL_ENTER else position.quantity()
+                    quantity = abs(self.__position_sizes[market.id()]) if signal.type() == SignalType.ROLL_ENTER else position.quantity()
                     contract = market.contract(date) if signal.type() == SignalType.ROLL_ENTER else position.contract()
                     orders.append(Order(market, order_type, signal_type, date, price, quantity, contract))
 
                 if position and signal_type == SignalType.REBALANCE:
-                    quantity = self.__position_sizes[market.id()] - position.quantity()
+                    quantity = abs(self.__position_sizes[market.id()]) - position.quantity()
                     order_type = self.__order_type(signal.type(), signal.direction(), quantity)
-                    orders.append(Order(market, order_type, signal_type, date, price, abs(quantity), position.contract()))
+                    position_size = self.__position_sizes[market.id()]
+                    position_direction = position.direction()
+                    signal_direction = Direction.LONG if position_size >= 0 else Direction.SHORT
+                    if signal_direction == position_direction:
+                        orders.append(Order(market, order_type, signal_type, date, price, abs(quantity), position.contract()))
+                    else:
+                        order_type = self.__order_type(SignalType.EXIT, position_direction, position.quantity())
+                        orders.append(Order(market, order_type, SignalType.EXIT, date, price, position.quantity(), position.contract()))
+                        order_type = self.__order_type(SignalType.ENTER, signal_direction, abs(position_size))
+                        orders.append(Order(market, order_type, SignalType.ENTER, date, price, abs(position_size), position.contract()))
 
                 if position is None and signal in enter_signals:
-                    position_size = self.__position_sizes[market.id()]
+                    position_size = abs(self.__position_sizes[market.id()])
                     orders.append(Order(market, order_type, signal_type, date, price, position_size, market.contract(date)))
 
                 signals_to_remove.append(signal)

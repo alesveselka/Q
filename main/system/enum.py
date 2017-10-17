@@ -16,6 +16,7 @@ class Study:
     MA_SHORT = 'ma_short'
     HHLL_LONG = 'hhll_long'
     HHLL_SHORT = 'hhll_short'
+    PRICE_VARIANCE = 'variance_price'
 
 
 class Direction:
