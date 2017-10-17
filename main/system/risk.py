@@ -22,7 +22,8 @@ class Risk(object):
                  volatility_target,
                  use_group_correlation_weights,
                  capital_correction,
-                 partial_compounding_factor):
+                 partial_compounding_factor,
+                 forecast_const):
         self.__account = account
         self.__position_sizing = position_sizing
         self.__risk_factor = risk_factor
@@ -31,7 +32,7 @@ class Risk(object):
         self.__capital_correction = capital_correction
         self.__partial_compounding_factor = partial_compounding_factor
         self.__use_correlation_weights = False
-        self.__forecast_const = 10.0  # TODO load from params?
+        self.__forecast_const = forecast_const
 
     def position_sizes(self, date, markets, forecasts):
         """

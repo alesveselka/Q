@@ -18,7 +18,9 @@ class EWMAC(TradingModel):
 
     def __init__(self, markets, params):
         self.__markets = markets
-        self.__forecast_cap = 20.0  # TODO load from params?
+        self.__params = params
+        self.__forecast_cap = params['forecast_cap']
+        self.__forecast_scalar = self.__params['forecast_scalar']
 
     def signals(self, date, positions):
         """
@@ -29,13 +31,10 @@ class EWMAC(TradingModel):
         """
         signals = []
 
-        # TODO load from params
-        forecast_scalar = 3.75  # See table 49 (p. 285)
-
         for market in self.__markets:
             if market.has_study_data():
                 market_data, previous_data = market.data(date)
-                forecast = self.__forecast(date, market, market_data, forecast_scalar)
+                forecast = self.__forecast(date, market, market_data)
                 market_position = self._market_position(positions, market)
 
                 if market_position:
@@ -54,14 +53,13 @@ class EWMAC(TradingModel):
 
         return signals
 
-    def __forecast(self, date, market, market_data, forecast_scalar):
+    def __forecast(self, date, market, market_data):
         """
         Calculate trading signal forecast
         
         :param date:            date of the data
         :param market:          market to calculate forecast for
         :param market_data:     market data
-        :param forecast_scalar: scalar to multiply signal with
         :return:                number representing final forecast value
         """
         if market_data is None:
@@ -75,7 +73,7 @@ class EWMAC(TradingModel):
         stdev = variance ** 0.5
         raw_cross = ma_short - ma_long
         adjusted_cross = raw_cross / stdev
-        forecast = adjusted_cross * forecast_scalar
+        forecast = adjusted_cross * self.__forecast_scalar
         capped_forecast = -self.__forecast_cap if forecast < -self.__forecast_cap \
             else (self.__forecast_cap if forecast > self.__forecast_cap else forecast)
 
