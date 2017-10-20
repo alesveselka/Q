@@ -321,6 +321,7 @@ class TradingModel:
     MA_TREND_ON_PULLBACK = 'ma_trend_on_pullback'
     BUY_AND_HOLD = 'buy_and_hold'
     EWMAC = 'ewmac'
+    CARRY = 'carry'
 
 
 if __name__ == '__main__':
@@ -354,6 +355,10 @@ if __name__ == '__main__':
         TradingModel.EWMAC: {
             'name': TradingModel.EWMAC,
             'desc': 'Exponentially-Weighted Moving-Average Crossover continuous signal'
+        },
+        TradingModel.CARRY: {
+            'name': TradingModel.CARRY,
+            'desc': 'Try to capture "rolling yield" difference between contracts'
         }
     }
     RISK_FACTOR = 'risk_factor'
@@ -364,7 +369,7 @@ if __name__ == '__main__':
     HALF_COMPOUNDING = 'half_compounding'
     PARTIAL_COMPOUNDING = 'partial_compounding'
 
-    # trading_model = trading_models[TradingModel.EWMAC]
+    # trading_model = trading_models[TradingModel.CARRY]
     # insert_trading_models([(trading_model['name'], trading_model['desc'])])
     # insert_simulations([simulations()[-1]])
     # update_simulation(20, 'params', simulations()[-1][1])
