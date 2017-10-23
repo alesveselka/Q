@@ -144,7 +144,7 @@ class CustomSeries(MarketSeries):
         cursor.execute(roll_schedule_query % market_id)
         self.__roll_schedule = cursor.fetchall()
 
-        self.__schedule_rolls(delivery_months)
+        self.__schedule_rolls()
 
         return True
 
@@ -161,18 +161,16 @@ class CustomSeries(MarketSeries):
         price = contract_data[-1][Table.Market.SETTLE_PRICE] if len(contract_data) else None
         return price * point_value * 0.1
 
-    def __schedule_rolls(self, delivery_months):
+    def __schedule_rolls(self):
         """
         Schedule rolls based on contracts available and roll schedule
-        
-        :param delivery_months:     list of delivery months
         """
         scheduled_months = [r[RollSchedule.ROLL_OUT_MONTH] for r in self.__roll_schedule]
-        scheduled_codes = [k for k in delivery_months.keys() if delivery_months[k][1] in scheduled_months]
+        scheduled_codes = [k for k in self._delivery_months.keys() if self._delivery_months[k][1] in scheduled_months]
         contract_keys = sorted(self.__contracts.keys())
         contract_codes = [c for c in [k for k in contract_keys] if c[-1] in scheduled_codes]
 
-        self.__scheduled_rolls = [(self.__scheduled_roll_date(r[0], delivery_months), 0, r[0], r[1])
+        self.__scheduled_rolls = [(self.__scheduled_roll_date(r[0], self._delivery_months), 0, r[0], r[1])
                                   for r in zip(contract_codes, contract_codes[1:])]
 
         self.__rolls.append(self.__scheduled_roll(self._start_data_date))

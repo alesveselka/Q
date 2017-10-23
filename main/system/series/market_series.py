@@ -34,6 +34,8 @@ class MarketSeries(object):
         self.__study_indexes = defaultdict(dict)
         self.__has_study_data = False
 
+        self._delivery_months = {}
+
     def data(self, date):
         """
         Return market data at the date passed in
@@ -164,6 +166,8 @@ class MarketSeries(object):
         :param market_code:         code symbol of the series market
         :param roll_strategy_id:    ID of the series roll strategy
         """
+        self._delivery_months = delivery_months
+
         study_data_keys = set('%s:%s' % (self.__study_column(p['name'], p['columns'][-1]), p['window']) for p in self.__study_parameters)
         for key in study_data_keys:
             column, window = key.split(':')
