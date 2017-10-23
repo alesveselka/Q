@@ -207,6 +207,15 @@ class MarketSeries(object):
         raise NotImplementedError("Should implement 'previous_contract()'")
 
     @abstractmethod
+    def next_contract(self, contract):
+        """
+        Return contract code after the one passed in
+        
+        :return:    string code representing the next contract
+        """
+        raise NotImplementedError("Should implement 'next_contract()'")
+
+    @abstractmethod
     def contract_data(self, contract, date):
         """
         Return data of contract passed in

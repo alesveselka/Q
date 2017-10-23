@@ -51,6 +51,16 @@ class CustomSeries(MarketSeries):
         previous_keys = [k for k in self.__contract_keys if k < contract]
         return previous_keys[-1] if len(previous_keys) else None
 
+    def next_contract(self, contract):
+        """
+        Return contract chronologically after the one passed in
+        
+        :param string contract:     contract code to compare
+        :return string:             contract code
+        """
+        next_keys = [k for k in self.__contract_keys if k > contract]
+        return next_keys[0] if len(next_keys) else None
+
     def contract_data(self, contract, date):
         """
         Return data of contract passed in
