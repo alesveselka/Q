@@ -13,7 +13,7 @@ class CARRY(TradingModel):
     """
     Capture difference in contract prices. (From the book Systematic Trading)
     
-    Continuous signal is difference in between two contracts. 
+    Continuous signal is annualised and volatility-normalised difference between prices of two contracts 
     and multiplied with 'Forecast scalar'.
     """
 
