@@ -207,6 +207,15 @@ class MarketSeries(object):
         raise NotImplementedError("Should implement 'previous_contract()'")
 
     @abstractmethod
+    def contract_data(self, contract, date):
+        """
+        Return data of contract passed in
+        
+        :return:    tuple representing one day record
+        """
+        raise NotImplementedError("Should implement 'contract_data()'")
+
+    @abstractmethod
     def rolls(self):
         """
         Return contract rolls

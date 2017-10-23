@@ -51,6 +51,15 @@ class CustomSeries(MarketSeries):
         previous_keys = [k for k in self.__contract_keys if k < contract]
         return previous_keys[-1] if len(previous_keys) else None
 
+    def contract_data(self, contract, date):
+        """
+        Return data of contract passed in
+        
+        :return:    tuple representing one day record
+        """
+        contract_data = [d for d in self.__contracts[contract] if d[Table.Market.PRICE_DATE] <= date]
+        return contract_data[-1] if len(contract_data) else None
+
     def rolls(self):
         """
         Return contract rolls
