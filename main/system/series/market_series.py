@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 import json
+import datetime as dt
 from enum import Table
 from enum import PositionSizing
 from operator import itemgetter
@@ -191,6 +192,18 @@ class MarketSeries(object):
                 end_date
             )
             # MarketCorrelationProxy.dump(market_code, self.__volatility_lookback, self._correlations)
+
+    def contract_distance(self, contract, next_contract):
+        """
+        Return time distance of contract in years
+        
+        :param string contract:         symbol of the first contract
+        :param string next_contract:    symbol of the next contract
+        :return:                        float representing the distance
+        """
+        date_1 = dt.date(int(contract[:4]), int(self._delivery_months[contract[-1]][0]), 1)
+        date_2 = dt.date(int(next_contract[:4]), int(self._delivery_months[next_contract[-1]][0]), 1)
+        return abs(float((date_1 - date_2).days) / 365)
 
     @abstractmethod
     def contract(self, date):
