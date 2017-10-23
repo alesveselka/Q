@@ -147,6 +147,14 @@ def trading_params(model_name, specific_trading_params):
             'volatility_MA_type': 'EMA',
             'forecast_const': 10.0,
             'forecast_cap': 20.0
+        }.items()),
+        TradingModel.CARRY: dict(specific_trading_params.items() + {
+            'short_window': 64,
+            'long_window': 256,
+            'filter_MA_type': 'EMA',
+            'volatility_MA_type': 'EMA',
+            'forecast_const': 10.0,
+            'forecast_cap': 20.0
         }.items())
     }[model_name]
 
@@ -200,6 +208,11 @@ def study_map(model_name, study_windows):
             ('variance', 'price', 'EMA', 36, ['price_date', 'settle_price']),
             ('vol', 'short', 'SMA', 50, ['price_date', 'volume'])
         ]),
+        TradingModel.CARRY: studies([
+            ('atr', 'long', 'ATR', atr_long, ['price_date', 'high_price', 'low_price', 'settle_price']),
+            ('atr', 'short', 'ATR', atr_short, ['price_date', 'high_price', 'low_price', 'settle_price']),
+            ('vol', 'short', 'SMA', 50, ['price_date', 'volume'])
+        ])
     }[model_name]
 
 
@@ -308,6 +321,15 @@ def simulations():
             'standard_roll_1',
             {'atr_long': 100, 'atr_short': 50, 'ma_long': 256, 'ma_short': 64},
             {'forecast_scalar': 1.87}
+        ),
+
+        # Carry
+        simulation(
+            TradingModel.CARRY, '1',
+            simulation_params(EQUAL_WEIGHTS, __risk_params(EQUAL_WEIGHTS, FULL_COMPOUNDING, 0.25, 0.002, 0.2, 256)),
+            'standard_roll_1',
+            study_windows,
+            {'forecast_scalar': 30.0}
         )
     ]
 
