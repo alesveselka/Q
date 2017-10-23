@@ -86,10 +86,10 @@ class CARRY(TradingModel):
         else:
             next_contract = market.next_contract(contract)
             next_contract_data = market.contract_data(next_contract, date)
-            distance = market.contract_distance(contract, next_contract)
-            price_diff = next_contract_data[Table.Market.SETTLE_PRICE] - price
+            distance = market.contract_distance(contract, next_contract) if next_contract else 0.0
+            price_diff = (next_contract_data[Table.Market.SETTLE_PRICE] - price) if next_contract_data else 0.0
 
-        expected_return = price_diff / distance
+        expected_return = price_diff / distance if distance else 0.0
         variance = market.study(Study.PRICE_VARIANCE, date)[Table.Study.VALUE]
         stdev = (variance ** 0.5) * self.__root_days_in_year
         raw_carry = expected_return / stdev
