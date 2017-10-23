@@ -21,6 +21,7 @@ class CARRY(TradingModel):
         self.__params = params
         self.__forecast_cap = params['forecast_cap']
         self.__forecast_scalar = self.__params['forecast_scalar']
+        self.__root_days_in_year = 256 ** 0.5
 
     def signals(self, date, positions):
         """
@@ -67,13 +68,26 @@ class CARRY(TradingModel):
             market_data = market_data_range[-1]
 
         date = market_data[Table.Market.PRICE_DATE]
-        ma_long = market.study(Study.MA_LONG, date)[Table.Study.VALUE]
-        ma_short = market.study(Study.MA_SHORT, date)[Table.Study.VALUE]
+        contract = market_data[Table.Market.CODE]
+        price = market_data[Table.Market.SETTLE_PRICE]
+
+        previous_contract = market.previous_contract(contract)
+        previous_contract_data = market.contract_data(previous_contract, date)
+
+        if previous_contract_data:
+            distance = market.contract_distance(previous_contract, contract)
+            price_diff = price - previous_contract_data[Table.Market.SETTLE_PRICE]
+        else:
+            next_contract = market.next_contract(contract)
+            next_contract_data = market.contract_data(next_contract, date)
+            distance = market.contract_distance(contract, next_contract)
+            price_diff = next_contract_data[Table.Market.SETTLE_PRICE] - price
+
+        expected_return = price_diff / distance
         variance = market.study(Study.PRICE_VARIANCE, date)[Table.Study.VALUE]
-        stdev = variance ** 0.5
-        raw_cross = ma_short - ma_long
-        adjusted_cross = raw_cross / stdev
-        forecast = adjusted_cross * self.__forecast_scalar
+        stdev = (variance ** 0.5) * self.__root_days_in_year
+        raw_carry = expected_return / stdev
+        forecast = raw_carry * self.__forecast_scalar
         capped_forecast = -self.__forecast_cap if forecast < -self.__forecast_cap \
             else (self.__forecast_cap if forecast > self.__forecast_cap else forecast)
 
