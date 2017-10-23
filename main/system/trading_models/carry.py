@@ -69,7 +69,8 @@ class CARRY(TradingModel):
 
         date = market_data[Table.Market.PRICE_DATE]
         contract = market_data[Table.Market.CODE]
-        price = market_data[Table.Market.SETTLE_PRICE]
+        contract_data = market.contract_data(contract, date)
+        price = contract_data[Table.Market.SETTLE_PRICE]
 
         previous_contract = market.previous_contract(contract)
         previous_contract_data = market.contract_data(previous_contract, date)
