@@ -20,6 +20,7 @@ from trading_models.bollinger_bands import BollingerBands
 from trading_models.ma_trend_pullback import MATrendOnPullback
 from trading_models.buy_and_hold import BuyAndHold
 from trading_models.ewmac import EWMAC
+from trading_models.carry import CARRY
 
 
 class Initialize:
@@ -138,5 +139,6 @@ class Initialize:
             'bollinger_bands': BollingerBands,
             'ma_trend_on_pullback': MATrendOnPullback,
             'buy_and_hold': BuyAndHold,
-            'ewmac': EWMAC
+            'ewmac': EWMAC,
+            'carry': CARRY
         }[name]
