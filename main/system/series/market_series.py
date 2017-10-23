@@ -203,7 +203,7 @@ class MarketSeries(object):
         """
         date_1 = dt.date(int(contract[:4]), int(self._delivery_months[contract[-1]][0]), 1)
         date_2 = dt.date(int(next_contract[:4]), int(self._delivery_months[next_contract[-1]][0]), 1)
-        return abs(float((date_1 - date_2).days) / 365)
+        return float((date_1 - date_2).days) / 365
 
     @abstractmethod
     def contract(self, date):
