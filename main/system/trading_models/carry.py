@@ -1,5 +1,6 @@
 #!/usr/bin/python
 
+from collections import deque
 from enum import Study
 from enum import Direction
 from enum import SignalType
@@ -22,6 +23,7 @@ class CARRY(TradingModel):
         self.__forecast_cap = params['forecast_cap']
         self.__forecast_scalar = self.__params['forecast_scalar']
         self.__root_days_in_year = 256 ** 0.5
+        self.__recent_forecasts = deque([], 5)
 
     def signals(self, date, positions):
         """
@@ -38,6 +40,9 @@ class CARRY(TradingModel):
                 forecast = self.__forecast(date, market, market_data)
                 market_position = self._market_position(positions, market)
 
+                self.__recent_forecasts.append(forecast)
+                avg_forecast = sum(self.__recent_forecasts) / len(self.__recent_forecasts)
+
                 if market_position:
                     if market_data:
                         price = market_data[Table.Market.SETTLE_PRICE]
@@ -45,12 +50,12 @@ class CARRY(TradingModel):
                         direction = market_position.direction()
                         if self._should_roll(date, previous_date, market, market_position.contract(), signals):
                             signals.append(Signal(market, SignalType.ROLL_EXIT, direction, date, price))
-                            signals.append(Signal(market, SignalType.ROLL_ENTER, direction, date, price, forecast))
+                            signals.append(Signal(market, SignalType.ROLL_ENTER, direction, date, price, avg_forecast))
 
                 price = market_data[Table.Market.SETTLE_PRICE] if market_data \
                     else market.data_range(end_date=date)[-1][Table.Market.SETTLE_PRICE]
-                direction = Direction.LONG if forecast >= 0 else Direction.SHORT
-                signals.append(Signal(market, SignalType.ENTER, direction, date, price, forecast))
+                direction = Direction.LONG if avg_forecast >= 0 else Direction.SHORT
+                signals.append(Signal(market, SignalType.ENTER, direction, date, price, avg_forecast))
 
         return signals
 
