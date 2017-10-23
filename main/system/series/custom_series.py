@@ -41,6 +41,16 @@ class CustomSeries(MarketSeries):
         """
         return self._prices[self._price_indexes[date]][Table.Market.CODE]
 
+    def previous_contract(self, contract):
+        """
+        Return contract chronologically before the one passed in
+        
+        :param string contract:     contract code to compare
+        :return string:             contract code
+        """
+        previous_keys = [k for k in self.__contract_keys if k < contract]
+        return previous_keys[-1] if len(previous_keys) else None
+
     def rolls(self):
         """
         Return contract rolls

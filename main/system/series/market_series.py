@@ -198,6 +198,15 @@ class MarketSeries(object):
         raise NotImplementedError("Should implement 'contract()'")
 
     @abstractmethod
+    def previous_contract(self, contract):
+        """
+        Return contract code before the one passed in
+        
+        :return:    string code representing the previous contract
+        """
+        raise NotImplementedError("Should implement 'previous_contract()'")
+
+    @abstractmethod
     def rolls(self):
         """
         Return contract rolls
