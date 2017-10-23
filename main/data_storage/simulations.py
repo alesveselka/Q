@@ -211,6 +211,7 @@ def study_map(model_name, study_windows):
         TradingModel.CARRY: studies([
             ('atr', 'long', 'ATR', atr_long, ['price_date', 'high_price', 'low_price', 'settle_price']),
             ('atr', 'short', 'ATR', atr_short, ['price_date', 'high_price', 'low_price', 'settle_price']),
+            ('variance', 'price', 'EMA', 36, ['price_date', 'settle_price']),
             ('vol', 'short', 'SMA', 50, ['price_date', 'volume'])
         ])
     }[model_name]
@@ -394,4 +395,4 @@ if __name__ == '__main__':
     # trading_model = trading_models[TradingModel.CARRY]
     # insert_trading_models([(trading_model['name'], trading_model['desc'])])
     # insert_simulations([simulations()[-1]])
-    # update_simulation(20, 'params', simulations()[-1][1])
+    # update_simulation(21, 'studies', simulations()[-1][4])
