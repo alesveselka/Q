@@ -41,6 +41,35 @@ class CustomSeries(MarketSeries):
         """
         return self._prices[self._price_indexes[date]][Table.Market.CODE]
 
+    def previous_contract(self, contract):
+        """
+        Return contract chronologically before the one passed in
+        
+        :param string contract:     contract code to compare
+        :return string:             contract code
+        """
+        previous_keys = [k for k in self.__contract_keys if k < contract]
+        return previous_keys[-1] if len(previous_keys) else None
+
+    def next_contract(self, contract):
+        """
+        Return contract chronologically after the one passed in
+        
+        :param string contract:     contract code to compare
+        :return string:             contract code
+        """
+        next_keys = [k for k in self.__contract_keys if k > contract]
+        return next_keys[0] if len(next_keys) else None
+
+    def contract_data(self, contract, date):
+        """
+        Return data of contract passed in
+        
+        :return:    tuple representing one day record
+        """
+        contract_data = [d for d in self.__contracts[contract] if d[Table.Market.PRICE_DATE] <= date]
+        return contract_data[-1] if len(contract_data) else None
+
     def rolls(self):
         """
         Return contract rolls
@@ -115,7 +144,7 @@ class CustomSeries(MarketSeries):
         cursor.execute(roll_schedule_query % market_id)
         self.__roll_schedule = cursor.fetchall()
 
-        self.__schedule_rolls(delivery_months)
+        self.__schedule_rolls()
 
         return True
 
@@ -132,18 +161,16 @@ class CustomSeries(MarketSeries):
         price = contract_data[-1][Table.Market.SETTLE_PRICE] if len(contract_data) else None
         return price * point_value * 0.1
 
-    def __schedule_rolls(self, delivery_months):
+    def __schedule_rolls(self):
         """
         Schedule rolls based on contracts available and roll schedule
-        
-        :param delivery_months:     list of delivery months
         """
         scheduled_months = [r[RollSchedule.ROLL_OUT_MONTH] for r in self.__roll_schedule]
-        scheduled_codes = [k for k in delivery_months.keys() if delivery_months[k][1] in scheduled_months]
+        scheduled_codes = [k for k in self._delivery_months.keys() if self._delivery_months[k][1] in scheduled_months]
         contract_keys = sorted(self.__contracts.keys())
         contract_codes = [c for c in [k for k in contract_keys] if c[-1] in scheduled_codes]
 
-        self.__scheduled_rolls = [(self.__scheduled_roll_date(r[0], delivery_months), 0, r[0], r[1])
+        self.__scheduled_rolls = [(self.__scheduled_roll_date(r[0], self._delivery_months), 0, r[0], r[1])
                                   for r in zip(contract_codes, contract_codes[1:])]
 
         self.__rolls.append(self.__scheduled_roll(self._start_data_date))

@@ -68,6 +68,18 @@ class Market:
     def contract(self, date):
         return self.__series.contract(date)
 
+    def previous_contract(self, contract):
+        return self.__series.previous_contract(contract)
+
+    def next_contract(self, contract):
+        return self.__series.next_contract(contract)
+
+    def contract_data(self, contract, date):
+        return self.__series.contract_data(contract, date)
+
+    def contract_distance(self, contract, next_contract):
+        return self.__series.contract_distance(contract, next_contract)
+
     def contract_rolls(self):
         return self.__series.rolls()
 

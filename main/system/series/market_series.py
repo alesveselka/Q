@@ -1,6 +1,7 @@
 #!/usr/bin/python
 
 import json
+import datetime as dt
 from enum import Table
 from enum import PositionSizing
 from operator import itemgetter
@@ -33,6 +34,8 @@ class MarketSeries(object):
         self.__study_data = {}
         self.__study_indexes = defaultdict(dict)
         self.__has_study_data = False
+
+        self._delivery_months = {}
 
     def data(self, date):
         """
@@ -164,6 +167,8 @@ class MarketSeries(object):
         :param market_code:         code symbol of the series market
         :param roll_strategy_id:    ID of the series roll strategy
         """
+        self._delivery_months = delivery_months
+
         study_data_keys = set('%s:%s' % (self.__study_column(p['name'], p['columns'][-1]), p['window']) for p in self.__study_parameters)
         for key in study_data_keys:
             column, window = key.split(':')
@@ -188,6 +193,18 @@ class MarketSeries(object):
             )
             # MarketCorrelationProxy.dump(market_code, self.__volatility_lookback, self._correlations)
 
+    def contract_distance(self, contract, next_contract):
+        """
+        Return time distance of contract in years
+        
+        :param string contract:         symbol of the first contract
+        :param string next_contract:    symbol of the next contract
+        :return:                        float representing the distance
+        """
+        date_1 = dt.date(int(contract[:4]), int(self._delivery_months[contract[-1]][0]), 1)
+        date_2 = dt.date(int(next_contract[:4]), int(self._delivery_months[next_contract[-1]][0]), 1)
+        return float((date_1 - date_2).days) / 365
+
     @abstractmethod
     def contract(self, date):
         """
@@ -196,6 +213,33 @@ class MarketSeries(object):
         :return:    string code representing the latest rolled-in contract
         """
         raise NotImplementedError("Should implement 'contract()'")
+
+    @abstractmethod
+    def previous_contract(self, contract):
+        """
+        Return contract code before the one passed in
+        
+        :return:    string code representing the previous contract
+        """
+        raise NotImplementedError("Should implement 'previous_contract()'")
+
+    @abstractmethod
+    def next_contract(self, contract):
+        """
+        Return contract code after the one passed in
+        
+        :return:    string code representing the next contract
+        """
+        raise NotImplementedError("Should implement 'next_contract()'")
+
+    @abstractmethod
+    def contract_data(self, contract, date):
+        """
+        Return data of contract passed in
+        
+        :return:    tuple representing one day record
+        """
+        raise NotImplementedError("Should implement 'contract_data()'")
 
     @abstractmethod
     def rolls(self):
