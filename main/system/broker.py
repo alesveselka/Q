@@ -172,15 +172,10 @@ class Broker(object):
         base_currency = self.__account.base_currency()
         for currency in [c for c in self.__account.fx_balance_currencies() if c != base_currency]:
             balance = self.__account.fx_balance(currency, date)
-
             if abs(balance):
                 amount = self.__account.base_value(balance, currency, date)
-                if balance > 0:
-                    self.__add_transaction(TransactionType.INTERNAL_FUND_TRANSFER, date, -balance, currency)
-                    self.__add_transaction(TransactionType.INTERNAL_FUND_TRANSFER, date, amount, base_currency)
-                else:
-                    self.__add_transaction(TransactionType.INTERNAL_FUND_TRANSFER, date, amount, base_currency)
-                    self.__add_transaction(TransactionType.INTERNAL_FUND_TRANSFER, date, -balance, currency)
+                self.__add_transaction(TransactionType.INTERNAL_FUND_TRANSFER, date, amount, base_currency)
+                self.__add_transaction(TransactionType.INTERNAL_FUND_TRANSFER, date, -balance, currency)
 
     def __mark_to_market(self, date, previous_date):
         """
