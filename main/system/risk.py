@@ -39,7 +39,7 @@ class Risk(object):
         Calculate position sized based on position sizing type and params
         
         :param date date:           date of data
-        :param list markets:        markets to calculate position sizes for
+        :param dict markets:        markets to calculate position sizes for
         :param dict forecasts:      signal forecast of each market
         :return dict(int: float):   dict of position sizes as values and market IDs as keys
         """
@@ -48,16 +48,19 @@ class Risk(object):
         daily_cash_volatility_target = cash_volatility_target / daily_factor
         position_sizes = {}
 
+        # TODO return all markets from forecasts, even when their position size is zero
         if len(markets):
             price_date = date
             prices = {}
             correlation_data = {}
-            for market in markets:
+            # TODO need to be sorted?
+            for market_id in markets.keys():
+                market = markets[market_id]
                 market_data, _ = market.data(date)
                 data = market_data if market_data else market.data_range(end_date=date)[-1]
                 price_date = data[Table.Market.PRICE_DATE]
-                prices[market.id()] = data[Table.Market.SETTLE_PRICE]
-                correlation_data[market.id()] = market.correlation(price_date)
+                prices[market_id] = data[Table.Market.SETTLE_PRICE]
+                correlation_data[market_id] = market.correlation(price_date)
             # TODO filter too expensive positions
             position_sizes = {
                 PositionSizing.RISK_FACTOR: self.__fixed_risk_sizes,
@@ -72,7 +75,8 @@ class Risk(object):
                 forecasts
             )
 
-        return {k: int(position_sizes[k]) for k in position_sizes.keys() if abs(position_sizes[k]) >= 1.0}
+        # return {k: int(position_sizes[k]) for k in position_sizes.keys() if abs(position_sizes[k]) >= 1.0}
+        return position_sizes
 
     def __fixed_risk_sizes(self, date, prices, correlation_data, vol_target, markets, forecasts):
         """
@@ -88,27 +92,45 @@ class Risk(object):
         """
         position_sizes = {}
         risk = self.__risk_capital(date) * self.__risk_factor
-        for market in markets:
+        # for market in markets:
+        #     market_id = market.id()
+        #     base_point_value = float(self.__account.base_value(market.point_value(), market.currency(), date))
+        #     atr_study = market.study(Study.ATR_LONG, date)
+        #     vol_study = market.study(Study.VOL_SHORT, date)
+        #     atr = atr_study[Table.Study.VALUE] if atr_study else market.study_range(Study.ATR_LONG, end_date=date)[-1][Table.Study.VALUE]
+        #     vol = vol_study[Table.Study.VALUE] if vol_study else market.study_range(Study.VOL_SHORT, end_date=date)[-1][Table.Study.VALUE]
+        #     forecast = (forecasts[market_id] if market_id in forecasts else self.__forecast_const) / self.__forecast_const
+        #     position_size = (risk / (atr * base_point_value)) * forecast
+        #     if position_size < vol:
+        #         position_sizes[market.id()] = position_size
+
+        for key in forecasts.keys():
+            market_id = int(key.split('_')[0])
+            market = markets[market_id]
             base_point_value = float(self.__account.base_value(market.point_value(), market.currency(), date))
             atr_study = market.study(Study.ATR_LONG, date)
-            vol_study = market.study(Study.VOL_SHORT, date)
+            # vol_study = market.study(Study.VOL_SHORT, date)
             atr = atr_study[Table.Study.VALUE] if atr_study else market.study_range(Study.ATR_LONG, end_date=date)[-1][Table.Study.VALUE]
-            vol = vol_study[Table.Study.VALUE] if vol_study else market.study_range(Study.VOL_SHORT, end_date=date)[-1][Table.Study.VALUE]
-            position_size = risk / (atr * base_point_value)
-            if position_size < vol:
-                position_sizes[market.id()] = position_size
+            # vol = vol_study[Table.Study.VALUE] if vol_study else market.study_range(Study.VOL_SHORT, end_date=date)[-1][Table.Study.VALUE]
+            forecast = (forecasts[key] if key in forecasts else self.__forecast_const) / self.__forecast_const
+            # position_size = (risk / (atr * base_point_value)) * forecast
+            # if position_size < vol:
+            #     position_sizes[key] = int(position_size)
+            position_sizes[key] = int((risk / (atr * base_point_value)) * forecast)
+            # print date, key, forecasts[key], forecast, position_sizes[key]
 
         # Make sure correlation data is loaded
-        if self.__use_correlation_weights:
-            l = len(position_sizes)
-            correlations, market_weights = self.__correlation_weights(correlation_data, markets)
-            position_sizes = {k: position_sizes[k] * l * market_weights[k] for k in position_sizes.keys()}
+        # if self.__use_correlation_weights:
+        #     l = len(position_sizes)
+        #     correlations, market_weights = self.__correlation_weights(correlation_data, markets)
+        #     position_sizes = {k: position_sizes[k] * l * market_weights[k] for k in position_sizes.keys()}
 
-        fractional_sizes = filter(lambda market_id: position_sizes[market_id] < 1, position_sizes.keys())
-        updated_markets = [m for m in markets if m.id() not in fractional_sizes]
+        # fractional_sizes = filter(lambda k: int(position_sizes[k]), position_sizes.keys())
+        # updated_markets = [m for m in markets if m.id() not in fractional_sizes]
 
-        return self.__fixed_risk_sizes(date, prices, correlation_data, vol_target, updated_markets, forecasts) \
-            if len(fractional_sizes) and len(updated_markets) else position_sizes
+        # return self.__fixed_risk_sizes(date, prices, correlation_data, vol_target, updated_markets, forecasts) \
+        #     if len(fractional_sizes) and len(updated_markets) else position_sizes
+        return position_sizes
 
     def __equally_weighted_sizes(self, date, prices, correlation_data, vol_target, markets, forecasts):
         """

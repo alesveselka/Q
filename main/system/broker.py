@@ -8,11 +8,13 @@ from enum import OrderResultType
 from enum import TransactionType
 from enum import Table
 from enum import Study
-from transaction import Transaction
+from trade import Trade
 from order_result import OrderResult
+from transaction import Transaction
 from collections import defaultdict
 from decimal import Decimal
 import operator as op
+import datetime as dt
 
 
 class Broker(object):
@@ -23,8 +25,12 @@ class Broker(object):
         self.__commission_currency = commission[1]
         self.__interest_rates = interest_rates
         self.__minimums = minimums
+        self.__trades = []
+        self.__trade_indexes = defaultdict(list)
+        self.__position_records = {}
 
-    def update_account(self, date, previous_date, open_positions, removed_positions):
+    # def update_account(self, date, previous_date, open_positions, removed_positions):
+    def update_account(self, date, previous_date):
         """
         Market Close event handler
 
@@ -36,7 +42,11 @@ class Broker(object):
         # TODO also check if there is market data for this date, same as in trading systems (AND set previous date accordingly? - different than market date)
         # TODO do I need to do all these if there is no position open?
 
-        self.__mark_to_market(date, open_positions, removed_positions)
+        self.__record_positions(date, previous_date)
+
+        open_positions = self.positions(date)
+
+        # self.__mark_to_market(date, open_positions, removed_positions)
         self.__translate_fx_balances(date, previous_date)
         self.__charge_interest(date, previous_date)
         self.__pay_interest(date, previous_date)
@@ -60,7 +70,7 @@ class Broker(object):
         """
         market = order.market()
         date = order.date()
-        order_type = order.type()
+        # order_type = order.type()
         currency = market.currency()
         market_data, previous_data = market.data(date)
         previous_date = previous_data[Table.Market.PRICE_DATE]
@@ -71,29 +81,80 @@ class Broker(object):
         if quantity:
             commissions = Decimal(self.__commission * quantity)
             margin = market.margin() * quantity
-            price = self.__slipped_price(market_data, market, order.price(), previous_date, order_type, quantity)
+            # price = self.__slipped_price(market_data, market, order.price(), previous_date, order_type, quantity)
+            price = self.__slipped_price(market_data, market, order.price(), previous_date, quantity)
             result_type = OrderResultType.FILLED if quantity == order.quantity() else OrderResultType.PARTIALLY_FILLED
             order_result = OrderResult(result_type, order, price, quantity, margin, commissions)
             context = (market, order_result, price)
 
             # TODO don't need types -- just quantity and Qty == 0 means no position
-            if order_type == OrderType.BTO or order_type == OrderType.STO:
-                base_commission = self.__account.base_value(commissions, self.__commission_currency, date)
-                base_margin = Decimal(self.__account.base_value(margin, currency, date))
-                if self.__account.available_funds(date) > base_margin + base_commission:
-                    margin_loan_context = 'update' if order.signal_type() == SignalType.REBALANCE else 'add'
-                    self.__add_transaction(TransactionType.MARGIN_LOAN, date, margin, currency, margin_loan_context)
-                    self.__add_transaction(TransactionType.COMMISSION, date, -commissions, self.__commission_currency, context)
-                else:
-                    order_result = OrderResult(OrderResultType.REJECTED, order, price, quantity, 0, 0)
-            else:
-                margin_loan_context = 'update' if order.signal_type() == SignalType.REBALANCE else 'remove'
-                self.__add_transaction(TransactionType.COMMISSION, date, -commissions, self.__commission_currency, context)
-                self.__add_transaction(TransactionType.MARGIN_LOAN, date, -margin, currency, margin_loan_context)
+            # if order_type == OrderType.BTO or order_type == OrderType.STO:
+            #     base_commission = self.__account.base_value(commissions, self.__commission_currency, date)
+            #     base_margin = Decimal(self.__account.base_value(margin, currency, date))
+            #     if self.__account.available_funds(date) > base_margin + base_commission:
+            #         margin_loan_context = 'update' if order.signal_type() == SignalType.REBALANCE else 'add'
+            #         self.__add_transaction(TransactionType.MARGIN_LOAN, date, margin, currency, margin_loan_context)
+            #         self.__add_transaction(TransactionType.COMMISSION, date, -commissions, self.__commission_currency, context)
+            #     else:
+            #         order_result = OrderResult(OrderResultType.REJECTED, order, price, quantity, 0, 0)
+            # else:
+            #     margin_loan_context = 'update' if order.signal_type() == SignalType.REBALANCE else 'remove'
+            #     self.__add_transaction(TransactionType.COMMISSION, date, -commissions, self.__commission_currency, context)
+            #     self.__add_transaction(TransactionType.MARGIN_LOAN, date, -margin, currency, margin_loan_context)
+
+            self.__add_transaction(TransactionType.MARGIN_LOAN, date, margin, currency, 'not sure now')
+            self.__add_transaction(TransactionType.COMMISSION, date, -commissions, self.__commission_currency, context)
+
+            self.__trades.append(Trade(order, order_result))
+            self.__trade_indexes[date].append(len(self.__trades) - 1)
 
         return order_result
 
-    def __slipped_price(self, market_data, market, price, date, order_type, quantity):
+    def trades(self, start_date=dt.date(1900, 1, 1), end_date=dt.date(9999, 12, 31), strict=False):
+        """
+        Find and return positions within the dates specified (included)
+
+        :param start_date:  Start date to search from
+        :param end_date:    End date to search until
+        :param strict:      Boolean flag indicating 'strict' mode -- if dates are not in dict, return empty list
+        :return:            list of Trade objects
+        """
+        contains_start = start_date in self.__trade_indexes
+        contains_end = end_date in self.__trade_indexes
+        start_indexes = self.__trade_indexes[start_date] if contains_start \
+            else self.__trade_indexes[sorted(self.__trade_indexes)[0]] if len(self.__trade_indexes) \
+            else []
+
+        end_indexes = start_indexes if start_date == end_date \
+            else self.__trade_indexes[end_date] if contains_end \
+            else self.__trade_indexes[sorted(self.__trade_indexes)[-1]] if len(self.__trade_indexes) \
+            else []
+
+        start_index = sorted(start_indexes)[0] if len(start_indexes) else 0
+        end_index = sorted(end_indexes)[-1] if len(end_indexes) else len(self.__trades) - 1
+
+        return self.__trades[start_index:end_index+1] if not strict else \
+            self.__trades[start_index:end_index+1] if contains_start and contains_end else []
+
+    def __record_positions(self, date, previous_date):
+        trades = self.trades(date, date, True)
+        last_record = self.__position_records[previous_date] if previous_date in self.__position_records else {}
+        open_positions = last_record.copy()
+        for t in trades:
+            order = t.order()
+            key = '%s_%s' % (order.market().id(), order.contract())
+            quantity = t.order_result().quantity()
+            open_positions[key] = last_record[key] + quantity if key in last_record else quantity
+
+        # print 'Record', date, previous_date, last_record, open_positions
+
+        self.__position_records[date] = {k: open_positions[k] for k in open_positions.keys() if open_positions[k]}
+
+    def positions(self, date):
+        return self.__position_records[date] if date in self.__position_records else []
+
+    # def __slipped_price(self, market_data, market, price, date, order_type, quantity):
+    def __slipped_price(self, market_data, market, price, date, quantity):
         """
         Calculate and return price after slippage is added
 
@@ -105,9 +166,10 @@ class Broker(object):
         :param quantity:    quantity to open
         :return:            number representing final price
         """
-        slippage = market.slippage(date, quantity)
-        slipped_price = (price + slippage) if (order_type == OrderType.BTO or order_type == OrderType.BTC) else (price - slippage)
-        # TODO add 'execution cost' transaction instead of slipped price? And update only Open price on Market Open?
+        slippage = market.slippage(date, abs(quantity))
+        # slipped_price = (price + slippage) if (order_type == OrderType.BTO or order_type == OrderType.BTC) else (price - slippage)
+        slipped_price = (price + slippage) if quantity > 0 else (price - slippage)
+        # TODO add 'execution cost (market impact)' transaction instead of slipped price? And update only Open price on Market Open?
         # The High and Low prices are not actually available at this point (Market Open),
         # but I'm using them here to not getting execution price out of price range
         high = market_data[Table.Market.HIGH_PRICE]
@@ -148,27 +210,29 @@ class Broker(object):
             market = t.context()[0]
             order_result = t.context()[1]
             order = order_result.order()
-            order_type = order.type()
+            # order_type = order.type()
             market_data, previous_data = market.data(date)
             price = order_result.price()
             settle_price = market_data[Table.Market.SETTLE_PRICE]
             previous_settle_price = previous_data[Table.Market.SETTLE_PRICE]
-            positions = removed_positions if order.signal_type() == SignalType.EXIT else open_positions
-            position = [p for p in positions if p.market() == market][0]
-            pnl = {
-                OrderType.BTO: settle_price - price,
-                OrderType.STO: price - settle_price,
-                OrderType.BTC: previous_settle_price - price,
-                OrderType.STC: price - previous_settle_price
-            }[order_type]
-            context = {
-                OrderType.BTO: (market, order.contract(), settle_price),
-                OrderType.STO: (market, order.contract(), settle_price),
-                OrderType.BTC: (market, order.contract(), price),
-                OrderType.STC: (market, order.contract(), price)
-            }[order_type]
+            # positions = removed_positions if order.signal_type() == SignalType.EXIT else open_positions
+            # position = [p for p in positions if p.market() == market][0]
+            pnl = settle_price - price
+            # pnl = {
+            #     OrderType.BTO: settle_price - price,
+            #     OrderType.STO: price - settle_price,
+            #     OrderType.BTC: previous_settle_price - price,
+            #     OrderType.STC: price - previous_settle_price
+            # }[order_type]
+            context = (market, order.contract(), price)
+            # context = {
+            #     OrderType.BTO: (market, order.contract(), settle_price),
+            #     OrderType.STO: (market, order.contract(), settle_price),
+            #     OrderType.BTC: (market, order.contract(), price),
+            #     OrderType.STC: (market, order.contract(), price)
+            # }[order_type]
 
-            position.update_pnl(date, settle_price, pnl, order_result.quantity())
+            # position.update_pnl(date, settle_price, pnl, order_result.quantity())
             
             pnl = Decimal(pnl * order_result.quantity() * market.point_value())
             self.__add_transaction(TransactionType.MTM_TRANSACTION, date, pnl, market.currency(), context)

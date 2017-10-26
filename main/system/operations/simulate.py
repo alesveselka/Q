@@ -14,6 +14,7 @@ from order import Order
 from timer import Timer
 from strategy_signal import Signal
 from order_result import OrderResult
+from trade import Trade
 from persist import Persist
 
 
@@ -43,9 +44,10 @@ class Simulate:
         self.__trading_signals = []
         self.__position_sizes = {}
         self.__order_results = []
+        self.__trades = []
         self.__timer = Timer()
 
-        end_date = dt.date(1992, 5, 31)
+        end_date = dt.date(1992, 7, 31)
 
         self.__data_series.load(end_date, roll_strategy[Table.RollStrategy.ID])
         self.__subscribe()
@@ -121,7 +123,7 @@ class Simulate:
         # and also for simpler and faster calculations
         self.__data_series.update_futures_data(date)
 
-        self.__transfer_orders(self.__orders(date))
+        self.__transfer_orders(self.__orders(date, previous_date))
 
     def __on_market_close(self, date, previous_date):
         """
@@ -142,23 +144,27 @@ class Simulate:
         self.__data_series.update_futures_studies(date)
 
         # Account update
-        open_positions = self.__portfolio.open_positions()
-        removed_positions = self.__portfolio.removed_positions(date)
-        self.__broker.update_account(date, previous_date, open_positions, removed_positions)
+        # open_positions = self.__portfolio.open_positions()
+        # removed_positions = self.__portfolio.removed_positions(date)
+        # self.__broker.update_account(date, previous_date, open_positions, removed_positions)
+        self.__broker.update_account(date, previous_date)
+        open_positions = self.__broker.positions(date)
 
         # Trading signals and position sizing
         self.__trading_signals += self.__trading_model.signals(date, open_positions)
-        forecasts = {s.market().id(): s.forecast() for s in self.__trading_signals if s.forecast()}
+        markets = {s.market().id(): s.market() for s in self.__trading_signals}
+        forecasts = {'%s_%s' % (s.market().id(), s.contract()): s.forecast() for s in self.__trading_signals}
 
-        open_markets, markets_to_open, markets_to_close, markets_to_roll = self.__partitioned_markets()
-        markets_to_update = set(open_markets).difference(markets_to_close).union(markets_to_open)
+        # open_markets, markets_to_open, markets_to_close, markets_to_roll = self.__partitioned_markets()
+        # markets_to_update = set(open_markets).difference(markets_to_close).union(markets_to_open)
 
-        self.__position_sizes = self.__risk.position_sizes(date, markets_to_update, forecasts)
+        # self.__position_sizes = self.__risk.position_sizes(date, markets_to_update, forecasts)
+        self.__position_sizes = self.__risk.position_sizes(date, markets, forecasts)
+        # print date, markets.keys(), forecasts.keys(), self.__position_sizes
+        # if self.__use_position_inertia:
+        #     self.__trading_signals += self.__rebalance_signals(date, open_markets, markets_to_close, markets_to_roll)
 
-        if self.__use_position_inertia:
-            self.__trading_signals += self.__rebalance_signals(date, open_markets, markets_to_close, markets_to_roll)
-
-        self.__filter_illiquid_markets(markets_to_update)
+        # self.__filter_illiquid_markets(markets_to_update)
 
     def __rebalance_signals(self, date, open_markets, markets_to_close, markets_to_roll):
         """
@@ -204,37 +210,44 @@ class Simulate:
                            or OrderResult(OrderResultType.REJECTED, order, 0, 0, 0, 0)
             result_type = order_result.type()
 
-            if result_type == OrderResultType.FILLED or result_type == OrderResultType.PARTIALLY_FILLED:
-                signal_type = order.signal_type()
-                if signal_type == SignalType.ENTER:
-                    self.__portfolio.add_position(Position(order_result))
-
-                if signal_type == SignalType.REBALANCE:
-                    position = self.__portfolio.market_position(order.market())
-                    position.add_order_result(order_result)
-
-                if signal_type == SignalType.ROLL_ENTER or signal_type == SignalType.ROLL_EXIT:
-                    position = self.__portfolio.market_position(order.market())
-                    position.add_order_result(order_result)
-
-                if signal_type == SignalType.EXIT:
-                    position = self.__portfolio.market_position(order.market())
-                    position.add_order_result(order_result)
-                    self.__portfolio.remove_position(order.date(), position)
+            # if result_type == OrderResultType.FILLED or result_type == OrderResultType.PARTIALLY_FILLED:
+            #     self.__trades.append(Trade(order_result.order(), order_result))  # TODO Order is already in OrderResult
+                # signal_type = order.signal_type()
+                # if signal_type == SignalType.ENTER:
+                #     self.__portfolio.add_position(Position(order_result))
+                #
+                # if signal_type == SignalType.REBALANCE:
+                #     position = self.__portfolio.market_position(order.market())
+                #     position.add_order_result(order_result)
+                #
+                # if signal_type == SignalType.ROLL_ENTER or signal_type == SignalType.ROLL_EXIT:
+                #     position = self.__portfolio.market_position(order.market())
+                #     position.add_order_result(order_result)
+                #
+                # if signal_type == SignalType.EXIT:
+                #     position = self.__portfolio.market_position(order.market())
+                #     position.add_order_result(order_result)
+                #     self.__portfolio.remove_position(order.date(), position)
 
             self.__order_results.append(order_result)
 
-    def __orders(self, date):
+    def __orders(self, date, previous_date):
         """
         Generate Orders from Signals
 
-        :param date:    date for the market open
+        :param date:            date for the market open
+        :param previous_date:   previous market date
         """
         orders = []
         signals_to_remove = []
-        enter_signals = [s for s in self.__trading_signals if s.type() == SignalType.ENTER]
-        exit_signals = [s for s in self.__trading_signals if s.type() == SignalType.EXIT]
-        roll_signals = [s for s in self.__trading_signals if s.type() == SignalType.ROLL_ENTER or s.type() == SignalType.ROLL_EXIT]
+        # enter_signals = [s for s in self.__trading_signals if s.type() == SignalType.ENTER]
+        # exit_signals = [s for s in self.__trading_signals if s.type() == SignalType.EXIT]
+        # roll_signals = [s for s in self.__trading_signals if s.type() == SignalType.ROLL_ENTER or s.type() == SignalType.ROLL_EXIT]
+
+        # TODO cache request? I'm already doing same on in EOD handler
+        open_positions = self.__broker.positions(previous_date)
+
+        # print 'Orders', date, self.__position_sizes, open_positions
 
         for signal in self.__trading_signals:
             market = signal.market()
@@ -242,35 +255,43 @@ class Simulate:
 
             if market_data:
                 price = market_data[Table.Market.OPEN_PRICE]
-                position = self.__portfolio.market_position(market)
-                signal_type = signal.type()
-                order_type = self.__order_type(signal.type(), signal.direction())
+                # position = self.__portfolio.market_position(market)
+                # signal_type = signal.type()
+                # order_type = self.__order_type(signal.type(), signal.direction())
 
-                if position and signal in exit_signals:
-                    orders.append(Order(market, order_type, signal_type, date, price, position.quantity(), position.contract()))
+                key = '%s_%s' % (market.id(), signal.contract())
+                # open_position = open_positions[key] if key in open_positions else 0
 
-                if position and signal in roll_signals:
-                    quantity = abs(self.__position_sizes[market.id()]) if signal.type() == SignalType.ROLL_ENTER else position.quantity()
-                    contract = market.contract(date) if signal.type() == SignalType.ROLL_ENTER else position.contract()
-                    orders.append(Order(market, order_type, signal_type, date, price, quantity, contract))
+                position_size = self.__position_sizes[key] - (open_positions[key] if key in open_positions else 0)
 
-                if position and signal_type == SignalType.REBALANCE:
-                    quantity = abs(self.__position_sizes[market.id()]) - position.quantity()
-                    order_type = self.__order_type(signal.type(), signal.direction(), quantity)
-                    position_size = self.__position_sizes[market.id()]
-                    position_direction = position.direction()
-                    signal_direction = Direction.LONG if position_size >= 0 else Direction.SHORT
-                    if signal_direction == position_direction:
-                        orders.append(Order(market, order_type, signal_type, date, price, abs(quantity), position.contract()))
-                    else:
-                        order_type = self.__order_type(SignalType.EXIT, position_direction, position.quantity())
-                        orders.append(Order(market, order_type, SignalType.EXIT, date, price, position.quantity(), position.contract()))
-                        order_type = self.__order_type(SignalType.ENTER, signal_direction, abs(position_size))
-                        orders.append(Order(market, order_type, SignalType.ENTER, date, price, abs(position_size), position.contract()))
+                # print 'position_size:', key, position_size
+                orders.append(Order(date, market, signal.contract(), price, position_size))
 
-                if position is None and signal in enter_signals:
-                    position_size = abs(self.__position_sizes[market.id()])
-                    orders.append(Order(market, order_type, signal_type, date, price, position_size, market.contract(date)))
+                # if position and signal in exit_signals:
+                #     orders.append(Order(market, order_type, signal_type, date, price, position.quantity(), position.contract()))
+                #
+                # if position and signal in roll_signals:
+                #     quantity = abs(self.__position_sizes[market.id()]) if signal.type() == SignalType.ROLL_ENTER else position.quantity()
+                #     contract = market.contract(date) if signal.type() == SignalType.ROLL_ENTER else position.contract()
+                #     orders.append(Order(market, order_type, signal_type, date, price, quantity, contract))
+                #
+                # if position and signal_type == SignalType.REBALANCE:
+                #     quantity = abs(self.__position_sizes[market.id()]) - position.quantity()
+                #     order_type = self.__order_type(signal.type(), signal.direction(), quantity)
+                #     position_size = self.__position_sizes[market.id()]
+                #     position_direction = position.direction()
+                #     signal_direction = Direction.LONG if position_size >= 0 else Direction.SHORT
+                #     if signal_direction == position_direction:
+                #         orders.append(Order(market, order_type, signal_type, date, price, abs(quantity), position.contract()))
+                #     else:
+                #         order_type = self.__order_type(SignalType.EXIT, position_direction, position.quantity())
+                #         orders.append(Order(market, order_type, SignalType.EXIT, date, price, position.quantity(), position.contract()))
+                #         order_type = self.__order_type(SignalType.ENTER, signal_direction, abs(position_size))
+                #         orders.append(Order(market, order_type, SignalType.ENTER, date, price, abs(position_size), position.contract()))
+                #
+                # if position is None and signal in enter_signals:
+                #     position_size = abs(self.__position_sizes[market.id()])
+                #     orders.append(Order(market, order_type, signal_type, date, price, position_size, market.contract(date)))
 
                 signals_to_remove.append(signal)
 

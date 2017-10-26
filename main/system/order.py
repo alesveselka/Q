@@ -3,14 +3,16 @@
 
 class Order(object):
 
-    def __init__(self, market, order_type, signal_type, date, price, quantity, contract):
-        self.__market = market
-        self.__type = order_type
-        self.__contract = contract
+    # def __init__(self, market, order_type, signal_type, date, price, quantity, contract):
+    def __init__(self, date, market, contract, price, quantity):
         self.__date = date
+        self.__market = market
+        # self.__type = order_type
+        self.__contract = contract
+
         self.__price = price
         self.__quantity = quantity
-        self.__signal_type = signal_type
+        # self.__signal_type = signal_type
 
     def market(self):
         return self.__market
@@ -18,11 +20,11 @@ class Order(object):
     def contract(self):
         return self.__contract
 
-    def type(self):
-        return self.__type
+    # def type(self):
+    #     return self.__type
 
-    def signal_type(self):
-        return self.__signal_type
+    # def signal_type(self):
+    #     return self.__signal_type
 
     def date(self):
         return self.__date
@@ -36,7 +38,8 @@ class Order(object):
     def __str__(self):
         return 'Order: %d x %s %s @ %.4f' % (
             self.__quantity,
-            self.__type,
+            # self.__type,
             self.__market.code(),
+            self.__contract,
             self.__price
         )
