@@ -53,7 +53,7 @@ class Initialize:
 
         start_data_date = investment_universe.start_data_date()
         account = Account(Decimal(params['initial_balance']), start_data_date, base_currency, currency_pairs)
-        broker = Broker(account, commission, interest_rates, interest_minimums)
+        broker = Broker(account, commission, interest_rates, interest_minimums, {f.id(): f for f in futures})
         trading_params = json.loads(simulation[Table.Simulation.TRADING_PARAMS])
         trading_model = self.__trading_model(simulation[Table.Simulation.TRADING_MODEL])(futures, trading_params)
 
