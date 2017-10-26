@@ -44,8 +44,6 @@ class Broker(object):
         self.__translate_fx_balances(date, previous_date)
         self.__charge_interest(date, previous_date)
         self.__pay_interest(date, previous_date)
-        # No need to update margin loans since I use fixed amounts
-        # self.__update_margin_loans(date, open_positions)
 
         # TODO Sweep regularly?
         if not self.positions(date):
@@ -97,6 +95,7 @@ class Broker(object):
         :param strict:      Boolean flag indicating 'strict' mode -- if dates are not in dict, return empty list
         :return:            list of Trade objects
         """
+        # TODO its own data-type? Identical to Account's 'transactions'
         contains_start = start_date in self.__trade_indexes
         contains_end = end_date in self.__trade_indexes
         start_indexes = self.__trade_indexes[start_date] if contains_start \
@@ -256,36 +255,6 @@ class Broker(object):
                 translation = base_value - prior_base_value
                 context = (balance, currency, rate, prior_rate)
                 self.__add_transaction(TransactionType.FX_BALANCE_TRANSLATION, date, translation, base_currency, context)
-
-    def __update_margin_loans(self, date, open_positions):
-        """
-        Update margin loans with data on the date passed in
-
-        :param date:            date of the data to use for margin calculation
-        :param open_positions:  list of open positions
-        """
-        # TODO this may not work -- positions changed!
-        if len(open_positions):
-            to_open = defaultdict(float)
-            to_close = defaultdict(float)
-
-            for p in open_positions:
-                if date > p.enter_date():
-                    market = p.market()
-                    market_data, _ = market.data(date)
-
-                    if market_data:
-                        margin = market.margin() * p.quantity()
-                        currency = market.currency()
-                        to_close[currency] += p.margins()[-1][1]
-                        to_open[currency] += margin
-                        p.add_margin(date, margin)
-
-            for k in to_close.keys():
-                self.__add_transaction(TransactionType.MARGIN_LOAN, date, -to_close[k], k, 'update')
-
-            for k in to_open.keys():
-                self.__add_transaction(TransactionType.MARGIN_LOAN, date, to_open[k], k, 'update')
 
     def __charge_interest(self, date, previous_date):
         """
