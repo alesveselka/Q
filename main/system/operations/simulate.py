@@ -44,7 +44,6 @@ class Simulate:
         self.__trading_signals = []
         self.__position_sizes = {}
         self.__order_results = []
-        self.__trades = []
         self.__timer = Timer()
 
         end_date = dt.date(1992, 7, 31)
@@ -238,26 +237,6 @@ class Simulate:
             self.__trading_signals.remove(signal)
 
         return orders
-
-    def __order_type(self, signal_type, direction, position_difference=0.0):
-        """
-        Determine order type based on signal type, direction and optionally position difference
-        
-        :param signal_type:         type of signal
-        :param direction:           direction of position
-        :param position_difference: difference between current position size and new one, in case of rebalance signal
-        :return: 
-        """
-        return {
-            SignalType.ENTER: {Direction.LONG: OrderType.BTO, Direction.SHORT: OrderType.STO},
-            SignalType.EXIT: {Direction.LONG: OrderType.STC, Direction.SHORT: OrderType.BTC},
-            SignalType.ROLL_ENTER: {Direction.LONG: OrderType.BTO, Direction.SHORT: OrderType.STO},
-            SignalType.ROLL_EXIT: {Direction.LONG: OrderType.STC, Direction.SHORT: OrderType.BTC},
-            SignalType.REBALANCE: {
-                Direction.LONG: OrderType.BTO if position_difference >= 0 else OrderType.STC,
-                Direction.SHORT: OrderType.STO if position_difference >= 0 else OrderType.BTC
-            }
-        }.get(signal_type).get(direction)
 
     def __partitioned_markets(self):
         """
