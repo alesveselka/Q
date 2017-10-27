@@ -71,7 +71,8 @@ class PlungeATRStopProfit(TradingModel):
                     if self.__plunge(date, market, settle_price, trend_direction) > self.__enter_multiple:
                         # Enter
                         contract = market.contract(date)
-                        signals.append(Signal(date, market, contract, self.__forecast, settle_price))
+                        sign = 1 if trend_direction == Direction.LONG else -1
+                        signals.append(Signal(date, market, contract, self.__forecast * sign, settle_price))
 
         return signals
 
