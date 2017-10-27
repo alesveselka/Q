@@ -11,7 +11,6 @@ from account import Account
 from broker import Broker
 from series.data_series import DataSeries
 from investment_universe import InvestmentUniverse
-from portfolio import Portfolio
 from risk import Risk
 from simulate import Simulate
 from trading_models.breakout_ma_filter_atr_stop import BreakoutMAFilterATRStop
@@ -64,7 +63,6 @@ class Initialize:
             Risk(account, position_sizing, *self.__position_sizing_params(params, trading_params)),
             account,
             broker,
-            Portfolio(account),
             trading_model,
             params['position_inertia'],
             params['use_position_inertia']
