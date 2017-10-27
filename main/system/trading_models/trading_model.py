@@ -20,17 +20,6 @@ class TradingModel:
         """
         raise NotImplementedError("Should implement 'signals()'")
 
-    def _market_position(self, positions, market):
-        """
-        Find and return position by market passed in
-        
-        :param positions:   list of open positions
-        :param market:      Market to filter by
-        :return:            Position object
-        """
-        positions = [p for p in positions if p.market() == market]
-        return positions[0] if len(positions) == 1 else None
-
     def _should_roll(self, date, previous_date, market, position_contract, signals):
         """
         Check if position should roll to the next contract
