@@ -3,18 +3,12 @@
 import datetime as dt
 from enum import EventType
 from enum import Interval
-from enum import Direction
-from enum import SignalType
-from enum import OrderType
 from enum import OrderResultType
 from enum import Table
-from position import Position
 from report import Report
 from order import Order
 from timer import Timer
-from strategy_signal import Signal
 from order_result import OrderResult
-from trade import Trade
 from persist import Persist
 
 
@@ -27,7 +21,6 @@ class Simulate:
                  risk,
                  account,
                  broker,
-                 portfolio,
                  trading_model,
                  position_inertia,
                  use_position_inertia):
@@ -37,7 +30,6 @@ class Simulate:
         self.__risk = risk
         self.__account = account
         self.__broker = broker
-        self.__portfolio = portfolio
         self.__trading_model = trading_model
         self.__position_inertia = position_inertia
         self.__use_position_inertia = use_position_inertia
@@ -46,7 +38,7 @@ class Simulate:
         self.__order_results = []
         self.__timer = Timer()
 
-        end_date = dt.date(1992, 5, 31)
+        end_date = dt.date(2017, 5, 31)
 
         self.__data_series.load(end_date, roll_strategy[Table.RollStrategy.ID])
         self.__subscribe()
@@ -94,7 +86,6 @@ class Simulate:
             date,
             self.__order_results,
             self.__account,
-            self.__portfolio,
             self.__data_series
         )
 
@@ -176,22 +167,22 @@ class Simulate:
         rebalance_signals = []
         candidate_markets = set(open_markets).difference(markets_to_close).difference(markets_to_roll)
 
-        for market in candidate_markets:
-            market_data, _ = market.data(date)
-            if market_data:
-                market_position = self.__portfolio.market_position(market)
-                if market_position:
-                    quantity = float(market_position.quantity())
-                    # TODO I don't need all quantity to rebalance -- rebalance only requires smaller part of position
-                    # If the market ID is not in position sizes Dict, there is not enough liquidity
-                    position_size = self.__position_sizes[market.id()] \
-                        if market.id() in self.__position_sizes else market_position.quantity()
-                    diff = (abs(abs(position_size) - quantity) / quantity) if quantity else 0.0
-
-                    if diff > self.__position_inertia:
-                        direction = market_position.direction()
-                        price = market_data[Table.Market.OPEN_PRICE]
-                        rebalance_signals.append(Signal(market, SignalType.REBALANCE, direction, date, price))
+        # for market in candidate_markets:
+        #     market_data, _ = market.data(date)
+        #     if market_data:
+        #         market_position = self.__portfolio.market_position(market)
+        #         if market_position:
+        #             quantity = float(market_position.quantity())
+        #             # TODO I don't need all quantity to rebalance -- rebalance only requires smaller part of position
+        #             # If the market ID is not in position sizes Dict, there is not enough liquidity
+        #             position_size = self.__position_sizes[market.id()] \
+        #                 if market.id() in self.__position_sizes else market_position.quantity()
+        #             diff = (abs(abs(position_size) - quantity) / quantity) if quantity else 0.0
+        #
+        #             if diff > self.__position_inertia:
+        #                 direction = market_position.direction()
+        #                 price = market_data[Table.Market.OPEN_PRICE]
+        #                 rebalance_signals.append(Signal(market, SignalType.REBALANCE, direction, date, price))
 
         return rebalance_signals
 
@@ -247,11 +238,12 @@ class Simulate:
         
         :return:    tuple ot list of markets
         """
-        open_markets = sorted([p.market() for p in self.__portfolio.open_positions()])
-        markets_to_open = sorted([s.market() for s in self.__trading_signals if s.type() == SignalType.ENTER])
-        markets_to_close = sorted([s.market() for s in self.__trading_signals if s.type() == SignalType.EXIT])
-        markets_to_roll = [s.market() for s in self.__trading_signals if s.type() == SignalType.ROLL_ENTER or s.type() == SignalType.ROLL_EXIT]
-        return open_markets, markets_to_open, markets_to_close, markets_to_roll
+        # open_markets = sorted([p.market() for p in self.__portfolio.open_positions()])
+        # markets_to_open = sorted([s.market() for s in self.__trading_signals if s.type() == SignalType.ENTER])
+        # markets_to_close = sorted([s.market() for s in self.__trading_signals if s.type() == SignalType.EXIT])
+        # markets_to_roll = [s.market() for s in self.__trading_signals if s.type() == SignalType.ROLL_ENTER or s.type() == SignalType.ROLL_EXIT]
+        # return open_markets, markets_to_open, markets_to_close, markets_to_roll
+        return ()
 
     def __filter_illiquid_markets(self, position_sized_markets):
         """
