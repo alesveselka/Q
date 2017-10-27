@@ -79,7 +79,7 @@ class Simulate:
         """
         start_date = self.__data_series.start_date()
         report = Report(self.__account)
-        print '\n'.join(report.transactions(start_date, date))
+        # print '\n'.join(report.transactions(start_date, date))
         # print '\n'.join(report.to_lists(start_date, date, Interval.YEARLY))
         # report.to_lists(start_date, date, Interval.MONTHLY)
         # print '\n'.join(report.to_lists(start_date, date))
@@ -208,7 +208,7 @@ class Simulate:
             order_result = order.quantity() \
                            and self.__broker.transfer(order, position_size, open_position) \
                            or OrderResult(OrderResultType.REJECTED, order, 0, 0, 0, 0)
-
+            # TODO check remaining partially-filled orders
             self.__order_results.append(order_result)
 
     def __orders(self, date, open_positions):
@@ -216,7 +216,7 @@ class Simulate:
         Generate Orders from Signals
 
         :param date:            date for the market open
-        :param previous_date:   previous market date
+        :param open_positions:   previous market date
         """
         orders = []
         signals_to_remove = []
@@ -228,8 +228,10 @@ class Simulate:
             if market_data:
                 open_price = market_data[Table.Market.OPEN_PRICE]
                 key = '%s_%s' % (market.id(), signal.contract())
-                position_size = self.__position_sizes[key] - (open_positions[key] if key in open_positions else 0)
-                orders.append(Order(date, market, signal.contract(), open_price, position_size))
+                open_position = open_positions[key] if key in open_positions else None
+                position_size = self.__position_sizes[key] - (open_position if open_position else 0)
+                if open_position != position_size:
+                    orders.append(Order(date, market, signal.contract(), open_price, position_size))
 
                 signals_to_remove.append(signal)
 
