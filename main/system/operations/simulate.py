@@ -46,7 +46,7 @@ class Simulate:
         self.__order_results = []
         self.__timer = Timer()
 
-        end_date = dt.date(1992, 7, 31)
+        end_date = dt.date(1992, 5, 31)
 
         self.__data_series.load(end_date, roll_strategy[Table.RollStrategy.ID])
         self.__subscribe()
@@ -226,12 +226,13 @@ class Simulate:
             market_data, previous_data = market.data(date)
 
             if market_data:
-                open_price = market_data[Table.Market.OPEN_PRICE]
                 key = '%s_%s' % (market.id(), signal.contract())
                 open_position = open_positions[key] if key in open_positions else None
-                position_size = self.__position_sizes[key] - (open_position if open_position else 0)
-                if open_position != position_size:
-                    orders.append(Order(date, market, signal.contract(), open_price, position_size))
+                position_size = self.__position_sizes[key]
+                if open_position is None or open_position != position_size:
+                    order_size = position_size - (open_position if open_position else 0)
+                    open_price = market_data[Table.Market.OPEN_PRICE]
+                    orders.append(Order(date, market, signal.contract(), open_price, order_size))
 
                 signals_to_remove.append(signal)
 
