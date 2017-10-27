@@ -2,8 +2,6 @@
 
 from collections import deque
 from enum import Study
-from enum import Direction
-from enum import SignalType
 from enum import Table
 from strategy_signal import Signal
 from trading_models.trading_model import TradingModel
@@ -35,27 +33,29 @@ class CARRY(TradingModel):
         signals = []
 
         for market in self.__markets:
-            if market.has_study_data():
-                market_data, previous_data = market.data(date)
-                forecast = self.__forecast(date, market, market_data)
-                market_position = self._market_position(positions, market)
+            market_data, previous_data = market.data(date)
 
+            if market_data and market.has_study_data():
+                market_id = str(market.id())
+                market_positions = {k.split('_')[1]: positions[k] for k in positions.keys() if k.split('_')[0] == market_id}
+                market_position = market_positions.items()[0] if len(market_positions) else None
+                forecast = self.__forecast(date, market, market_data)
                 self.__recent_forecasts.append(forecast)
                 avg_forecast = sum(self.__recent_forecasts) / len(self.__recent_forecasts)
 
                 if market_position:
-                    if market_data:
-                        price = market_data[Table.Market.SETTLE_PRICE]
-                        previous_date = previous_data[Table.Market.PRICE_DATE]
-                        direction = market_position.direction()
-                        if self._should_roll(date, previous_date, market, market_position.contract(), signals):
-                            signals.append(Signal(market, SignalType.ROLL_EXIT, direction, date, price))
-                            signals.append(Signal(market, SignalType.ROLL_ENTER, direction, date, price, avg_forecast))
+                    price = market_data[Table.Market.SETTLE_PRICE]
+                    previous_date = previous_data[Table.Market.PRICE_DATE]
+                    position_contract = market_position[0]
+                    # Roll
+                    if self._should_roll(date, previous_date, market, position_contract, signals):
+                        signals.append(Signal(date, market, position_contract, 0, price))
+                        signals.append(Signal(date, market, market.contract(date), avg_forecast, price))
 
-                price = market_data[Table.Market.SETTLE_PRICE] if market_data \
-                    else market.data_range(end_date=date)[-1][Table.Market.SETTLE_PRICE]
-                direction = Direction.LONG if avg_forecast >= 0 else Direction.SHORT
-                signals.append(Signal(market, SignalType.ENTER, direction, date, price, avg_forecast))
+                if not len(signals):
+                    price = market_data[Table.Market.SETTLE_PRICE] if market_data \
+                        else market.data_range(end_date=date)[-1][Table.Market.SETTLE_PRICE]
+                    signals.append(Signal(date, market, market.contract(date), avg_forecast, price))
 
         return signals
 
