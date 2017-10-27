@@ -1,7 +1,5 @@
 #!/usr/bin/python
 
-from enum import Direction
-from enum import SignalType
 from enum import Table
 from strategy_signal import Signal
 from trading_models.trading_model import TradingModel
@@ -18,6 +16,7 @@ class BuyAndHold(TradingModel):
 
     def __init__(self, markets, params):
         self.__markets = markets
+        self.__forecast = 10.0  # TODO load from params
 
     def signals(self, date, positions):
         """
@@ -32,16 +31,20 @@ class BuyAndHold(TradingModel):
             market_data, previous_data = market.data(date)
 
             if market.has_study_data() and market_data:
-                previous_date = previous_data[Table.Market.PRICE_DATE]
+                market_id = str(market.id())
+                market_positions = {k.split('_')[1]: positions[k] for k in positions.keys() if k.split('_')[0] == market_id}
+                market_position = market_positions.items()[0] if len(market_positions) else None
                 price = market_data[Table.Market.SETTLE_PRICE]
-                market_position = self._market_position(positions, market)
 
                 if market_position:
-                    direction = market_position.direction()
-                    if self._should_roll(date, previous_date, market, market_position.contract(), signals):
-                        signals.append(Signal(market, SignalType.ROLL_EXIT, direction, date, price))
-                        signals.append(Signal(market, SignalType.ROLL_ENTER, direction, date, price))
-
-                signals.append(Signal(market, SignalType.ENTER, Direction.LONG, date, price))
+                    position_contract = market_position[0]
+                    position_quantity = market_position[1]
+                    previous_date = previous_data[Table.Market.PRICE_DATE]
+                    if self._should_roll(date, previous_date, market, position_contract, signals):
+                        sign = 1 if position_quantity > 0 else -1
+                        signals.append(Signal(date, market, position_contract, 0, price))
+                        signals.append(Signal(date, market, market.contract(date), self.__forecast * sign, price))
+                else:
+                    signals.append(Signal(date, market, market.contract(date), self.__forecast, price))
 
         return signals
