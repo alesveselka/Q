@@ -42,6 +42,7 @@ class CARRY(TradingModel):
                 forecast = self.__forecast(date, market, market_data)
                 self.__recent_forecasts.append(forecast)
                 avg_forecast = sum(self.__recent_forecasts) / len(self.__recent_forecasts)
+                contract = market.contract(date)
 
                 if market_position:
                     price = market_data[Table.Market.SETTLE_PRICE]
@@ -50,12 +51,12 @@ class CARRY(TradingModel):
                     # Roll
                     if self._should_roll(date, previous_date, market, position_contract, signals):
                         signals.append(Signal(date, market, position_contract, 0, price))
-                        signals.append(Signal(date, market, market.contract(date), avg_forecast, price))
+                        signals.append(Signal(date, market, contract, avg_forecast, price))
 
-                if not len(signals):
+                if not len([s for s in signals if s.market() == market and s.contract() == contract]):
                     price = market_data[Table.Market.SETTLE_PRICE] if market_data \
                         else market.data_range(end_date=date)[-1][Table.Market.SETTLE_PRICE]
-                    signals.append(Signal(date, market, market.contract(date), avg_forecast, price))
+                    signals.append(Signal(date, market, contract, avg_forecast, price))
 
         return signals
 
