@@ -13,7 +13,7 @@ from decimal import Decimal, InvalidOperation
 
 class Persist:
 
-    def __init__(self, simulation_id, roll_strategy, start_date, end_date, order_results, account, portfolio, data_series):
+    def __init__(self, simulation_id, roll_strategy, start_date, end_date, trades, account, data_series):
         self.__connection = mysql.connect(
             os.environ['DB_HOST'],
             os.environ['DB_USER'],
@@ -23,8 +23,8 @@ class Persist:
         roll_strategy_id = roll_strategy[Table.RollStrategy.ID]
         roll_strategy_name = roll_strategy[Table.RollStrategy.NAME]
         futures = data_series.futures(None, None, None, None, None, None)
-
-        # self.__save_orders(simulation_id, order_results)
+        # TODO Order changed and Position is not used anymore!
+        # self.__save_trades(simulation_id, trades)
         # self.__save_transactions(simulation_id, account.transactions(start_date, end_date))
         # self.__save_positions(simulation_id, portfolio)
         # self.__save_studies(simulation_id, futures, data_series.study_parameters())
@@ -32,50 +32,46 @@ class Persist:
 
         # self.__save_price_series(simulation_id, roll_strategy_id, roll_strategy_name, futures)
 
-    def __save_orders(self, simulation_id, order_results):
+    def __save_trades(self, simulation_id, trades):
         """
         Serialize and insert Order instances into DB
 
-        :param simulation_id:   ID of the simulation
-        :param order_results:   list of OrderResult objects
+        :param int simulation_id:   ID of the simulation
+        :param list trades:         list of Trade objects
         """
-        self.__log('Saving orders')
+        self.__log('Saving trades')
 
         values = []
-        for result in order_results:
-            order = result.order()
-            date = order.date()
-            market = order.market()
-            contract = order.contract()
+        for trade in trades:
+            order = trade.order()
+            result = trade.result()
 
             values.append((
                 simulation_id,
-                market.id(),
-                contract,
-                order.type(),
-                order.signal_type(),
-                date,
+                order.market().id(),
+                order.contract(),
+                order.date(),
                 order.price(),
-                result.quantity(),
+                order.quantity(),
                 result.type(),
-                result.price()
+                result.price(),
+                result.quantity()
             ))
 
         self.__insert_values(
-            'order',
+            'trade',
             'simulation_id',
             simulation_id,
             [
                 'simulation_id',
                 'market_id',
                 'contract',
-                'type',
-                'signal_type',
                 'date',
-                'price',
-                'quantity',
+                'order_price',
+                'order_quantity',
                 'result_type',
-                'result_price'
+                'result_price',
+                'result_quantity'
             ], values
         )
 
