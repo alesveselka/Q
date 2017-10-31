@@ -10,6 +10,22 @@ class TradingModel:
 
     __metaclass__ = ABCMeta
 
+    def __init__(self, name):
+        """
+        Initialize model with name
+        
+        :param string name: 
+        """
+        self._name = name
+
+    def name(self):
+        """
+        Return model's name
+        
+        :return string: 
+        """
+        return self._name
+
     @abstractmethod
     def signals(self, date, positions):
         """

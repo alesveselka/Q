@@ -14,7 +14,8 @@ class EWMAC(TradingModel):
     and multiplied with 'Forecast scalar'.
     """
 
-    def __init__(self, markets, params):
+    def __init__(self, name, markets, params):
+        super(EWMAC, self).__init__(name)
         self.__markets = markets
         self.__params = params
         self.__forecast_cap = params['forecast_cap']

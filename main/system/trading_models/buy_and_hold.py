@@ -14,7 +14,8 @@ class BuyAndHold(TradingModel):
     No exits. Positions will rebalance with each contract roll.
     """
 
-    def __init__(self, markets, params):
+    def __init__(self, name, markets, params):
+        super(BuyAndHold, self).__init__(name)
         self.__markets = markets
         self.__forecast = 10.0  # TODO load from params
 

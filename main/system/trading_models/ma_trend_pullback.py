@@ -16,7 +16,8 @@ class MATrendOnPullback(TradingModel):
     Exit stops are at ATR multiples.
     """
 
-    def __init__(self, markets, params):
+    def __init__(self, name, markets, params):
+        super(MATrendOnPullback, self).__init__(name)
         self.__markets = markets
         self.__stop_multiple = int(params['stop_multiple'])
         self.__forecast = 10.0  # TODO load from params
