@@ -28,3 +28,9 @@ class OrderResult(object):
 
     def commission(self):
         return self.__commission
+
+    def __str__(self):
+        return 'Result: %d x @ %.4f' % (
+            self.__quantity,
+            self.__price
+        )
