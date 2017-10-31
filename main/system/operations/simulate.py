@@ -142,49 +142,7 @@ class Simulate:
         self.__trading_signals += self.__trading_model.signals(date, open_positions)
         markets = {s.market().id(): s.market() for s in self.__trading_signals}
         forecasts = {'%s_%s' % (s.market().id(), s.contract()): s.forecast() for s in self.__trading_signals}
-
-        # open_markets, markets_to_open, markets_to_close, markets_to_roll = self.__partitioned_markets()
-        # markets_to_update = set(open_markets).difference(markets_to_close).union(markets_to_open)
-
-        # self.__position_sizes = self.__risk.position_sizes(date, markets_to_update, forecasts)
         self.__position_sizes = self.__risk.position_sizes(date, markets, forecasts)
-        # print date, markets.keys(), forecasts.keys(), self.__position_sizes
-        # if self.__use_position_inertia:
-        #     self.__trading_signals += self.__rebalance_signals(date, open_markets, markets_to_close, markets_to_roll)
-
-        # self.__filter_illiquid_markets(markets_to_update)
-
-    def __rebalance_signals(self, date, open_markets, markets_to_close, markets_to_roll):
-        """
-        Generate 'rebalance' trading signals
-        
-        :param date:                date of the data
-        :param open_markets:        markets of actually opened positions
-        :param markets_to_close:    markets of positions to be closed
-        :param markets_to_roll:     markets of positions to be rolled to next contract
-        :return:                    list of rebalance signals
-        """
-        rebalance_signals = []
-        candidate_markets = set(open_markets).difference(markets_to_close).difference(markets_to_roll)
-
-        # for market in candidate_markets:
-        #     market_data, _ = market.data(date)
-        #     if market_data:
-        #         market_position = self.__portfolio.market_position(market)
-        #         if market_position:
-        #             quantity = float(market_position.quantity())
-        #             # TODO I don't need all quantity to rebalance -- rebalance only requires smaller part of position
-        #             # If the market ID is not in position sizes Dict, there is not enough liquidity
-        #             position_size = self.__position_sizes[market.id()] \
-        #                 if market.id() in self.__position_sizes else market_position.quantity()
-        #             diff = (abs(abs(position_size) - quantity) / quantity) if quantity else 0.0
-        #
-        #             if diff > self.__position_inertia:
-        #                 direction = market_position.direction()
-        #                 price = market_data[Table.Market.OPEN_PRICE]
-        #                 rebalance_signals.append(Signal(market, SignalType.REBALANCE, direction, date, price))
-
-        return rebalance_signals
 
     def __transfer_orders(self, orders, open_positions):
         """
@@ -213,6 +171,8 @@ class Simulate:
         signals_to_remove = []
         no_trade_zone = 0.25  # TODO load from params
 
+        print date, open_positions, self.__position_sizes
+
         for signal in self.__trading_signals:
             market = signal.market()
             market_data, previous_data = market.data(date)
@@ -225,6 +185,7 @@ class Simulate:
                     order_size = position_size - (open_position if open_position else 0)
                     open_price = market_data[Table.Market.OPEN_PRICE]
                     no_trade_size = abs(open_position * no_trade_zone if open_position else 0)
+                    # print date, market.id(), market.code(), open_position, position_size, order_size, no_trade_size
                     if abs(order_size) > no_trade_size:
                         orders.append(Order(date, market, signal.contract(), open_price, order_size))
 
@@ -234,29 +195,3 @@ class Simulate:
             self.__trading_signals.remove(signal)
 
         return orders
-
-    def __partitioned_markets(self):
-        """
-        Partition markets into list based on their signal types
-        
-        :return:    tuple ot list of markets
-        """
-        # open_markets = sorted([p.market() for p in self.__portfolio.open_positions()])
-        # markets_to_open = sorted([s.market() for s in self.__trading_signals if s.type() == SignalType.ENTER])
-        # markets_to_close = sorted([s.market() for s in self.__trading_signals if s.type() == SignalType.EXIT])
-        # markets_to_roll = [s.market() for s in self.__trading_signals if s.type() == SignalType.ROLL_ENTER or s.type() == SignalType.ROLL_EXIT]
-        # return open_markets, markets_to_open, markets_to_close, markets_to_roll
-        return ()
-
-    def __filter_illiquid_markets(self, position_sized_markets):
-        """
-        Filter illiquid market signals from trading signals
-         
-        :param set position_sized_markets:  markets with updated position size
-        """
-        illiquid_market_signals = [s for s in self.__trading_signals
-                                   if s.market() in position_sized_markets
-                                   and s.market().id() not in self.__position_sizes]
-        # TODO mark the removed as Rejected
-        for signal in illiquid_market_signals:
-            self.__trading_signals.remove(signal)
