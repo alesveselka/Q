@@ -53,7 +53,7 @@ class Risk(object):
             prices = {}
             correlation_data = {}
             # TODO need to be sorted?
-            for market_id in markets.keys():
+            for market_id in sorted(markets.keys()):
                 market = markets[market_id]
                 market_data, _ = market.data(date)
                 data = market_data if market_data else market.data_range(end_date=date)[-1]
