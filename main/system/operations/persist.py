@@ -23,10 +23,10 @@ class Persist:
         roll_strategy_id = roll_strategy[Table.RollStrategy.ID]
         roll_strategy_name = roll_strategy[Table.RollStrategy.NAME]
         futures = data_series.futures(None, None, None, None, None, None)
-        # TODO Order changed and Position is not used anymore!
-        self.__save_trades(simulation_id, broker.trades(start_date, end_date))
+
+        # self.__save_trades(simulation_id, broker.trades(start_date, end_date))
         # self.__save_transactions(simulation_id, account.transactions(start_date, end_date))
-        # self.__save_positions(simulation_id, portfolio)
+        # self.__save_positions(simulation_id, broker, start_date, end_date)
         # self.__save_studies(simulation_id, futures, data_series.study_parameters())
         # self.__save_equity(simulation_id, account, start_date, end_date)
 
@@ -100,7 +100,7 @@ class Persist:
                 t.context_json()) for t in transactions]
         )
 
-    def __save_positions(self, simulation_id, portfolio):
+    def __save_positions(self, simulation_id, broker, start_date, end_date):
         """
         Serialize and insert Position instances into DB
 
@@ -108,38 +108,52 @@ class Persist:
         """
         self.__log('Saving positions')
 
-        precision = 10
-        self.__insert_values(
-            'position',
-            'simulation_id',
-            simulation_id,
-            [
-                'simulation_id',
-                'market_id',
-                'direction',
-                'contract',
-                'enter_date',
-                'enter_price',
-                'exit_date',
-                'exit_price',
-                'quantity',
-                'pnl',
-                'commissions'
-            ],
-            [(
-                 simulation_id,
-                 p.market().id(),
-                 p.direction(),
-                 p.contract(),
-                 p.enter_date(),
-                 p.enter_price(),
-                 p.exit_date(),
-                 p.exit_price(),
-                 p.order_results()[0].quantity(),  # TODO quantity change in time now
-                 p.pnl(),
-                 self.__round(p.commissions(), precision)
-             ) for p in portfolio.closed_positions() + portfolio.open_positions()]
-        )
+        columns = ['simulation_id', 'date', 'positions']
+        values = []
+        date_range = Timer.daily_date_range(start_date, end_date)
+        length = float(len(date_range))
+
+        for i, date in enumerate(date_range):
+            self.__log('Saving positions', i, length)
+            values.append((simulation_id, date, self.__json(broker.positions(date))))
+
+        self.__insert_values('positions', 'simulation_id', simulation_id, columns, values)
+
+        self.__log('Saving positions', complete=True)
+
+        # TODO also save individual positions in time?
+        # precision = 10
+        # self.__insert_values(
+        #     'position',
+        #     'simulation_id',
+        #     simulation_id,
+        #     [
+        #         'simulation_id',
+        #         'market_id',
+        #         'direction',
+        #         'contract',
+        #         'enter_date',
+        #         'enter_price',
+        #         'exit_date',
+        #         'exit_price',
+        #         'quantity',
+        #         'pnl',
+        #         'commissions'
+        #     ],
+        #     [(
+        #          simulation_id,
+        #          p.market().id(),
+        #          p.direction(),
+        #          p.contract(),
+        #          p.enter_date(),
+        #          p.enter_price(),
+        #          p.exit_date(),
+        #          p.exit_price(),
+        #          p.order_results()[0].quantity(),  # TODO quantity change in time now
+        #          p.pnl(),
+        #          self.__round(p.commissions(), precision)
+        #      ) for p in portfolio.closed_positions() + portfolio.open_positions()]
+        # )
 
     def __save_price_series(self, simulation_id, roll_strategy_id, roll_strategy_name, markets):
         """
