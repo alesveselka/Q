@@ -2,6 +2,7 @@
 
 import sys
 import json
+import datetime as dt
 from enum import Table
 from currency_pair import CurrencyPair
 from interest_rate import InterestRate
@@ -66,10 +67,11 @@ class DataSeries:
             )
 
             for market_id in self.__investment_universe.market_ids():
-            # for market_id in [10, 13, 15, 74, 94, 96, 26]:  # 10=CC, 13=KC, 15=LCC, 74=LES, 94=SI, 96=YI, 26=LWB
+            # for market_id in [10, 15, 74, 94]:  # 10=CC, 13=KC, 15=LCC, 74=LES, 94=SI, 96=YI, 26=LWB
+            # for market_id in [15, 74]:  # 10=CC, 13=KC, 15=LCC, 74=LES, 94=SI, 96=YI, 26=LWB
                 cursor.execute(market_query % market_id)
                 self.__futures.append(Market(
-                    market_id,
+                    int(market_id),
                     slippage_map,
                     series_class(
                         start_data_date,
