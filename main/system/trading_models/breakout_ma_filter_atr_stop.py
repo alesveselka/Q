@@ -59,6 +59,12 @@ class BreakoutMAFilterATRStop(TradingModel):
                         sign = 1 if position_quantity > 0 else -1
                         signals.append(Signal(date, market, position_contract, 0, settle_price))
                         signals.append(Signal(date, market, market.contract(date), self.__forecast * sign, settle_price))
+
+                    # Rebalance
+                    # TODO load rebalance interval from params
+                    # if not len([s for s in signals if s.market() == market and s.contract() == contract]):
+                    #     sign = 1 if position_quantity > 0 else -1
+                    #     signals.append(Signal(date, market, market.contract(date), self.__forecast * sign, settle_price))
                 else:
                     ma_long = market.study(Study.MA_LONG, date)[Table.Study.VALUE]
                     ma_short = market.study(Study.MA_SHORT, date)[Table.Study.VALUE]
