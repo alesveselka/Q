@@ -25,13 +25,11 @@ class Risk(object):
                  partial_compounding_factor,
                  forecast_const):
         self.__account = account
-        # self.__position_sizing = position_sizing
-        self.__position_sizing = PositionSizing.CORRELATION_WEIGHTS
+        self.__position_sizing = position_sizing
         self.__risk_factor = risk_factor
         self.__volatility_target = volatility_target
         self.__use_group_correlation_weights = use_group_correlation_weights
-        # self.__capital_correction = capital_correction
-        self.__capital_correction = CapitalCorrection.HALF_COMPOUNDING
+        self.__capital_correction = capital_correction
         self.__partial_compounding_factor = partial_compounding_factor
         self.__use_correlation_weights = False
         self.__forecast_const = forecast_const
@@ -76,7 +74,6 @@ class Risk(object):
                 forecasts
             )
 
-        # return {k: int(position_sizes[k]) for k in position_sizes.keys() if abs(position_sizes[k]) >= 1.0}
         return position_sizes
 
     def __fixed_risk_sizes(self, date, prices, correlation_data, vol_target, markets, forecasts):
@@ -157,7 +154,7 @@ class Risk(object):
         position_sizes = {}
         for key in forecasts.keys():
             market_id = int(key.split('_')[0])
-            weight = market_weights[market_id] if len(market_weights) else 1.0
+            weight = market_weights[market_id] if market_id in market_weights else 1.0
             volatility_scalar = volatility_scalars[int(key.split('_')[0])]
             position_sizes[key] = int(volatility_scalar * forecasts[key] * weight * DM / self.__forecast_const)
 
@@ -289,26 +286,6 @@ class Risk(object):
             terms.append(2 * market_1_weight * market_1_vol * market_2_weight * market_2_vol * correlation)
 
         return sqrt(abs(sum(terms))) if len(terms) else self.__volatility_target
-
-    def __illiquid_markets(self, date, markets, position_sizes):
-        """
-        Return list of markets for which there is not enough liquidity with given position sizes
-        
-        :param date date:           date of data
-        :param list markets:        markets to check liquidity for
-        :param dict position_sizes: position sizes for each market
-        :return list(Market):       list of illiquid markets
-        """
-        illiquid_markets = []
-        for market in markets:
-            market_id = market.id()
-            vol_study = market.study(Study.VOL_SHORT, date)
-            vol = vol_study[Table.Study.VALUE] if vol_study \
-                else market.study_range(Study.VOL_SHORT, end_date=date)[-1][Table.Study.VALUE]
-            if abs(position_sizes[market_id]) > vol:
-                illiquid_markets.append(market_id)
-
-        return illiquid_markets
 
     def __risk_capital(self, date):
         """
