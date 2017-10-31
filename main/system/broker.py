@@ -86,7 +86,7 @@ class Broker(object):
 
         return order_result
 
-    def __trades(self, start_date=dt.date(1900, 1, 1), end_date=dt.date(9999, 12, 31), strict=False):
+    def trades(self, start_date=dt.date(1900, 1, 1), end_date=dt.date(9999, 12, 31), strict=False):
         """
         Find and return positions within the dates specified (included)
 
@@ -120,13 +120,12 @@ class Broker(object):
         :param date:            date of the record
         :param previous_date:   previous date
         """
-        trades = self.__trades(date, date, True)
         previous_record = self.__position_records[previous_date] if previous_date in self.__position_records else {}
         open_positions = previous_record.copy()
-        for t in trades:
+        for t in self.trades(date, date, True):
             order = t.order()
             key = '%s_%s' % (order.market().id(), order.contract())
-            quantity = t.order_result().quantity()
+            quantity = t.result().quantity()
             open_positions[key] = previous_record[key] + quantity if key in previous_record else quantity
 
         self.__position_records[date] = {k: open_positions[k] for k in open_positions.keys() if open_positions[k]}
@@ -184,9 +183,9 @@ class Broker(object):
         :param date:            date to which mark the positions
         :param previous_date:   previous trading date
         """
-        trades = self.__trades(date, date, True)
         open_positions = self.positions(previous_date)
-        order_results = {'%s_%s' % (t.order().market().id(), t.order().contract()): t.order_result() for t in trades}
+        order_results = {'%s_%s' % (t.order().market().id(), t.order().contract()): t.result()
+                         for t in self.trades(date, date, True)}
         not_traded_positions = {k: open_positions[k] + (order_results[k].quantity() if k in order_results else 0)
                                 for k in open_positions.keys()}
         # MTM transactions
