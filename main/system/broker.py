@@ -137,7 +137,7 @@ class Broker(object):
         :param datetime date:   date of the positions
         :return dict:           {<'market ID'_'contract'>: <number of positions>}
         """
-        return self.__position_records[date] if date in self.__position_records else []
+        return self.__position_records[date] if date in self.__position_records else {}
 
     def __slipped_price(self, market_data, market, price, date, quantity):
         """
