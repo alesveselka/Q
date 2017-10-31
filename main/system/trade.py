@@ -14,8 +14,4 @@ class Trade:
         return self.__order_result
 
     def __str__(self):
-        return '%d x %s (%s)' % (
-            self.__order_result.quantity(),
-            self.__order.market().code(),
-            self.__order.contract()
-        )
+        return '%s, %s' % (self.__order, self.__order_result)
