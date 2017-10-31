@@ -102,9 +102,12 @@ class Persist:
 
     def __save_positions(self, simulation_id, broker, start_date, end_date):
         """
-        Serialize and insert Position instances into DB
-
-        :param portfolio:   Portfolio object with references to lists of positions
+        Save market positions into DB
+        
+        :param int simulation_id:   ID of the simulation
+        :param Broker broker:       Broker object
+        :param date start_date:     starting date of the simulation
+        :param date end_date:       end date of the simulation
         """
         self.__log('Saving positions')
 
