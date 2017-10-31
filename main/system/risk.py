@@ -25,11 +25,13 @@ class Risk(object):
                  partial_compounding_factor,
                  forecast_const):
         self.__account = account
-        self.__position_sizing = position_sizing
+        # self.__position_sizing = position_sizing
+        self.__position_sizing = PositionSizing.CORRELATION_WEIGHTS
         self.__risk_factor = risk_factor
         self.__volatility_target = volatility_target
         self.__use_group_correlation_weights = use_group_correlation_weights
-        self.__capital_correction = capital_correction
+        # self.__capital_correction = capital_correction
+        self.__capital_correction = CapitalCorrection.HALF_COMPOUNDING
         self.__partial_compounding_factor = partial_compounding_factor
         self.__use_correlation_weights = False
         self.__forecast_const = forecast_const
@@ -48,7 +50,6 @@ class Risk(object):
         daily_cash_volatility_target = cash_volatility_target / daily_factor
         position_sizes = {}
 
-        # TODO return all markets from forecasts, even when their position size is zero
         if len(markets):
             price_date = date
             prices = {}
@@ -145,37 +146,22 @@ class Risk(object):
         :param prices:              dict of prices and market IDs as keys
         :param correlation_data:    correlation data among individual markets
         :param vol_target:          daily cash volatility target
-        :param markets:             list of markets to use in calculation
+        :param dict markets:        markets to use in calculation
         :param dict forecasts:      signal forecast of each market
         :return:                    dict of position sizes and market IDs as keys
         """
-        market_ids = [m.id() for m in markets]
         correlations, market_weights = self.__correlation_weights(correlation_data, markets)
         volatility, volatility_scalars = self.__volatility_scalars(date, prices, correlation_data, vol_target, markets)
         # Diversification multiplier
         DM = self.__volatility_target / self.__optimal_volatility(volatility, correlations, market_weights)
         position_sizes = {}
-        for market_id in market_ids:
+        for key in forecasts.keys():
+            market_id = int(key.split('_')[0])
             weight = market_weights[market_id] if len(market_weights) else 1.0
-            forecast = forecasts[market_id] if market_id in forecasts else self.__forecast_const
-            position_sizes[market_id] = (volatility_scalars[market_id] * forecast / self.__forecast_const) * weight * DM
-        illiquid_markets = self.__illiquid_markets(date, markets, position_sizes)
-        liquid_position_sizes = {m: position_sizes[m] for m in market_ids if m not in illiquid_markets}
-        fractional_sizes = filter(lambda market_id: abs(liquid_position_sizes[market_id]) < 1, liquid_position_sizes.keys())
+            volatility_scalar = volatility_scalars[int(key.split('_')[0])]
+            position_sizes[key] = int(volatility_scalar * forecasts[key] * weight * DM / self.__forecast_const)
 
-        # TODO mark as 'Rejected'
-        # Sort by correlation weights and remove the one with lowest weight
-        updated_market_ids = liquid_position_sizes.keys() if len(illiquid_markets) \
-            else sorted(market_weights, key=market_weights.get)[1:]
-
-        return self.__correlation_weighted_sizes(
-            date,
-            prices,
-            correlation_data,
-            vol_target,
-            [m for m in markets if m.id() in updated_market_ids],
-            forecasts
-        ) if (len(fractional_sizes) or len(illiquid_markets)) and len(updated_market_ids) else position_sizes
+        return position_sizes
 
     def __correlation_weights(self, correlation_data, markets):
         """
@@ -185,17 +171,17 @@ class Risk(object):
         2. group market correlations and also sum these as 'group_weights';
         3. final weight for each market equals 'log(market correlations ^ group correlations) / sum of all correlations'
         
-        :param correlation_data     correlation data of the markets
-        :param markets              list of markets to use in calculation
-        :return:                    tuple of
+        :param correlation_data:    correlation data of the markets
+        :param dict markets:        markets to use in calculation
+        :return tuple:              tuple of
                                         dict of market correlations with market IDs as keys, and
                                         dict of correlation weights for each market with market IDs as keys
         """
         # TODO The 'Handcrafting' method assumes the assets have the same expected standard deviation of returns!
         correlations = {}
         market_weights = {}
-        if len(markets) >= 2:
-            market_ids = [m.id() for m in markets]
+        market_ids = markets.keys()
+        if len(market_ids) >= 2:
             pairs = list(combinations(market_ids, 2))
             market_correlations = defaultdict(list)
             group_correlations = defaultdict(list)
