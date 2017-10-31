@@ -13,7 +13,7 @@ from decimal import Decimal, InvalidOperation
 
 class Persist:
 
-    def __init__(self, simulation_id, roll_strategy, start_date, end_date, trades, account, data_series):
+    def __init__(self, simulation_id, roll_strategy, start_date, end_date, account, broker, data_series):
         self.__connection = mysql.connect(
             os.environ['DB_HOST'],
             os.environ['DB_USER'],
@@ -24,7 +24,7 @@ class Persist:
         roll_strategy_name = roll_strategy[Table.RollStrategy.NAME]
         futures = data_series.futures(None, None, None, None, None, None)
         # TODO Order changed and Position is not used anymore!
-        # self.__save_trades(simulation_id, trades)
+        self.__save_trades(simulation_id, broker.trades(start_date, end_date))
         # self.__save_transactions(simulation_id, account.transactions(start_date, end_date))
         # self.__save_positions(simulation_id, portfolio)
         # self.__save_studies(simulation_id, futures, data_series.study_parameters())

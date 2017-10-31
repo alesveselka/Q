@@ -84,8 +84,8 @@ class Simulate:
             self.__roll_strategy,
             start_date,
             date,
-            self.__broker.trades(start_date, date),
             self.__account,
+            self.__broker,
             self.__data_series
         )
 
