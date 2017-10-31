@@ -89,17 +89,7 @@ class Simulate:
             self.__data_series
         )
 
-        # f = open('report_full_1995-12-31_3.txt', 'w')
-        # f.write(full_report)
-        # f.close()
-        #
-        # f = open('report_daily_1995-12-31_3.txt', 'w')
-        # f.write('\n'.join(report.to_lists(start_date, date, Interval.DAILY)))
-        # f.close()
-        #
-        # f = open('transactions_1995-12-31_3.txt', 'w')
-        # f.write('\n'.join(report.transactions(start_date, date)))
-        # f.close()
+        # self.__log(report, full_report, start_date, date, Interval.MONTHLY)
 
     def __on_market_open(self, date, previous_date):
         """
@@ -171,8 +161,6 @@ class Simulate:
         signals_to_remove = []
         no_trade_zone = 0.25  # TODO load from params
 
-        print date, open_positions, self.__position_sizes
-
         for signal in self.__trading_signals:
             market = signal.market()
             market_data, previous_data = market.data(date)
@@ -185,7 +173,6 @@ class Simulate:
                     order_size = position_size - (open_position if open_position else 0)
                     open_price = market_data[Table.Market.OPEN_PRICE]
                     no_trade_size = abs(open_position * no_trade_zone if open_position else 0)
-                    # print date, market.id(), market.code(), open_position, position_size, order_size, no_trade_size
                     if abs(order_size) > no_trade_size:
                         orders.append(Order(date, market, signal.contract(), open_price, order_size))
 
@@ -195,3 +182,26 @@ class Simulate:
             self.__trading_signals.remove(signal)
 
         return orders
+
+    def __log(self, report, full_report, start_date, end_date, interval):
+        """
+        Write down various reports into files
+        
+        :param Report report:       Report object
+        :param string full_report:  summary report for whole simulation
+        :param date start_date:     date of simulation start
+        :param date end_date:       date of simulation end
+        :param string interval:     interval sampling for reports
+        """
+        model_name = self.__trading_model.name()
+        f = open('report_full_%s_%s.txt' % (end_date, model_name), 'w')
+        f.write(full_report)
+        f.close()
+
+        f = open('report_%s_%s_%s.txt' % (interval.lower(), end_date, model_name), 'w')
+        f.write('\n'.join(report.to_lists(start_date, end_date, interval)))
+        f.close()
+
+        f = open('transactions_%s_%s.txt' % (end_date, model_name), 'w')
+        f.write('\n'.join(report.transactions(start_date, end_date)))
+        f.close()
