@@ -10,7 +10,7 @@ class Trade:
     def order(self):
         return self.__order
 
-    def order_result(self):
+    def result(self):
         return self.__order_result
 
     def __str__(self):
