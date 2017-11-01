@@ -126,7 +126,8 @@ class Risk(object):
             market_forecasts[market_id] += forecasts[key]
         # If sum of all forecast for a market will be zero,
         # there will be no position in the market and thus not included in the weight
-        weight = 1.0 / len([k for k in market_forecasts.keys() if market_forecasts[k]])
+        length = len([k for k in market_forecasts.keys() if market_forecasts[k]])
+        weight = 1.0 / length if length else 1.0
         position_sizes = {}
         for key in forecasts.keys():
             volatility_scalar = volatility_scalars[int(key.split('_')[0])]
