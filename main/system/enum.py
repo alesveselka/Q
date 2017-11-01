@@ -99,6 +99,11 @@ class CapitalCorrection:
     PARTIAL_COMPOUNDING = 'partial_compounding'
 
 
+class SweepFxRule:
+    DAILY = 'daily'
+    NO_POSITIONS = 'no_positions'
+
+
 class Table:
     class Market:
         CODE = 0
