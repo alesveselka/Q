@@ -11,7 +11,6 @@ from account import Account
 from broker import Broker
 from series.data_series import DataSeries
 from investment_universe import InvestmentUniverse
-from portfolio import Portfolio
 from risk import Risk
 from simulate import Simulate
 from trading_models.breakout_ma_filter_atr_stop import BreakoutMAFilterATRStop
@@ -53,9 +52,13 @@ class Initialize:
 
         start_data_date = investment_universe.start_data_date()
         account = Account(Decimal(params['initial_balance']), start_data_date, base_currency, currency_pairs)
-        broker = Broker(account, commission, interest_rates, interest_minimums)
+        broker = Broker(account, commission, interest_rates, interest_minimums, {f.id(): f for f in futures})
         trading_params = json.loads(simulation[Table.Simulation.TRADING_PARAMS])
-        trading_model = self.__trading_model(simulation[Table.Simulation.TRADING_MODEL])(futures, trading_params)
+        trading_model = self.__trading_model(simulation[Table.Simulation.TRADING_MODEL])(
+            simulation[Table.Simulation.NAME],
+            futures,
+            trading_params
+        )
 
         Simulate(
             simulation,
@@ -64,7 +67,6 @@ class Initialize:
             Risk(account, position_sizing, *self.__position_sizing_params(params, trading_params)),
             account,
             broker,
-            Portfolio(account),
             trading_model,
             params['position_inertia'],
             params['use_position_inertia']

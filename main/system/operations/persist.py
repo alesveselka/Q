@@ -13,7 +13,7 @@ from decimal import Decimal, InvalidOperation
 
 class Persist:
 
-    def __init__(self, simulation_id, roll_strategy, start_date, end_date, order_results, account, portfolio, data_series):
+    def __init__(self, simulation_id, roll_strategy, start_date, end_date, account, broker, data_series):
         self.__connection = mysql.connect(
             os.environ['DB_HOST'],
             os.environ['DB_USER'],
@@ -24,58 +24,54 @@ class Persist:
         roll_strategy_name = roll_strategy[Table.RollStrategy.NAME]
         futures = data_series.futures(None, None, None, None, None, None)
 
-        # self.__save_orders(simulation_id, order_results)
+        # self.__save_trades(simulation_id, broker.trades(start_date, end_date))
         # self.__save_transactions(simulation_id, account.transactions(start_date, end_date))
-        # self.__save_positions(simulation_id, portfolio)
+        # self.__save_positions(simulation_id, broker, start_date, end_date)
         # self.__save_studies(simulation_id, futures, data_series.study_parameters())
         # self.__save_equity(simulation_id, account, start_date, end_date)
 
         # self.__save_price_series(simulation_id, roll_strategy_id, roll_strategy_name, futures)
 
-    def __save_orders(self, simulation_id, order_results):
+    def __save_trades(self, simulation_id, trades):
         """
         Serialize and insert Order instances into DB
 
-        :param simulation_id:   ID of the simulation
-        :param order_results:   list of OrderResult objects
+        :param int simulation_id:   ID of the simulation
+        :param list trades:         list of Trade objects
         """
-        self.__log('Saving orders')
+        self.__log('Saving trades')
 
         values = []
-        for result in order_results:
-            order = result.order()
-            date = order.date()
-            market = order.market()
-            contract = order.contract()
+        for trade in trades:
+            order = trade.order()
+            result = trade.result()
 
             values.append((
                 simulation_id,
-                market.id(),
-                contract,
-                order.type(),
-                order.signal_type(),
-                date,
+                order.market().id(),
+                order.contract(),
+                order.date(),
                 order.price(),
-                result.quantity(),
+                order.quantity(),
                 result.type(),
-                result.price()
+                result.price(),
+                result.quantity()
             ))
 
         self.__insert_values(
-            'order',
+            'trade',
             'simulation_id',
             simulation_id,
             [
                 'simulation_id',
                 'market_id',
                 'contract',
-                'type',
-                'signal_type',
                 'date',
-                'price',
-                'quantity',
+                'order_price',
+                'order_quantity',
                 'result_type',
-                'result_price'
+                'result_price',
+                'result_quantity'
             ], values
         )
 
@@ -104,46 +100,63 @@ class Persist:
                 t.context_json()) for t in transactions]
         )
 
-    def __save_positions(self, simulation_id, portfolio):
+    def __save_positions(self, simulation_id, broker, start_date, end_date):
         """
-        Serialize and insert Position instances into DB
-
-        :param portfolio:   Portfolio object with references to lists of positions
+        Save market positions into DB
+        
+        :param int simulation_id:   ID of the simulation
+        :param Broker broker:       Broker object
+        :param date start_date:     starting date of the simulation
+        :param date end_date:       end date of the simulation
         """
         self.__log('Saving positions')
 
-        precision = 10
-        self.__insert_values(
-            'position',
-            'simulation_id',
-            simulation_id,
-            [
-                'simulation_id',
-                'market_id',
-                'direction',
-                'contract',
-                'enter_date',
-                'enter_price',
-                'exit_date',
-                'exit_price',
-                'quantity',
-                'pnl',
-                'commissions'
-            ],
-            [(
-                 simulation_id,
-                 p.market().id(),
-                 p.direction(),
-                 p.contract(),
-                 p.enter_date(),
-                 p.enter_price(),
-                 p.exit_date(),
-                 p.exit_price(),
-                 p.order_results()[0].quantity(),  # TODO quantity change in time now
-                 p.pnl(),
-                 self.__round(p.commissions(), precision)
-             ) for p in portfolio.closed_positions() + portfolio.open_positions()]
-        )
+        columns = ['simulation_id', 'date', 'positions']
+        values = []
+        date_range = Timer.daily_date_range(start_date, end_date)
+        length = float(len(date_range))
+
+        for i, date in enumerate(date_range):
+            self.__log('Saving positions', i, length)
+            values.append((simulation_id, date, self.__json(broker.positions(date))))
+
+        self.__insert_values('positions', 'simulation_id', simulation_id, columns, values)
+
+        self.__log('Saving positions', complete=True)
+
+        # TODO also save individual positions in time?
+        # precision = 10
+        # self.__insert_values(
+        #     'position',
+        #     'simulation_id',
+        #     simulation_id,
+        #     [
+        #         'simulation_id',
+        #         'market_id',
+        #         'direction',
+        #         'contract',
+        #         'enter_date',
+        #         'enter_price',
+        #         'exit_date',
+        #         'exit_price',
+        #         'quantity',
+        #         'pnl',
+        #         'commissions'
+        #     ],
+        #     [(
+        #          simulation_id,
+        #          p.market().id(),
+        #          p.direction(),
+        #          p.contract(),
+        #          p.enter_date(),
+        #          p.enter_price(),
+        #          p.exit_date(),
+        #          p.exit_price(),
+        #          p.order_results()[0].quantity(),  # TODO quantity change in time now
+        #          p.pnl(),
+        #          self.__round(p.commissions(), precision)
+        #      ) for p in portfolio.closed_positions() + portfolio.open_positions()]
+        # )
 
     def __save_price_series(self, simulation_id, roll_strategy_id, roll_strategy_name, markets):
         """

@@ -10,6 +10,22 @@ class TradingModel:
 
     __metaclass__ = ABCMeta
 
+    def __init__(self, name):
+        """
+        Initialize model with name
+        
+        :param string name: 
+        """
+        self._name = name
+
+    def name(self):
+        """
+        Return model's name
+        
+        :return string: 
+        """
+        return self._name
+
     @abstractmethod
     def signals(self, date, positions):
         """
@@ -19,17 +35,6 @@ class TradingModel:
         :param positions:       list of open positions
         """
         raise NotImplementedError("Should implement 'signals()'")
-
-    def _market_position(self, positions, market):
-        """
-        Find and return position by market passed in
-        
-        :param positions:   list of open positions
-        :param market:      Market to filter by
-        :return:            Position object
-        """
-        positions = [p for p in positions if p.market() == market]
-        return positions[0] if len(positions) == 1 else None
 
     def _should_roll(self, date, previous_date, market, position_contract, signals):
         """

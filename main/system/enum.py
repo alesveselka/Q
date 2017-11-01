@@ -24,14 +24,6 @@ class Direction:
     SHORT = 'SHORT'
 
 
-class SignalType:
-    ENTER = 'ENTER'
-    EXIT = 'EXIT'
-    ROLL_ENTER = 'ROLL_ENTER'
-    ROLL_EXIT = 'ROLL_EXIT'
-    REBALANCE = 'REBALANCE'
-
-
 class StopType:
     TRAILING_STOP = 'trailing_stop'
     FIXED_STOP = 'fixed_stop'

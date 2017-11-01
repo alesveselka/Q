@@ -2,7 +2,6 @@
 
 from enum import Study
 from enum import Direction
-from enum import SignalType
 from enum import Table
 from strategy_signal import Signal
 from trading_models.trading_model import TradingModel
@@ -17,9 +16,12 @@ class MATrendOnPullback(TradingModel):
     Exit stops are at ATR multiples.
     """
 
-    def __init__(self, markets, params):
+    def __init__(self, name, markets, params):
+        super(MATrendOnPullback, self).__init__(name)
         self.__markets = markets
         self.__stop_multiple = int(params['stop_multiple'])
+        self.__forecast = 10.0
+        self.__positions_enter_dates = {}
 
     def signals(self, date, positions):
         """
@@ -30,42 +32,52 @@ class MATrendOnPullback(TradingModel):
         """
         signals = []
 
+        self.__update_enter_dates(date, positions)
+
         for market in self.__markets:
             market_data, previous_data = market.data(date)
 
             if market.has_study_data() and market_data:
+                market_id = str(market.id())
+                market_positions = {k.split('_')[1]: positions[k] for k in positions.keys() if k.split('_')[0] == market_id}
+                market_position = market_positions.items()[0] if len(market_positions) else None
                 previous_date = previous_data[Table.Market.PRICE_DATE]
-                ma_long = market.study(Study.MA_LONG, date)[Table.Study.VALUE]
-                ma_short = market.study(Study.MA_SHORT, date)[Table.Study.VALUE]
-                price = market_data[Table.Market.SETTLE_PRICE]
-                market_position = self._market_position(positions, market)
-                previous_price = previous_data[Table.Market.SETTLE_PRICE]
-                previous_ma_short = market.study(Study.MA_SHORT, previous_date)[Table.Study.VALUE]
+                settle_price = market_data[Table.Market.SETTLE_PRICE]
 
                 if market_position:
-                    direction = market_position.direction()
+                    position_contract = market_position[0]
+                    position_quantity = market_position[1]
+                    direction = Direction.LONG if position_quantity > 0 else Direction.SHORT
+                    # Exit
                     if direction == Direction.LONG:
-                        if price <= self.__stop_loss(date, market_position):
-                            signals.append(Signal(market, SignalType.EXIT, direction, date, price))
+                        if settle_price <= self.__stop_loss(date, market, market_id, direction):
+                            signals.append(Signal(date, market, position_contract, 0, settle_price))
                     elif direction == Direction.SHORT:
-                        if price >= self.__stop_loss(date, market_position):
-                            signals.append(Signal(market, SignalType.EXIT, direction, date, price))
+                        if settle_price >= self.__stop_loss(date, market, market_id, direction):
+                            signals.append(Signal(date, market, position_contract, 0, settle_price))
+                    # Roll
+                    if self._should_roll(date, previous_date, market, position_contract, signals):
+                        sign = 1 if position_quantity > 0 else -1
+                        signals.append(Signal(date, market, position_contract, 0, settle_price))
+                        signals.append(Signal(date, market, market.contract(date), self.__forecast * sign, settle_price))
+                else:
+                    ma_long = market.study(Study.MA_LONG, date)[Table.Study.VALUE]
+                    ma_short = market.study(Study.MA_SHORT, date)[Table.Study.VALUE]
+                    previous_price = previous_data[Table.Market.SETTLE_PRICE]
+                    previous_ma_short = market.study(Study.MA_SHORT, previous_date)[Table.Study.VALUE]
+                    contract = market.contract(date)
+                    # Enter
+                    if ma_short > ma_long:
+                        if previous_price < previous_ma_short and settle_price > ma_short:
+                            signals.append(Signal(date, market, contract, self.__forecast, settle_price))
 
-                    if self._should_roll(date, previous_date, market, market_position.contract(), signals):
-                        signals.append(Signal(market, SignalType.ROLL_EXIT, direction, date, price))
-                        signals.append(Signal(market, SignalType.ROLL_ENTER, direction, date, price))
-
-                if ma_short > ma_long:
-                    if previous_price < previous_ma_short and price > ma_short:
-                        signals.append(Signal(market, SignalType.ENTER, Direction.LONG, date, price))
-
-                elif ma_short < ma_long:
-                    if previous_price > previous_ma_short and price < ma_short:
-                        signals.append(Signal(market, SignalType.ENTER, Direction.SHORT, date, price))
+                    elif ma_short < ma_long:
+                        if previous_price > previous_ma_short and settle_price < ma_short:
+                            signals.append(Signal(date, market, contract, -self.__forecast, settle_price))
 
         return signals
 
-    def __stop_loss(self, date, position):
+    def __stop_loss(self, date, market, market_id, direction):
         """
         Calculate and return Stop Loss price for the position and date passed in
         
@@ -73,7 +85,24 @@ class MATrendOnPullback(TradingModel):
         :param position:    position for which to calculate the stop loss
         :return:            price representing the stop loss
         """
-        prices = position.prices()
-        atr = position.market().study(Study.ATR_SHORT, date)[Table.Study.VALUE]
+        data = market.data_range(self.__positions_enter_dates[market_id], date)
+        prices = [d[Table.Market.SETTLE_PRICE] for d in data]
+        atr = market.study(Study.ATR_SHORT, date)[Table.Study.VALUE]
         risk = atr * self.__stop_multiple
-        return max(prices) - risk if position.direction() == Direction.LONG else min(prices) + risk
+        return max(prices) - risk if direction == Direction.LONG else min(prices) + risk
+
+    def __update_enter_dates(self, date, positions):
+        """
+        Update dict with market IDs and their respective position enter dates
+        
+        :param date:        current date
+        :param positions:   dict of positions(market_id_market_contract: quantity)
+        """
+        position_ids = [k.split('_')[0] for k in positions.keys()]
+        for market_id in position_ids:
+            if market_id not in self.__positions_enter_dates:
+                self.__positions_enter_dates[market_id] = date
+
+        for key in self.__positions_enter_dates.keys():
+            if key not in position_ids:
+                self.__positions_enter_dates.pop(key, None)

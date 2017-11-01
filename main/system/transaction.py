@@ -50,8 +50,8 @@ class Transaction(object):
                 'market_id': market.id(),
                 'contract': order.contract(),
                 'instrument_code': market.code(),
-                'order_type': order.type(),
-                'quantity': order_result.quantity(),
+                'order_type': 'Buy' if order_result.quantity() > 0 else 'Sell',
+                'quantity': abs(order_result.quantity()),
                 'price': str(self.__context_data[2])
             }
         elif self.__type == TransactionType.MARGIN_LOAN:
@@ -94,8 +94,8 @@ class Transaction(object):
                 self.__account_action,
                 self.__amount,
                 self.__currency,
-                order.type(),
-                order_result.quantity(),
+                'Buy' if order_result.quantity() > 0 else 'Sell',
+                abs(order_result.quantity()),
                 market.code(),
                 (' (%s)' % order.contract()) if order.contract() else '',
                 self.__context_data[2]
