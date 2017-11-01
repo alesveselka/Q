@@ -44,7 +44,6 @@ def __risk_params(position_sizing,
                   capital_correction,
                   partial_compounding_factor=0.25,
                   risk_factor=0.002,
-                  no_trade_zone=0.25,
                   volatility_target=0.2,
                   volatility_lookback=25,
                   use_ew=True,
@@ -55,8 +54,7 @@ def __risk_params(position_sizing,
             'position_inertia': 0.25,
             'use_position_inertia': False,
             'capital_correction': capital_correction,
-            'partial_compounding_factor': partial_compounding_factor,
-            'no_trade_zone': no_trade_zone
+            'partial_compounding_factor': partial_compounding_factor
         },
         EQUAL_WEIGHTS: {
             'volatility_target': volatility_target,
@@ -65,8 +63,7 @@ def __risk_params(position_sizing,
             'position_inertia': 0.25,
             'use_position_inertia': True,
             'capital_correction': capital_correction,
-            'partial_compounding_factor': partial_compounding_factor,
-            'no_trade_zone': no_trade_zone
+            'partial_compounding_factor': partial_compounding_factor
         },
         CORRELATION_WEIGHTS: {
             'volatility_target': volatility_target,
@@ -77,8 +74,7 @@ def __risk_params(position_sizing,
             'position_inertia': 0.25,
             'use_position_inertia': True,
             'capital_correction': capital_correction,
-            'partial_compounding_factor': partial_compounding_factor,
-            'no_trade_zone': no_trade_zone
+            'partial_compounding_factor': partial_compounding_factor
         }
     }[position_sizing]
 
