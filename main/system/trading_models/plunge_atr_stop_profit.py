@@ -6,9 +6,10 @@ from enum import StopType
 from enum import Table
 from strategy_signal import Signal
 from trading_models.trading_model import TradingModel
+from trading_models.binary_trading_model import BinaryTradingModel
 
 
-class PlungeATRStopProfit(TradingModel):
+class PlungeATRStopProfit(TradingModel, BinaryTradingModel):
     """
     'Plunge' model.
     
@@ -17,7 +18,9 @@ class PlungeATRStopProfit(TradingModel):
     """
 
     def __init__(self, name, markets, params):
-        super(PlungeATRStopProfit, self).__init__(name)
+        TradingModel.__init__(self, name)
+        BinaryTradingModel.__init__(self, params['rebalance_interval'], params['roll_lookout_days'])
+
         self.__markets = markets
         self.__enter_multiple = int(params['enter_multiple'])
         self.__stop_multiple = int(params['stop_multiple'])
@@ -56,15 +59,18 @@ class PlungeATRStopProfit(TradingModel):
                     direction = Direction.LONG if position_quantity > 0 else Direction.SHORT
                     if direction == trend_direction:
                         previous_date = previous_data[Table.Market.PRICE_DATE]
+                        # Exit
                         if self.__should_exit(date, market, market_id, settle_price, direction):
-                            # Exit
                             signals.append(Signal(date, market, position_contract, 0, settle_price))
-
+                        # Roll
                         if self._should_roll(date, previous_date, market, position_contract, signals):
-                            # Roll
                             sign = 1 if position_quantity > 0 else -1
                             signals.append(Signal(date, market, position_contract, 0, settle_price))
                             signals.append(Signal(date, market, market.contract(date), self.__forecast * sign, settle_price))
+                        # Rebalance
+                        if self._should_rebalance(market, position_contract, date, previous_date, signals):
+                            sign = 1 if position_quantity > 0 else -1
+                            signals.append(Signal(date, market, position_contract, self.__forecast * sign, settle_price))
                     else:
                         # Exit in case of trend change
                         signals.append(Signal(date, market, position_contract, 0, settle_price))
