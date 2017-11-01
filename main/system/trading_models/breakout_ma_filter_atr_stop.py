@@ -3,6 +3,8 @@
 from enum import Study
 from enum import Direction
 from enum import Table
+from enum import Interval
+from datetime import timedelta
 from strategy_signal import Signal
 from trading_models.trading_model import TradingModel
 
@@ -22,6 +24,9 @@ class BreakoutMAFilterATRStop(TradingModel):
         self.__stop_multiple = int(params['stop_multiple'])
         self.__forecast = 10.0
         self.__positions_enter_dates = {}
+        self.__roll_lookout_days = 7
+        # TODO load rebalance interval from params
+        self.__rebalance_interval = Interval.MONTHLY
 
     def signals(self, date, positions):
         """
@@ -62,10 +67,9 @@ class BreakoutMAFilterATRStop(TradingModel):
                         signals.append(Signal(date, market, market.contract(date), self.__forecast * sign, settle_price))
 
                     # Rebalance
-                    # TODO load rebalance interval from params
-                    # if not len([s for s in signals if s.market() == market and s.contract() == contract]):
-                    #     sign = 1 if position_quantity > 0 else -1
-                    #     signals.append(Signal(date, market, market.contract(date), self.__forecast * sign, settle_price))
+                    if self.__should_rebalance(market, position_contract, date, previous_date, signals):
+                        sign = 1 if position_quantity > 0 else -1
+                        signals.append(Signal(date, market, position_contract, self.__forecast * sign, settle_price))
                 else:
                     ma_long = market.study(Study.MA_LONG, date)[Table.Study.VALUE]
                     ma_short = market.study(Study.MA_SHORT, date)[Table.Study.VALUE]
@@ -111,3 +115,22 @@ class BreakoutMAFilterATRStop(TradingModel):
         for key in self.__positions_enter_dates.keys():
             if key not in position_ids:
                 self.__positions_enter_dates.pop(key, None)
+
+    def __should_rebalance(self, market, position_contract, date, previous_date, signals):
+        """
+        Check if position should be rebalanced based on data passed in
+        
+        :param Market market:               market for which to check the rebalance
+        :param string position_contract:    contract for which to check the rebalnce
+        :param date date:                   current date
+        :param date previous_date:          previous date
+        :param list signals:                list of new Signal objects
+        :return boolean: 
+        """
+        rebalance = False
+        if self.__rebalance_interval == Interval.MONTHLY and date.month != previous_date.month:
+            if not len([s for s in signals if s.market() == market and s.contract() == position_contract]):
+                roll_date = date + timedelta(days=self.__roll_lookout_days)
+                scheduled_contract = market.scheduled_roll(roll_date)[Table.ContractRoll.ROLL_IN_CONTRACT]
+                rebalance = position_contract == scheduled_contract
+        return rebalance
