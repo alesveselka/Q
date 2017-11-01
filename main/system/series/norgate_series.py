@@ -81,6 +81,30 @@ class NorgateSeries(MarketSeries):
         """
         return None
 
+    def previous_contract(self, contract):
+        """
+        Return contract code before the one passed in
+        
+        :return:    string code representing the previous contract
+        """
+        return None
+
+    def next_contract(self, contract):
+        """
+        Return contract code after the one passed in
+        
+        :return:    string code representing the next contract
+        """
+        return None
+
+    def contract_data(self, contract, date):
+        """
+        Return data of contract passed in
+        
+        :return:    tuple representing one day record
+        """
+        return None
+
     def rolls(self):
         """
         Return empty list since the continuous series doesn't have roll data
@@ -96,4 +120,4 @@ class NorgateSeries(MarketSeries):
         :param date:    date of the roll
         :return string: contract symbol
         """
-        raise None
+        return None
