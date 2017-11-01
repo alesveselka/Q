@@ -54,14 +54,16 @@ def __risk_params(position_sizing,
                   volatility_target=0.2,
                   volatility_lookback=25,
                   use_ew=True,
-                  group_weights=False):
+                  group_weights=False,
+                  rebalance_interval=None):
     return {
         RISK_FACTOR: {
             'risk_factor': risk_factor,
-            'position_inertia': 0.25,
+            'position_inertia': 0.1,
             'use_position_inertia': False,
             'capital_correction': capital_correction,
-            'partial_compounding_factor': partial_compounding_factor
+            'partial_compounding_factor': partial_compounding_factor,
+            'rebalance_interval': rebalance_interval
         },
         EQUAL_WEIGHTS: {
             'volatility_target': volatility_target,
@@ -267,6 +269,7 @@ def simulations():
         simulation(
             TradingModel.BREAKOUT_WITH_MA_FILTER_AND_ATR_STOP, '3',
             simulation_params(RISK_FACTOR, __risk_params(RISK_FACTOR, FULL_COMPOUNDING)),
+            # simulation_params(RISK_FACTOR, __risk_params(RISK_FACTOR, FULL_COMPOUNDING, rebalance_interval='MONTHLY')),
             'optimal_roll_1', study_windows, {}
         ),
         simulation(
@@ -399,7 +402,7 @@ if __name__ == '__main__':
     RISK_FACTOR = 'risk_factor'
     EQUAL_WEIGHTS = 'volatility_target_equal_weights'
     CORRELATION_WEIGHTS = 'volatility_target_correlation_weights'
-
+    FIXED = 'fixed'
     FULL_COMPOUNDING = 'full_compounding'
     HALF_COMPOUNDING = 'half_compounding'
     PARTIAL_COMPOUNDING = 'partial_compounding'
@@ -407,4 +410,6 @@ if __name__ == '__main__':
     # trading_model = trading_models[TradingModel.CARRY]
     # insert_trading_models([(trading_model['name'], trading_model['desc'])])
     # insert_simulations([simulations()[-1]])
-    # update_simulation(simulation_id(simulations[-1][0]), 'studies', simulations()[-1][4])
+    # update_simulation(simulation_id(simulations()[2][0]), 'params', simulations()[2][1])
+    # for simulation in simulations():
+    #     update_simulation(simulation_id(simulation[0]), 'params', simulation[1])
