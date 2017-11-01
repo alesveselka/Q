@@ -52,7 +52,6 @@ class Risk(object):
             price_date = date
             prices = {}
             correlation_data = {}
-            # TODO need to be sorted?
             for market_id in sorted(markets.keys()):
                 market = markets[market_id]
                 market_data, _ = market.data(date)
