@@ -159,7 +159,6 @@ class Simulate:
         """
         orders = []
         signals_to_remove = []
-        no_trade_zone = 0.25  # TODO load from params
 
         for signal in self.__trading_signals:
             market = signal.market()
@@ -172,7 +171,7 @@ class Simulate:
                 if open_position is None or open_position != position_size:
                     order_size = position_size - (open_position if open_position else 0)
                     open_price = market_data[Table.Market.OPEN_PRICE]
-                    no_trade_size = abs(open_position * no_trade_zone if open_position else 0)
+                    no_trade_size = abs(open_position * self.__position_inertia if open_position else 0)
                     if abs(order_size) > no_trade_size:
                         orders.append(Order(date, market, signal.contract(), open_price, order_size))
 
