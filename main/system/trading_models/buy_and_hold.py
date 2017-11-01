@@ -38,7 +38,7 @@ class BuyAndHold(TradingModel):
                 price = market_data[Table.Market.SETTLE_PRICE]
 
                 if market_position:
-                    position_contract = market_position[0]
+                    position_contract = self._position_contract(market_position[0])
                     position_quantity = market_position[1]
                     previous_date = previous_data[Table.Market.PRICE_DATE]
                     if self._should_roll(date, previous_date, market, position_contract, signals):

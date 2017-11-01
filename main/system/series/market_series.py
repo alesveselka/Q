@@ -251,6 +251,16 @@ class MarketSeries(object):
         raise NotImplementedError("Should implement 'rolls()'")
 
     @abstractmethod
+    def scheduled_roll(self, date):
+        """
+        Return scheduled contract, if any
+        
+        :param date:    date of the roll
+        :return string: contract symbol
+        """
+        raise NotImplementedError("Should implement 'scheduled_roll()'")
+
+    @abstractmethod
     def margin(self, end_date, point_value):
         """
         Return calculated margin based on price and point value at the date passed in

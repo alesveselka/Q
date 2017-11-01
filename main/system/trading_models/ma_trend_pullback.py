@@ -5,9 +5,10 @@ from enum import Direction
 from enum import Table
 from strategy_signal import Signal
 from trading_models.trading_model import TradingModel
+from trading_models.binary_trading_model import BinaryTradingModel
 
 
-class MATrendOnPullback(TradingModel):
+class MATrendOnPullback(TradingModel, BinaryTradingModel):
     """
     MA Trend model.
     
@@ -17,7 +18,9 @@ class MATrendOnPullback(TradingModel):
     """
 
     def __init__(self, name, markets, params):
-        super(MATrendOnPullback, self).__init__(name)
+        TradingModel.__init__(self, name)
+        BinaryTradingModel.__init__(self, params['rebalance_interval'], params['roll_lookout_days'])
+
         self.__markets = markets
         self.__stop_multiple = int(params['stop_multiple'])
         self.__forecast = 10.0
@@ -45,7 +48,7 @@ class MATrendOnPullback(TradingModel):
                 settle_price = market_data[Table.Market.SETTLE_PRICE]
 
                 if market_position:
-                    position_contract = market_position[0]
+                    position_contract = self._position_contract(market_position[0])
                     position_quantity = market_position[1]
                     direction = Direction.LONG if position_quantity > 0 else Direction.SHORT
                     # Exit
@@ -60,6 +63,10 @@ class MATrendOnPullback(TradingModel):
                         sign = 1 if position_quantity > 0 else -1
                         signals.append(Signal(date, market, position_contract, 0, settle_price))
                         signals.append(Signal(date, market, market.contract(date), self.__forecast * sign, settle_price))
+                    # Rebalance
+                    if self._should_rebalance(market, position_contract, date, previous_date, signals):
+                        sign = 1 if position_quantity > 0 else -1
+                        signals.append(Signal(date, market, position_contract, self.__forecast * sign, settle_price))
                 else:
                     ma_long = market.study(Study.MA_LONG, date)[Table.Study.VALUE]
                     ma_short = market.study(Study.MA_SHORT, date)[Table.Study.VALUE]

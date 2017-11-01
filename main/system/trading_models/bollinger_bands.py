@@ -5,9 +5,10 @@ from enum import Direction
 from enum import Table
 from strategy_signal import Signal
 from trading_models.trading_model import TradingModel
+from trading_models.binary_trading_model import BinaryTradingModel
 
 
-class BollingerBands(TradingModel):
+class BollingerBands(TradingModel, BinaryTradingModel):
     """
     'Bollinger Bands' model.
     
@@ -15,7 +16,9 @@ class BollingerBands(TradingModel):
     """
 
     def __init__(self, name, markets, params):
-        super(BollingerBands, self).__init__(name)
+        TradingModel.__init__(self, name)
+        BinaryTradingModel.__init__(self, params['rebalance_interval'], params['roll_lookout_days'])
+
         self.__markets = markets
         self.__forecast = 10.0
 
@@ -43,7 +46,7 @@ class BollingerBands(TradingModel):
                 ma_short = market.study(Study.MA_SHORT, date)[Table.Study.VALUE]
 
                 if market_position:
-                    position_contract = market_position[0]
+                    position_contract = self._position_contract(market_position[0])
                     position_quantity = market_position[1]
                     direction = Direction.LONG if position_quantity > 0 else Direction.SHORT
                     # Exit
@@ -51,12 +54,15 @@ class BollingerBands(TradingModel):
                         signals.append(Signal(date, market, position_contract, 0, price))
                     elif direction == Direction.SHORT and previous_price > previous_ma_short and price <= ma_short:
                         signals.append(Signal(date, market, position_contract, 0, price))
-
+                    # Roll
                     if self._should_roll(date, previous_date, market, position_contract, signals):
-                        # Roll
                         sign = 1 if position_quantity > 0 else -1
                         signals.append(Signal(date, market, position_contract, 0, price))
                         signals.append(Signal(date, market, market.contract(date), self.__forecast * sign, price))
+                    # Rebalance
+                    if self._should_rebalance(market, position_contract, date, previous_date, signals):
+                        sign = 1 if position_quantity > 0 else -1
+                        signals.append(Signal(date, market, position_contract, self.__forecast * sign, price))
                 else:
                     atr = market.study(Study.ATR_SHORT, date)[Table.Study.VALUE]
                     band_offset = 4  # TODO load from params

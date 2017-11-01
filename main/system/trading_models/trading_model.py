@@ -55,3 +55,12 @@ class TradingModel:
                 if position_contract else date.month != previous_date.month
 
         return should_roll
+
+    def _position_contract(self, position_contract):
+        """
+        Return position contract if its not 'None', otherwise return NoneType
+        
+        :param string position_contract:    contract symbol
+        :return:                            string representing the contract or NoneType
+        """
+        return position_contract if position_contract != 'None' else None

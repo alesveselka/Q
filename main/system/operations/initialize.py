@@ -53,7 +53,7 @@ class Initialize:
         start_data_date = investment_universe.start_data_date()
         account = Account(Decimal(params['initial_balance']), start_data_date, base_currency, currency_pairs)
         broker = Broker(account, commission, interest_rates, interest_minimums, params['sweep_fx_rule'], {f.id(): f for f in futures})
-        trading_params = json.loads(simulation[Table.Simulation.TRADING_PARAMS])
+        trading_params = self.__trading_params(params, simulation[Table.Simulation.TRADING_PARAMS])
         trading_model = self.__trading_model(simulation[Table.Simulation.TRADING_MODEL])(
             simulation[Table.Simulation.NAME],
             futures,
@@ -127,6 +127,19 @@ class Initialize:
             params.get('partial_compounding_factor', 0.25),
             trading_params.get('forecast_const', 10.0)
         )
+
+    def __trading_params(self, params, trading_params):
+        """
+        Return combination of trading params and params
+        
+        :param dict params:             general parameters
+        :param string trading_params:   trading-related parameters as JSON string
+        :return dict: 
+        """
+        return dict(json.loads(trading_params).items() + {
+            'rebalance_interval': params.get('rebalance_interval', None),
+            'roll_lookout_days': 7,
+        }.items())
 
     def __trading_model(self, name):
         """
