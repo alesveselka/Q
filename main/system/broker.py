@@ -6,6 +6,7 @@ from enum import OrderResultType
 from enum import TransactionType
 from enum import Table
 from enum import Study
+from enum import SweepFxRule
 from trade import Trade
 from order_result import OrderResult
 from transaction import Transaction
@@ -17,12 +18,13 @@ import datetime as dt
 
 class Broker(object):
 
-    def __init__(self, account, commission, interest_rates, minimums, markets):
+    def __init__(self, account, commission, interest_rates, minimums, sweep_fx_rule, markets):
         self.__account = account
         self.__commission = commission[0]
         self.__commission_currency = commission[1]
         self.__interest_rates = interest_rates
         self.__minimums = minimums
+        self.__sweep_fx_rule = sweep_fx_rule
         self.__markets = markets
         self.__trade_records = []
         self.__trade_indexes = defaultdict(list)
@@ -42,8 +44,8 @@ class Broker(object):
         self.__charge_interest(date, previous_date)
         self.__pay_interest(date, previous_date)
 
-        # TODO Sweep regularly?
-        if not self.positions(date):
+        if self.__sweep_fx_rule == SweepFxRule.DAILY \
+                or (self.__sweep_fx_rule == SweepFxRule.NO_POSITIONS and not self.positions(date)):
             self.__sweep_fx_funds(date)
 
         # TODO Fx hedge

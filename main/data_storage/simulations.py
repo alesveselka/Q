@@ -3,6 +3,11 @@ import json
 import MySQLdb as mysql
 
 
+class SweepFxRule:
+    DAILY = 'daily'
+    NO_POSITIONS = 'no_positions'
+
+
 def insert_trading_models(values):
     with mysql_connection:
         cursor = mysql_connection.cursor()
@@ -16,6 +21,13 @@ def insert_simulations(values):
     with mysql_connection:
         cursor = mysql_connection.cursor()
         cursor.executemany(command, values)
+
+
+def simulation_id(name):
+    cursor = mysql_connection.cursor()
+    command = """SELECT `id` FROM `simulation` WHERE name = '%s';"""
+    cursor.execute(command % name)
+    return cursor.fetchone()[0]
 
 
 def update_simulation(simulation_id, column, value):
@@ -39,7 +51,6 @@ def __risk_params(position_sizing,
                   capital_correction,
                   partial_compounding_factor=0.25,
                   risk_factor=0.002,
-                  no_trade_zone=0.25,
                   volatility_target=0.2,
                   volatility_lookback=25,
                   use_ew=True,
@@ -47,21 +58,19 @@ def __risk_params(position_sizing,
     return {
         RISK_FACTOR: {
             'risk_factor': risk_factor,
-            'position_inertia': 0.1,
+            'position_inertia': 0.25,
             'use_position_inertia': False,
             'capital_correction': capital_correction,
-            'partial_compounding_factor': partial_compounding_factor,
-            'no_trade_zone': no_trade_zone
+            'partial_compounding_factor': partial_compounding_factor
         },
         EQUAL_WEIGHTS: {
             'volatility_target': volatility_target,
             'volatility_lookback': volatility_lookback,
             'volatility_type': 'movement',
-            'position_inertia': 0.1,
+            'position_inertia': 0.25,
             'use_position_inertia': True,
             'capital_correction': capital_correction,
-            'partial_compounding_factor': partial_compounding_factor,
-            'no_trade_zone': no_trade_zone
+            'partial_compounding_factor': partial_compounding_factor
         },
         CORRELATION_WEIGHTS: {
             'volatility_target': volatility_target,
@@ -69,16 +78,15 @@ def __risk_params(position_sizing,
             'volatility_type': 'movement',
             'use_ew_correlation': use_ew,
             'use_group_correlation_weights': group_weights,
-            'position_inertia': 0.1,
+            'position_inertia': 0.25,
             'use_position_inertia': True,
             'capital_correction': capital_correction,
-            'partial_compounding_factor': partial_compounding_factor,
-            'no_trade_zone': no_trade_zone
+            'partial_compounding_factor': partial_compounding_factor
         }
     }[position_sizing]
 
 
-def simulation_params(position_sizing, risk_params, initial_balance=1e6):
+def simulation_params(position_sizing, risk_params, initial_balance=1e6, sweep_fx_rule=SweepFxRule.NO_POSITIONS):
     # TODO also 'rebalance', 'long_only'
     # TODO also test 'USD' base currency and observe effect on margin interest
     return dict(risk_params.items() + {
@@ -103,7 +111,8 @@ def simulation_params(position_sizing, risk_params, initial_balance=1e6):
             {'atr': 0.1, 'min': 10000, 'max': 50000},
             {'atr': 0.05, 'min': 50000, 'max': 200000},
             {'atr': 0.01, 'min': 200000, 'max': 1e9}
-        ]
+        ],
+        'sweep_fx_rule': sweep_fx_rule
     }.items())
 
 
@@ -340,7 +349,6 @@ def simulations():
 
 
 class TradingModel:
-    # TODO Carry
     # TODO Combined Continuous (EWMACs + Carries)
     BREAKOUT_WITH_MA_FILTER_AND_ATR_STOP = 'breakout_with_MA_filter_and_ATR_stop'
     PLUNGE_WITH_ATR_STOP_AND_PROFIT = 'plunge_with_ATR_stop_and_profit'
@@ -391,7 +399,7 @@ if __name__ == '__main__':
     RISK_FACTOR = 'risk_factor'
     EQUAL_WEIGHTS = 'volatility_target_equal_weights'
     CORRELATION_WEIGHTS = 'volatility_target_correlation_weights'
-    FIXED = 'fixed'
+
     FULL_COMPOUNDING = 'full_compounding'
     HALF_COMPOUNDING = 'half_compounding'
     PARTIAL_COMPOUNDING = 'partial_compounding'
@@ -399,4 +407,4 @@ if __name__ == '__main__':
     # trading_model = trading_models[TradingModel.CARRY]
     # insert_trading_models([(trading_model['name'], trading_model['desc'])])
     # insert_simulations([simulations()[-1]])
-    # update_simulation(21, 'studies', simulations()[-1][4])
+    # update_simulation(simulation_id(simulations[-1][0]), 'studies', simulations()[-1][4])
