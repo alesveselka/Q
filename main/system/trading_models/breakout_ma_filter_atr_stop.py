@@ -48,7 +48,7 @@ class BreakoutMAFilterATRStop(TradingModel, BinaryTradingModel):
                 settle_price = market_data[Table.Market.SETTLE_PRICE]
 
                 if market_position:
-                    position_contract = market_position[0]
+                    position_contract = self._position_contract(market_position[0])
                     position_quantity = market_position[1]
                     direction = Direction.LONG if position_quantity > 0 else Direction.SHORT
                     # Exit

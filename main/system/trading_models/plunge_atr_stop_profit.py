@@ -54,7 +54,7 @@ class PlungeATRStopProfit(TradingModel, BinaryTradingModel):
                 trend_direction = Direction.LONG if ma_short > ma_long else Direction.SHORT
 
                 if market_position:
-                    position_contract = market_position[0]
+                    position_contract = self._position_contract(market_position[0])
                     position_quantity = market_position[1]
                     direction = Direction.LONG if position_quantity > 0 else Direction.SHORT
                     if direction == trend_direction:

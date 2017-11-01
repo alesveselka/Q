@@ -46,7 +46,7 @@ class BollingerBands(TradingModel, BinaryTradingModel):
                 ma_short = market.study(Study.MA_SHORT, date)[Table.Study.VALUE]
 
                 if market_position:
-                    position_contract = market_position[0]
+                    position_contract = self._position_contract(market_position[0])
                     position_quantity = market_position[1]
                     direction = Direction.LONG if position_quantity > 0 else Direction.SHORT
                     # Exit

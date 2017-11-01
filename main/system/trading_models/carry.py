@@ -48,7 +48,7 @@ class CARRY(TradingModel):
                 if market_position:
                     price = market_data[Table.Market.SETTLE_PRICE]
                     previous_date = previous_data[Table.Market.PRICE_DATE]
-                    position_contract = market_position[0]
+                    position_contract = self._position_contract(market_position[0])
                     # Roll
                     if self._should_roll(date, previous_date, market, position_contract, signals):
                         signals.append(Signal(date, market, position_contract, 0, price))
