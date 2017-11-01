@@ -84,7 +84,7 @@ class CustomSeries(MarketSeries):
         
         :param date:    date of the data update
         """
-        scheduled_contract = self.__scheduled_roll(date)[Table.ContractRoll.ROLL_IN_CONTRACT] \
+        scheduled_contract = self.scheduled_roll(date)[Table.ContractRoll.ROLL_IN_CONTRACT] \
             if self._roll_strategy[Table.RollStrategy.TYPE] == RollStrategyType.STANDARD_ROLL \
             else self.__optimal_contract(date)
         contract_data = [d for d in self.__contracts[scheduled_contract] if d[Table.Market.PRICE_DATE] == date]
@@ -155,7 +155,7 @@ class CustomSeries(MarketSeries):
         :param point_value: point value of the market instrument
         :return:            number representing margin
         """
-        contract = self.__scheduled_roll(end_date)[Table.ContractRoll.ROLL_IN_CONTRACT]
+        contract = self.scheduled_roll(end_date)[Table.ContractRoll.ROLL_IN_CONTRACT]
         contract_data = [d for d in self.__contracts[contract] if d[Table.Market.PRICE_DATE] <= end_date]
         price = contract_data[-1][Table.Market.SETTLE_PRICE] if len(contract_data) else None
         return price * point_value * 0.1
@@ -172,14 +172,14 @@ class CustomSeries(MarketSeries):
         self.__scheduled_rolls = [(self.__scheduled_roll_date(r[0], self._delivery_months), 0, r[0], r[1])
                                   for r in zip(contract_codes, contract_codes[1:])]
 
-        self.__rolls.append(self.__scheduled_roll(self._start_data_date))
+        self.__rolls.append(self.scheduled_roll(self._start_data_date))
 
         for key in contract_keys:
             key not in contract_codes and self.__contracts.pop(key, None)
 
         self.__contract_keys = sorted(self.__contracts.keys())
 
-    def __scheduled_roll(self, date):
+    def scheduled_roll(self, date):
         """
         Return scheduled roll for the date passed in
         

@@ -88,3 +88,12 @@ class NorgateSeries(MarketSeries):
         :return:    list of tuples(date, gap, roll-out-contract, roll-in-contract)
         """
         return []
+
+    def scheduled_roll(self, date):
+        """
+        Return scheduled contract, if any
+        
+        :param date:    date of the roll
+        :return string: contract symbol
+        """
+        raise None

@@ -83,6 +83,9 @@ class Market:
     def contract_rolls(self):
         return self.__series.rolls()
 
+    def scheduled_roll(self, date):
+        return self.__series.scheduled_roll(date)
+
     def margin(self):
         return self.__margin
 
