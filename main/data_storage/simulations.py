@@ -23,6 +23,13 @@ def insert_simulations(values):
         cursor.executemany(command, values)
 
 
+def simulation_id(name):
+    cursor = mysql_connection.cursor()
+    command = """SELECT `id` FROM `simulation` WHERE name = '%s';"""
+    cursor.execute(command % name)
+    return cursor.fetchone()[0]
+
+
 def update_simulation(simulation_id, column, value):
     cursor = mysql_connection.cursor()
     command = """UPDATE `simulation` SET `%s` = '%s' WHERE id = %s;"""
@@ -400,4 +407,4 @@ if __name__ == '__main__':
     # trading_model = trading_models[TradingModel.CARRY]
     # insert_trading_models([(trading_model['name'], trading_model['desc'])])
     # insert_simulations([simulations()[-1]])
-    # update_simulation(21, 'studies', simulations()[-1][4])
+    # update_simulation(simulation_id(simulations[-1][0]), 'studies', simulations()[-1][4])
