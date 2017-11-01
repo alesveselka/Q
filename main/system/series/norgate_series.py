@@ -33,7 +33,6 @@ class NorgateSeries(MarketSeries):
         """
         super(NorgateSeries, self).load(connection, end_date, delivery_months, market_id, market_code, roll_strategy_id)
 
-        # TODO use connection pool?
         cursor = connection.cursor()
         continuous_query = """
             SELECT %s
@@ -54,7 +53,6 @@ class NorgateSeries(MarketSeries):
             self._start_data_date.strftime('%Y-%m-%d'),
             end_date.strftime('%Y-%m-%d')
         ))
-        # TODO I can make a generator and retrieve the data when needed
         # This may cut 'weekend' dates, but those may be legit in markets in different time-zones (Asia, etc.)
         # TODO implement trading-hours to check properly
         workdays = range(1, 6)

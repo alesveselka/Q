@@ -24,7 +24,7 @@ class PlungeATRStopProfit(TradingModel):
         self.__profit_multiple = int(params['profit_multiple'])
         self.__stop_type = params['stop_type']
         self.__stop_time = int(params['stop_time'])
-        self.__forecast = 10.0  # TODO load from params
+        self.__forecast = 10.0
         self.__positions_enter_dates = {}
 
     def signals(self, date, positions):

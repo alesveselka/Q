@@ -117,7 +117,6 @@ class CustomSeries(MarketSeries):
         """
         super(CustomSeries, self).load(connection, end_date, delivery_months, market_id, market_code, roll_strategy_id)
 
-        # TODO use connection pool?
         cursor = connection.cursor()
         contracts_query = """
             SELECT %s

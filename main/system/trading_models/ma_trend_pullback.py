@@ -20,7 +20,7 @@ class MATrendOnPullback(TradingModel):
         super(MATrendOnPullback, self).__init__(name)
         self.__markets = markets
         self.__stop_multiple = int(params['stop_multiple'])
-        self.__forecast = 10.0  # TODO load from params
+        self.__forecast = 10.0
         self.__positions_enter_dates = {}
 
     def signals(self, date, positions):

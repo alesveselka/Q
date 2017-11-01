@@ -35,9 +35,6 @@ class Broker(object):
         :param date:                date for the market open
         :param previous_date:       previous market date
         """
-        # TODO also check if there is market data for this date, same as in trading systems (AND set previous date accordingly? - different than market date)
-        # TODO do I need to do all these if there is no position open?
-
         self.__record_positions(date, previous_date)
 
         self.__mark_to_market(date, previous_date)
@@ -50,7 +47,7 @@ class Broker(object):
             self.__sweep_fx_funds(date)
 
         # TODO Fx hedge
-        # TODO cash management (3Mo IR?)
+        # TODO cash management (3Mo IR bonds?)
 
     def transfer(self, order, target_position_size, open_position):
         """
@@ -154,7 +151,6 @@ class Broker(object):
         slippage = market.slippage(date, abs(quantity))
         slipped_price = (price + slippage) if quantity > 0 else (price - slippage)
         # TODO add 'execution cost (market impact)' transaction instead of slipped price?
-        # TODO Update only Open price on Market Open?
         # The High and Low prices are not actually available at this point (Market Open),
         # but I'm using them here to not getting execution price out of price range
         high = market_data[Table.Market.HIGH_PRICE]

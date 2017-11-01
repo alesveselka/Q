@@ -17,7 +17,7 @@ class BollingerBands(TradingModel):
     def __init__(self, name, markets, params):
         super(BollingerBands, self).__init__(name)
         self.__markets = markets
-        self.__forecast = 10.0  # TODO load from params
+        self.__forecast = 10.0
 
     def signals(self, date, positions):
         """
@@ -52,7 +52,6 @@ class BollingerBands(TradingModel):
                     elif direction == Direction.SHORT and previous_price > previous_ma_short and price <= ma_short:
                         signals.append(Signal(date, market, position_contract, 0, price))
 
-                    # TODO temporal binding -- check if there are no positions ... (same with generating orders)
                     if self._should_roll(date, previous_date, market, position_contract, signals):
                         # Roll
                         sign = 1 if position_quantity > 0 else -1

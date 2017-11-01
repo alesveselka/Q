@@ -17,7 +17,7 @@ class BuyAndHold(TradingModel):
     def __init__(self, name, markets, params):
         super(BuyAndHold, self).__init__(name)
         self.__markets = markets
-        self.__forecast = 10.0  # TODO load from params
+        self.__forecast = 10.0
 
     def signals(self, date, positions):
         """

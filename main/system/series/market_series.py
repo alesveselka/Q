@@ -267,7 +267,6 @@ class MarketSeries(object):
 
         :return:    string
         """
-        # TODO External 'Entity'?
         columns = {
             'code': Table.Market.CODE,
             'price_date': Table.Market.PRICE_DATE,
