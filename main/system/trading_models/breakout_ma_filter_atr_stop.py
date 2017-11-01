@@ -24,9 +24,8 @@ class BreakoutMAFilterATRStop(TradingModel):
         self.__stop_multiple = int(params['stop_multiple'])
         self.__forecast = 10.0
         self.__positions_enter_dates = {}
-        self.__roll_lookout_days = 7
-        # TODO load rebalance interval from params
-        self.__rebalance_interval = Interval.MONTHLY
+        self.__rebalance_interval = params['rebalance_interval']
+        self.__roll_lookout_days = int(params['roll_lookout_days'])
 
     def signals(self, date, positions):
         """
