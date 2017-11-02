@@ -377,29 +377,31 @@ class Persist:
             positions = broker.positions(date)
 
             for market in markets:
-                market_id = market.id()
-                market_positions = {k.split('_')[1]: positions[k] for k in positions.keys() if k.split('_')[0] == str(market_id)}
-                market_position = market_positions.items()[0] if len(market_positions) else None
-                position_contract = market_position[0] if market_position and market_position[0] != 'None' else None
-                position_quantity = market_position[1] if market_position else 0
-                market_mtm_transactions = [t for t in mtm_transactions if t.context()[0].id() == market_id]
-                market_comm_transactions = [t for t in comm_transactions if t.context()[0].id() == market_id]
-                mtm = account.aggregate(market_mtm_transactions, mtm_types)
-                mtm = sum(account.base_value(mtm[c], c, date) for c in mtm.keys())
-                commissions = account.aggregate(market_comm_transactions, comm_types)
-                commissions = sum(account.base_value(commissions[c], c, date) for c in commissions.keys())
-                equity = mtm + commissions
+                market_data, _ = market.data(date)
+                if market_data:
+                    market_id = market.id()
+                    market_positions = {k.split('_')[1]: positions[k] for k in positions.keys() if k.split('_')[0] == str(market_id)}
+                    market_position = market_positions.items()[0] if len(market_positions) else None
+                    position_contract = market_position[0] if market_position and market_position[0] != 'None' else None
+                    position_quantity = market_position[1] if market_position else 0
+                    market_mtm_transactions = [t for t in mtm_transactions if t.context()[0].id() == market_id]
+                    market_comm_transactions = [t for t in comm_transactions if t.context()[0].id() == market_id]
+                    mtm = account.aggregate(market_mtm_transactions, mtm_types)
+                    mtm = sum(account.base_value(mtm[c], c, date) for c in mtm.keys())
+                    commissions = account.aggregate(market_comm_transactions, comm_types)
+                    commissions = sum(account.base_value(commissions[c], c, date) for c in commissions.keys())
+                    equity = mtm + commissions
 
-                values.append((
-                    simulation_id,
-                    market_id,
-                    position_contract,
-                    date,
-                    equity,
-                    mtm,
-                    commissions,
-                    position_quantity
-                ))
+                    values.append((
+                        simulation_id,
+                        market_id,
+                        position_contract,
+                        date,
+                        equity,
+                        mtm,
+                        commissions,
+                        position_quantity
+                    ))
 
         self.__insert_values('market_equity', 'simulation_id', simulation_id, columns, values)
 
