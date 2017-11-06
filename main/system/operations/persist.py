@@ -29,6 +29,7 @@ class Persist:
         # self.__save_positions(simulation_id, broker, start_date, end_date)
         # self.__save_studies(simulation_id, futures, data_series.study_parameters())
         # self.__save_equity(simulation_id, account, start_date, end_date)
+        # self.__save_market_equity(simulation_id, account, broker, futures, start_date, end_date)
 
         # self.__save_price_series(simulation_id, roll_strategy_id, roll_strategy_name, futures)
 
@@ -158,6 +159,7 @@ class Persist:
         #      ) for p in portfolio.closed_positions() + portfolio.open_positions()]
         # )
 
+    # TODO 'simulation_id' is not used
     def __save_price_series(self, simulation_id, roll_strategy_id, roll_strategy_name, markets):
         """
         Persist continuous adjusted price series of the markets passed in
@@ -336,6 +338,74 @@ class Persist:
         self.__insert_values('equity', 'simulation_id', simulation_id, columns, values)
 
         self.__log('Saving equity', complete=True)
+
+    def __save_market_equity(self, simulation_id, account, broker, markets, start_date, end_date):
+        """
+        Calculates equity, balances and margins and insert the values into DB
+
+        :param int simulation_id:   ID of the simulation
+        :param Account account:     Account instance
+        :param Broker broker:       Broker instance
+        :param list markets:        list of markets
+        :param date start_date:     start date to calculate from
+        :param date end_date:       end date to calculate to
+        """
+        self.__log('Saving market equity')
+
+        mtm_types = [TransactionType.MTM_TRANSACTION, TransactionType.MTM_POSITION]
+        comm_types = [TransactionType.COMMISSION]
+        columns = [
+            'simulation_id',
+            'market_id',
+            'contract',
+            'date',
+            'equity',
+            'marked_to_market',
+            'commissions',
+            'positions'
+        ]
+        values = []
+        date_range = Timer.daily_date_range(start_date, end_date)
+        length = float(len(date_range))
+
+        for i, date in enumerate(date_range):
+            self.__log('Saving market positions', i, length)
+
+            transactions = account.transactions(date, date, True)
+            mtm_transactions = [t for t in transactions if t.type() in mtm_types]
+            comm_transactions = [t for t in transactions if t.type() in comm_types]
+            positions = broker.positions(date)
+
+            for market in markets:
+                market_data, _ = market.data(date)
+                if market_data:
+                    market_id = market.id()
+                    market_positions = {k.split('_')[1]: positions[k] for k in positions.keys() if k.split('_')[0] == str(market_id)}
+                    market_position = market_positions.items()[0] if len(market_positions) else None
+                    position_contract = market_position[0] if market_position and market_position[0] != 'None' else None
+                    position_quantity = market_position[1] if market_position else 0
+                    market_mtm_transactions = [t for t in mtm_transactions if t.context()[0].id() == market_id]
+                    market_comm_transactions = [t for t in comm_transactions if t.context()[0].id() == market_id]
+                    mtm = account.aggregate(market_mtm_transactions, mtm_types)
+                    mtm = sum(account.base_value(mtm[c], c, date) for c in mtm.keys())
+                    commissions = account.aggregate(market_comm_transactions, comm_types)
+                    commissions = sum(account.base_value(commissions[c], c, date) for c in commissions.keys())
+                    equity = mtm + commissions
+
+                    values.append((
+                        simulation_id,
+                        market_id,
+                        position_contract,
+                        date,
+                        equity,
+                        mtm,
+                        commissions,
+                        position_quantity
+                    ))
+
+        self.__insert_values('market_equity', 'simulation_id', simulation_id, columns, values)
+
+        self.__log('Saving market equity', complete=True)
 
     def __json(self, dictionary):
         """
