@@ -49,7 +49,7 @@ class Risk(object):
         position_sizes = {}
 
         if len(markets):
-            price_date = date
+            dates = {}
             prices = {}
             correlation_data = {}
             for market_id in sorted(markets.keys()):
@@ -57,6 +57,7 @@ class Risk(object):
                 market_data, _ = market.data(date)
                 data = market_data if market_data else market.data_range(end_date=date)[-1]
                 price_date = data[Table.Market.PRICE_DATE]
+                dates[market_id] = price_date
                 prices[market_id] = data[Table.Market.SETTLE_PRICE]
                 correlation_data[market_id] = market.correlation(price_date)
             # TODO filter too expensive positions
@@ -65,7 +66,8 @@ class Risk(object):
                 PositionSizing.EQUAL_WEIGHTS: self.__equally_weighted_sizes,
                 PositionSizing.CORRELATION_WEIGHTS: self.__correlation_weighted_sizes
             }[self.__position_sizing](
-                price_date,
+                date,
+                dates,
                 prices,
                 correlation_data,
                 daily_cash_volatility_target,
@@ -75,11 +77,12 @@ class Risk(object):
 
         return position_sizes
 
-    def __fixed_risk_sizes(self, date, prices, correlation_data, vol_target, markets, forecasts):
+    def __fixed_risk_sizes(self, date, dates, prices, correlation_data, vol_target, markets, forecasts):
         """
         Calculate position sizes based on recent volatility
         
-        :param date:                date of the data
+        :param date:                current date
+        :param dict dates:          date of data for each market
         :param prices:              dict of prices and market IDs as keys
         :param correlation_data:    correlation data among individual markets
         :param vol_target:          daily cash volatility target
@@ -92,6 +95,7 @@ class Risk(object):
 
         for key in forecasts.keys():
             market_id = int(key.split('_')[0])
+            date = dates[market_id]
             market = markets[market_id]
             base_point_value = float(self.__account.base_value(market.point_value(), market.currency(), date))
             atr_study = market.study(Study.ATR_LONG, date)
@@ -107,11 +111,12 @@ class Risk(object):
 
         return position_sizes
 
-    def __equally_weighted_sizes(self, date, prices, correlation_data, vol_target, markets, forecasts):
+    def __equally_weighted_sizes(self, date, dates, prices, correlation_data, vol_target, markets, forecasts):
         """
         Calculate position sizes for the markets passed in based on volatility data
         
-        :param date:                date of the data
+        :param date:                current date
+        :param dict dates:          date of data for each market
         :param prices:              dict of prices and market IDs as keys
         :param correlation_data:    correlation data among individual markets
         :param vol_target:          daily cash volatility target
@@ -119,7 +124,7 @@ class Risk(object):
         :param dict forecasts:      signal forecast of each market
         :return:                    dict of position sizes and market IDs as keys
         """
-        volatility, volatility_scalars = self.__volatility_scalars(date, prices, correlation_data, vol_target, markets)
+        volatility, volatility_scalars = self.__volatility_scalars(date, dates, prices, correlation_data, vol_target, markets)
         market_forecasts = defaultdict(int)
         for key in forecasts.keys():
             market_id = int(key.split('_')[0])
@@ -135,11 +140,12 @@ class Risk(object):
 
         return position_sizes
 
-    def __correlation_weighted_sizes(self, date, prices, correlation_data, vol_target, markets, forecasts):
+    def __correlation_weighted_sizes(self, date, dates, prices, correlation_data, vol_target, markets, forecasts):
         """
         Calculate position sizes for the markets passed in based on correlation and volatility data
         
-        :param date:                date of the data
+        :param date:                current date
+        :param dict dates:          date of data for each market
         :param prices:              dict of prices and market IDs as keys
         :param correlation_data:    correlation data among individual markets
         :param vol_target:          daily cash volatility target
@@ -148,7 +154,7 @@ class Risk(object):
         :return:                    dict of position sizes and market IDs as keys
         """
         correlations, market_weights = self.__correlation_weights(correlation_data, markets)
-        volatility, volatility_scalars = self.__volatility_scalars(date, prices, correlation_data, vol_target, markets)
+        volatility, volatility_scalars = self.__volatility_scalars(date, dates, prices, correlation_data, vol_target, markets)
         # Diversification multiplier
         DM = self.__volatility_target / self.__optimal_volatility(volatility, correlations, market_weights)
         position_sizes = {}
@@ -235,11 +241,12 @@ class Risk(object):
         logs = sum(log(inner_correlation[market_id]**group_weights[market_id]) for market_id in market_ids)
         return {market_id: log(inner_correlation[market_id]**group_weights[market_id]) / logs for market_id in market_ids}
 
-    def __volatility_scalars(self, date, prices, correlation_data, daily_cash_volatility_target, markets):
+    def __volatility_scalars(self, date, dates, prices, correlation_data, daily_cash_volatility_target, markets):
         """
         Calculate price volatility and volatility scalars for each market
         
-        :param date:                            date on which to calculate
+        :param date:                            current date
+        :param dict dates:                      date of data for each market
         :param prices:                          dict of prices and their respective market IDs as keys
         :param correlation_data:                dict of market ID as a key and record from 'market_correlation' as a value
         :param daily_cash_volatility_target:    equity x volatility target / sqrt(256)
@@ -249,11 +256,14 @@ class Risk(object):
         volatility = {}
         scalars = {}
         for market_id in markets.keys():
+            date = dates[market_id]
             market = markets[market_id]
             point_value = market.point_value()
-            # TODO use actual contract prices -- continuous prices are distorted
-            block_value = (abs(prices[market_id]) * point_value if abs(prices[market_id]) else point_value) / 100
-            price_volatility = correlation_data[market_id][Table.MarketCorrelation.VOLATILITY] if correlation_data[market_id] else 0.02
+            contract = market.contract(date)
+            price = market.contract_data(contract, date)[Table.Market.SETTLE_PRICE] if contract else abs(prices[market_id])
+            block_value = price * point_value / 100
+            variance = market.study(Study.PRICE_VARIANCE, date)[Table.Study.VALUE]
+            price_volatility = (variance ** 0.5) / price
             instrument_currency_volatility = price_volatility * block_value
             instrument_value_volatility = self.__account.base_value(instrument_currency_volatility, market.currency(), date)
             volatility_scalar = daily_cash_volatility_target / instrument_value_volatility
