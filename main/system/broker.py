@@ -207,10 +207,10 @@ class Broker(object):
                 OrderType.STC: price - previous_settle_price
             }[order_type]
             context = {
-                OrderType.BTO: (market, contract, settle_price),
-                OrderType.STO: (market, contract, settle_price),
-                OrderType.BTC: (market, contract, price),
-                OrderType.STC: (market, contract, price)
+                OrderType.BTO: (market, contract, settle_price, quantity),
+                OrderType.STO: (market, contract, settle_price, quantity),
+                OrderType.BTC: (market, contract, price, quantity),
+                OrderType.STC: (market, contract, price, quantity)
             }[order_type]
             pnl = Decimal(pnl * abs(quantity) * market.point_value())
             self.__add_transaction(TransactionType.MTM_TRANSACTION, date, pnl, market.currency(), context)
@@ -224,7 +224,7 @@ class Broker(object):
                 price = market_data[Table.Market.SETTLE_PRICE]
                 previous_settle_price = previous_data[Table.Market.SETTLE_PRICE]
                 pnl = price - previous_settle_price if quantity > 0 else previous_settle_price - price
-                context = (market, k.split('_')[1], price)
+                context = (market, k.split('_')[1], price, quantity)
                 pnl = Decimal(pnl * abs(quantity) * market.point_value())
                 self.__add_transaction(TransactionType.MTM_POSITION, date, pnl, market.currency(), context)
 
