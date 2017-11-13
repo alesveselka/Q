@@ -166,12 +166,9 @@ class Simulate:
             if market_data:
                 key = '%s_%s' % (market.id(), signal.contract())
                 open_position = open_positions[key] if key in open_positions else None
-                position_size = self.__position_sizes[key]
-                volume = market.study(Study.VOL_SHORT)[Table.Study.VALUE]
-                sign = 1 if position_size >= 0 else -1
-                liquid_position_size = position_size if abs(position_size) <= volume else int(volume / 3 * sign)
-                if open_position is None or open_position != liquid_position_size:
-                    order_size = liquid_position_size - (open_position if open_position else 0)
+                position_size = self.__liquid_position_size(market, self.__position_sizes[key])
+                if open_position is None or open_position != position_size:
+                    order_size = position_size - (open_position if open_position else 0)
                     open_price = market_data[Table.Market.OPEN_PRICE]
                     no_trade_size = abs(open_position * self.__position_inertia if open_position else 0)
                     if abs(order_size) > no_trade_size:
@@ -183,6 +180,18 @@ class Simulate:
             self.__trading_signals.remove(signal)
 
         return orders
+
+    def __liquid_position_size(self, market, position_size):
+        """
+        Check market's liquidity and possibly return position size that can be executed
+        
+        :param Market market:       Market which liquidity to check
+        :param int position_size:   size of the original position
+        :return int:                final position size
+        """
+        volume = market.study(Study.VOL_SHORT)[Table.Study.VALUE]
+        sign = 1 if position_size >= 0 else -1
+        return position_size if abs(position_size) <= volume else int(volume / 3 * sign)
 
     def __log(self, report, full_report, start_date, end_date, interval):
         """
