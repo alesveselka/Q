@@ -55,13 +55,15 @@ class Broker(object):
         """
         Create Transactions from Orders and transfer them for execution
 
-        :param order:           an Order instance to transfer
-        :param open_positions:  list of open positions
-        :return:                OrderResult instance
+        :param Order order:                 an Order instance to transfer
+        :param int target_position_size:    target position size
+        :param int open_position:           open position size
+        :return OrderResult:
         """
         market = order.market()
         volume = market.study(Study.VOL_SHORT)[Table.Study.VALUE]
-        quantity = order.quantity() if order.quantity() <= volume else floor(volume / 3)
+        sign = 1 if order.quantity() >= 0 else -1
+        quantity = order.quantity() if abs(order.quantity()) <= volume else int(volume / 3 * sign)
         order_result = OrderResult(OrderResultType.REJECTED, order, order.price(), quantity, 0, 0)
 
         if quantity:
@@ -207,10 +209,10 @@ class Broker(object):
                 OrderType.STC: price - previous_settle_price
             }[order_type]
             context = {
-                OrderType.BTO: (market, contract, settle_price),
-                OrderType.STO: (market, contract, settle_price),
-                OrderType.BTC: (market, contract, price),
-                OrderType.STC: (market, contract, price)
+                OrderType.BTO: (market, contract, settle_price, quantity),
+                OrderType.STO: (market, contract, settle_price, quantity),
+                OrderType.BTC: (market, contract, price, quantity),
+                OrderType.STC: (market, contract, price, quantity)
             }[order_type]
             pnl = Decimal(pnl * abs(quantity) * market.point_value())
             self.__add_transaction(TransactionType.MTM_TRANSACTION, date, pnl, market.currency(), context)
@@ -224,7 +226,7 @@ class Broker(object):
                 price = market_data[Table.Market.SETTLE_PRICE]
                 previous_settle_price = previous_data[Table.Market.SETTLE_PRICE]
                 pnl = price - previous_settle_price if quantity > 0 else previous_settle_price - price
-                context = (market, k.split('_')[1], price)
+                context = (market, k.split('_')[1], price, quantity)
                 pnl = Decimal(pnl * abs(quantity) * market.point_value())
                 self.__add_transaction(TransactionType.MTM_POSITION, date, pnl, market.currency(), context)
 

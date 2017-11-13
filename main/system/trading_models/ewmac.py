@@ -39,9 +39,11 @@ class EWMAC(TradingModel):
                 market_position = market_positions.items()[0] if len(market_positions) else None
                 forecast = self.__forecast(date, market, market_data)
                 contract = market.contract(date)
+                current_contract_positions = [k for k in market_positions if k == contract]
+                past_contract_positions = [k for k in market_positions if k != contract]
+                price = market_data[Table.Market.SETTLE_PRICE]
 
                 if market_position:
-                    price = market_data[Table.Market.SETTLE_PRICE]
                     previous_date = previous_data[Table.Market.PRICE_DATE]
                     position_contract = self._position_contract(market_position[0])
                     # Roll
@@ -49,9 +51,13 @@ class EWMAC(TradingModel):
                         signals.append(Signal(date, market, position_contract, 0, price))
                         signals.append(Signal(date, market, contract, forecast, price))
 
+                # Exit remaining position from previous contract
+                if len(current_contract_positions) and len(past_contract_positions):
+                    for past_contract in past_contract_positions:
+                        signals.append(Signal(date, market, past_contract, 0, price))
+
+                # New forecast signals
                 if not len([s for s in signals if s.market() == market and s.contract() == contract]):
-                    price = market_data[Table.Market.SETTLE_PRICE] if market_data \
-                        else market.data_range(end_date=date)[-1][Table.Market.SETTLE_PRICE]
                     signals.append(Signal(date, market, contract, forecast, price))
 
         return signals

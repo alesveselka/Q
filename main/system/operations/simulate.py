@@ -5,6 +5,7 @@ from enum import EventType
 from enum import Interval
 from enum import OrderResultType
 from enum import Table
+from enum import Study
 from report import Report
 from order import Order
 from timer import Timer
@@ -35,7 +36,6 @@ class Simulate:
         self.__use_position_inertia = use_position_inertia
         self.__trading_signals = []
         self.__position_sizes = {}
-        self.__order_results = []
         self.__timer = Timer()
 
         end_date = dt.date(1992, 12, 31)
@@ -148,7 +148,6 @@ class Simulate:
                            and self.__broker.transfer(order, position_size, open_position) \
                            or OrderResult(OrderResultType.REJECTED, order, 0, 0, 0, 0)
             # TODO check remaining partially-filled orders
-            self.__order_results.append(order_result)
 
     def __orders(self, date, open_positions):
         """
@@ -167,7 +166,7 @@ class Simulate:
             if market_data:
                 key = '%s_%s' % (market.id(), signal.contract())
                 open_position = open_positions[key] if key in open_positions else None
-                position_size = self.__position_sizes[key]
+                position_size = self.__liquid_position_size(market, self.__position_sizes[key])
                 if open_position is None or open_position != position_size:
                     order_size = position_size - (open_position if open_position else 0)
                     open_price = market_data[Table.Market.OPEN_PRICE]
@@ -181,6 +180,18 @@ class Simulate:
             self.__trading_signals.remove(signal)
 
         return orders
+
+    def __liquid_position_size(self, market, position_size):
+        """
+        Check market's liquidity and possibly return position size that can be executed
+        
+        :param Market market:       Market which liquidity to check
+        :param int position_size:   size of the original position
+        :return int:                final position size
+        """
+        volume = market.study(Study.VOL_SHORT)[Table.Study.VALUE]
+        sign = 1 if position_size >= 0 else -1
+        return position_size if abs(position_size) <= volume else int(volume / 3 * sign)
 
     def __log(self, report, full_report, start_date, end_date, interval):
         """
