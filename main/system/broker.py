@@ -55,13 +55,15 @@ class Broker(object):
         """
         Create Transactions from Orders and transfer them for execution
 
-        :param order:           an Order instance to transfer
-        :param open_positions:  list of open positions
-        :return:                OrderResult instance
+        :param Order order:                 an Order instance to transfer
+        :param int target_position_size:    target position size
+        :param int open_position:           open position size
+        :return OrderResult:
         """
         market = order.market()
         volume = market.study(Study.VOL_SHORT)[Table.Study.VALUE]
-        quantity = order.quantity() if order.quantity() <= volume else floor(volume / 3)
+        sign = 1 if order.quantity() >= 0 else -1
+        quantity = order.quantity() if abs(order.quantity()) <= volume else int(volume / 3 * sign)
         order_result = OrderResult(OrderResultType.REJECTED, order, order.price(), quantity, 0, 0)
 
         if quantity:
