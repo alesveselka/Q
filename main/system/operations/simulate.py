@@ -35,7 +35,6 @@ class Simulate:
         self.__use_position_inertia = use_position_inertia
         self.__trading_signals = []
         self.__position_sizes = {}
-        self.__order_results = []
         self.__timer = Timer()
 
         end_date = dt.date(1992, 12, 31)
@@ -148,7 +147,6 @@ class Simulate:
                            and self.__broker.transfer(order, position_size, open_position) \
                            or OrderResult(OrderResultType.REJECTED, order, 0, 0, 0, 0)
             # TODO check remaining partially-filled orders
-            self.__order_results.append(order_result)
 
     def __orders(self, date, open_positions):
         """
