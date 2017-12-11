@@ -1,6 +1,5 @@
 #!/usr/bin/python
 
-from math import floor
 from enum import OrderType
 from enum import OrderResultType
 from enum import TransactionType
@@ -282,6 +281,8 @@ class Broker(object):
         """
         Calculates interest amount and add respective transaction
 
+        The formula uses a 365-day divisor for UK, Singapore and South African shares, and a 360-day divisor for shares in other markets.
+
         :param currency:        currency symbol of the balance
         :param minimum:         balance cut-off minimums
         :param spread:          spread to combine rate with
@@ -292,7 +293,7 @@ class Broker(object):
         :param previous_date:   previous date
         :param target:          target balance, either margin-loan or fx-balance
         """
-        days = 365
+        days = 365 if currency == 'GBP' or currency == 'SGD' else 360
         transaction_type = TransactionType.BALANCE_INTEREST if target == 'balance' else TransactionType.MARGIN_INTEREST
         fn = self.__account.fx_balance if target == 'balance' else self.__account.margin_loan_balance
         balance = Decimal(fn(currency, previous_date) - minimum)
