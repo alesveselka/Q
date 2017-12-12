@@ -28,6 +28,10 @@ class Broker(object):
         self.__trade_records = []
         self.__trade_indexes = defaultdict(list)
         self.__position_records = {}
+        self.__days_in_year = {
+            365: 'AUD,CAD,CNH,CNY,GBP,HKD,KRW,ILS,INR,NZD,RUB,SGD'.split(','),
+            360: 'USD,EUR,CHF,CZK,JPY,SEK,NOK,DKK,HUF,MXN'.split(',')
+        }
 
     def update_account(self, date, previous_date):
         """
@@ -293,7 +297,7 @@ class Broker(object):
         :param previous_date:   previous date
         :param target:          target balance, either margin-loan or fx-balance
         """
-        days = 365 if currency == 'GBP' or currency == 'SGD' else 360
+        days = 365 if currency in self.__days_in_year[365] else 360
         transaction_type = TransactionType.BALANCE_INTEREST if target == 'balance' else TransactionType.MARGIN_INTEREST
         fn = self.__account.fx_balance if target == 'balance' else self.__account.margin_loan_balance
         balance = Decimal(fn(currency, previous_date) - minimum)
